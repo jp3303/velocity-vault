@@ -467,19 +467,19 @@
         const z = 9 + delta * 0.08;
         if (z < 4 || z > 132) return;
         const vehicle = getVehicle(opponent.vehicleId);
-        addVehicle(vehicle.type, opponent.lane * laneScale, z, opponent.color || vehicle.color, 0.95, false);
+        addVehicle(vehicle.type, opponent.lane * laneScale, z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
       });
       data.raceState.rivals.forEach((rival) => {
         const t = rival.y / Math.max(1, data.height);
         const z = 112 - t * 115;
         if (z < 4 || z > 132) return;
-        addVehicle(rival.type || "car", rival.lane * laneScale, z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false);
+        addVehicle(rival.type || "car", rival.lane * laneScale, z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
       });
       data.raceState.police.forEach((unit) => {
         const t = unit.y / Math.max(1, data.height);
         const z = 112 - t * 115;
         if (z < 4 || z > 132) return;
-        addVehicle("car", unit.lane * laneScale, z, "#f4fbf8", 0.98, true);
+        addVehicle("car", unit.lane * laneScale, z, "#f4fbf8", 0.98, true, unit.damage || 0);
       });
       data.raceState.coinsOnRoad.forEach((coin) => {
         const t = coin.y / Math.max(1, data.height);
@@ -507,15 +507,16 @@
 
       const laneX = data.raceState.lane * 2.08;
       const shake = data.raceState.cameraShake || 0;
+      const curve = data.raceState.roadCurve || 0;
       const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
-      let eye = [laneX * 0.65 + jitter, 3.2, -9.8];
-      let target = [laneX * 0.22, 0.85, 18];
+      let eye = [laneX * 0.65 - curve * 1.2 + jitter, 3.2, -9.8];
+      let target = [laneX * 0.22 + curve * 4.2, 0.85, 18];
       if (data.cameraMode === "hood") {
-        eye = [laneX * 0.42 + jitter, 2.1, -4.2];
-        target = [laneX * 0.15, 0.75, 26];
+        eye = [laneX * 0.42 - curve * 0.8 + jitter, 2.1, -4.2];
+        target = [laneX * 0.15 + curve * 4.6, 0.75, 26];
       } else if (data.cameraMode === "cockpit") {
-        eye = [laneX * 0.25 + jitter, 2.25, -2.1];
-        target = [laneX * 0.08, 0.85, 32];
+        eye = [laneX * 0.25 - curve * 0.65 + jitter, 2.25, -2.1];
+        target = [laneX * 0.08 + curve * 4.8, 0.85, 32];
       }
       const view = lookAt(eye, target, [0, 1, 0]);
       const proj = perspective(Math.PI / (data.cameraMode === "cockpit" ? 2.25 : 2.55), data.width / Math.max(1, data.height), 0.1, 220);

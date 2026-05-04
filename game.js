@@ -133,6 +133,7 @@ const raceState = {
   resetTimer: 0,
   resetReason: "",
   crashCooldown: 0,
+  roadCurve: 0,
   roadOffset: 0,
   spawnClock: 0,
   coinClock: 0,
@@ -540,6 +541,7 @@ function launchRace() {
     resetTimer: 0,
     resetReason: "",
     crashCooldown: 0,
+    roadCurve: 0,
     roadOffset: 0,
     spawnClock: 0,
     coinClock: 0,
@@ -600,6 +602,7 @@ function saveRace() {
       resetTimer: raceState.resetTimer,
       resetReason: raceState.resetReason,
       crashCooldown: raceState.crashCooldown,
+      roadCurve: raceState.roadCurve,
       roadOffset: raceState.roadOffset,
       spawnClock: raceState.spawnClock,
       coinClock: raceState.coinClock,
@@ -649,6 +652,7 @@ function resumeSavedRace() {
   raceState.resetTimer = Math.max(0, Number(saved.state.resetTimer) || 0);
   raceState.resetReason = saved.state.resetReason || "";
   raceState.crashCooldown = Math.max(0, Number(saved.state.crashCooldown) || 0);
+  raceState.roadCurve = Number(saved.state.roadCurve) || 0;
   input.paused = Boolean(saved.inputPaused);
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
@@ -939,9 +943,13 @@ function makeOpponents(playerVehicle, age, director) {
       speed: 35 + index * 8,
       targetBias: 0.9 + index * 0.035 + Math.random() * 0.08,
       focus: 100,
+      damage: 0,
+      wrecked: false,
       color: vehicle.color,
       wobble: Math.random() * Math.PI * 2,
       bumpCooldown: 0,
+      laneVelocity: 0,
+      spin: 0,
       finished: false,
       ageSpeed: age.speed,
       aiTune: director.traffic
@@ -953,26 +961,40 @@ function updateOpponents(dt, maxSpeed) {
   const length = raceLength();
   raceState.opponents.forEach((opponent, index) => {
     if (opponent.finished) return;
+    opponent.damage = Math.max(0, Math.min(100, Number(opponent.damage) || 0));
+    opponent.laneVelocity = Number(opponent.laneVelocity) || 0;
+    opponent.spin = Number(opponent.spin) || 0;
     const vehicle = vehicleById(opponent.vehicleId);
     const routePush = routeVehicleBoost(selectedRace.place, vehicle.type, true);
     const racePressure = Math.max(-0.12, Math.min(0.16, (raceState.distance - opponent.distance) / length));
-    const target = maxSpeed * vehicle.speed * opponent.targetBias * routePush * (0.88 + opponent.aiTune * 0.07 + racePressure);
-    opponent.speed += (target - opponent.speed) * Math.min(1, dt * (0.85 + vehicle.handling * 0.35));
+    const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
+    const target = opponent.wrecked
+      ? Math.max(18, maxSpeed * 0.16 * damageDrag)
+      : maxSpeed * vehicle.speed * opponent.targetBias * routePush * (0.88 + opponent.aiTune * 0.07 + racePressure) * damageDrag;
+    opponent.speed += (target - opponent.speed) * Math.min(1, dt * (opponent.wrecked ? 0.45 : 0.85 + vehicle.handling * 0.35));
     opponent.distance = Math.min(length + 80, opponent.distance + Math.max(0, opponent.speed) * dt);
     opponent.wobble += dt * (0.85 + index * 0.08);
     const laneTarget = Math.sin(opponent.wobble) * 1.7 + Math.sin(opponent.wobble * 0.47 + index) * 0.34;
-    opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling;
+    if (!opponent.wrecked) {
+      opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling * Math.max(0.42, damageDrag);
+    }
+    opponent.lane += (opponent.laneVelocity || 0) * dt;
+    opponent.laneVelocity = (opponent.laneVelocity || 0) * Math.max(0, 1 - dt * (opponent.wrecked ? 0.75 : 1.35));
     opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
+    opponent.spin += (opponent.wrecked ? 1.8 : 0.2) * dt * Math.sign(opponent.laneVelocity || 1);
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
     const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < 18 && Math.abs(opponent.lane - raceState.lane) < 0.46;
     if (wheelToWheel && opponent.bumpCooldown <= 0 && raceState.resetTimer <= 0) {
       opponent.bumpCooldown = 1.35;
-      opponent.speed *= 0.86;
+      const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
+      opponent.speed *= 0.78;
+      opponent.laneVelocity += side * 1.15;
       opponent.focus = Math.max(0, opponent.focus - 22);
-      raceState.speed *= 0.88;
-      raceState.lateralVelocity += Math.sign(raceState.lane - opponent.lane || 1) * 0.85;
+      raceState.speed *= 0.82;
+      raceState.lateralVelocity -= side * 0.95;
       raceState.cameraShake = Math.max(raceState.cameraShake, 9);
       applyVehicleDamage(12 / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
+      applyOpponentDamage(opponent, 22 / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       playHitSound("impact");
     }
@@ -1031,7 +1053,12 @@ function spawnRival() {
     speed: 210 + Math.random() * 130 * age.traffic * director.traffic,
     color: Math.random() > 0.45 ? def.color : (Math.random() > 0.5 ? "#ff5b6b" : "#ffd166"),
     type,
-    passed: false
+    passed: false,
+    contactCooldown: 0,
+    damage: 0,
+    wrecked: false,
+    laneVelocity: 0,
+    spin: 0
   });
 }
 
@@ -1044,7 +1071,11 @@ function spawnPoliceUnit() {
     h: 112,
     speed: 260 + Math.random() * 95 + raceState.heat * 0.9,
     passed: false,
-    hit: false
+    contactCooldown: 0,
+    damage: 0,
+    wrecked: false,
+    laneVelocity: 0,
+    spin: 0
   });
 }
 
@@ -1129,6 +1160,9 @@ function tick(dt) {
   raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
   raceState.roadOffset += raceState.speed * dt;
   raceState.elapsed += dt;
+  const curveSeed = selectedRace ? selectedRace.id.length * 0.43 : 1;
+  const curveTarget = Math.sin(raceState.distance * 0.00034 + curveSeed) * 0.72 + Math.sin(raceState.distance * 0.00012 + curveSeed * 2.7) * 0.34;
+  raceState.roadCurve += (curveTarget - (raceState.roadCurve || 0)) * Math.min(1, dt * 0.55);
   raceState.score += dt * Math.max(0, raceState.speed) * raceState.combo * 0.32;
   raceState.heat = Math.min(100, raceState.heat + dt * (gasInput ? 0.8 + Math.max(0, raceState.speed) / 185 : 0.1) + (boostInput && gasInput ? dt * 2.4 : 0));
   raceState.heatClock -= dt;
@@ -1161,32 +1195,67 @@ function moveObjects(dt) {
   const carLane = raceState.lane;
   const vehicle = selectedVehicle();
   raceState.rivals.forEach((rival) => {
-    rival.y += (rival.speed + Math.max(0, raceState.speed) * 0.18) * dt;
-    if (!rival.passed && rival.y > canvas.height * 0.72) {
+    rival.damage = Math.max(0, Math.min(100, Number(rival.damage) || 0));
+    rival.laneVelocity = Number(rival.laneVelocity) || 0;
+    rival.spin = Number(rival.spin) || 0;
+    rival.contactCooldown = Math.max(0, (rival.contactCooldown || 0) - dt);
+    const damageDrag = Math.max(0.24, 1 - ((rival.damage || 0) / 100) * 0.66);
+    if (rival.wrecked) {
+      rival.speed *= Math.max(0, 1 - dt * 1.65);
+      rival.spin += dt * (2.2 + Math.abs(rival.laneVelocity || 0)) * Math.sign(rival.laneVelocity || 1);
+    } else {
+      rival.speed *= Math.max(0, 1 - dt * (1 - damageDrag) * 0.18);
+      const avoid = rival.y > canvas.height * 0.26 && rival.y < canvas.height * 0.7 && Math.abs(rival.lane - carLane) < 0.85
+        ? Math.sign(rival.lane - carLane || 1) * 0.55
+        : 0;
+      rival.laneVelocity += avoid * dt;
+    }
+    rival.lane += (rival.laneVelocity || 0) * dt;
+    rival.laneVelocity = (rival.laneVelocity || 0) * Math.max(0, 1 - dt * 1.2);
+    rival.lane = Math.max(-2.24, Math.min(2.24, rival.lane));
+    rival.y += (Math.max(18, rival.speed * damageDrag) + Math.max(0, raceState.speed) * (rival.wrecked ? 0.24 : 0.18)) * dt;
+    if (!rival.passed && !rival.wrecked && rival.y > canvas.height * 0.72) {
       rival.passed = true;
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.12);
     }
     const laneHit = Math.abs(rival.lane - carLane) < 0.52;
     const yHit = rival.y > canvas.height * 0.64 && rival.y < canvas.height * 0.87;
-    if (laneHit && yHit && !rival.hit) {
-      rival.hit = true;
+    if (laneHit && yHit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+      rival.contactCooldown = 0.55;
       const shield = activeProfile.upgrades.shield;
       const impact = Math.max(8, (28 - shield * 2.7) / Math.max(0.72, vehicle.mass));
+      const side = Math.sign(rival.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
       applyVehicleDamage(impact, "Traffic impact");
+      applyTrafficDamage(rival, impact * 1.65, "Traffic disabled", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, rival.color || "#ff5b6b");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, 7);
-      raceState.speed *= Math.max(0.55, 0.82 - impact * 0.006);
-      raceState.lateralVelocity += Math.sign(carLane - rival.lane || 1) * 0.9;
+      raceState.speed *= Math.max(0.42, 0.78 - impact * 0.007);
+      raceState.lateralVelocity -= side * 1.05;
+      rival.laneVelocity += side * 1.35;
+      rival.speed *= Math.max(0.24, 0.62 - impact * 0.006);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, "#ff5b6b");
       playHitSound("impact");
     }
   });
   raceState.police.forEach((unit) => {
-    const pursuitPull = Math.sign(carLane - unit.lane) * dt * (0.18 + raceState.heat / 260);
-    unit.lane = Math.max(-2.2, Math.min(2.2, unit.lane + pursuitPull));
-    unit.y += (unit.speed + Math.max(0, raceState.speed) * 0.12) * dt;
-    if (!unit.passed && unit.y > canvas.height * 0.72) {
+    unit.damage = Math.max(0, Math.min(100, Number(unit.damage) || 0));
+    unit.laneVelocity = Number(unit.laneVelocity) || 0;
+    unit.spin = Number(unit.spin) || 0;
+    unit.contactCooldown = Math.max(0, (unit.contactCooldown || 0) - dt);
+    const damageDrag = Math.max(0.22, 1 - ((unit.damage || 0) / 100) * 0.62);
+    if (unit.wrecked) {
+      unit.speed *= Math.max(0, 1 - dt * 1.45);
+      unit.spin += dt * (2.4 + Math.abs(unit.laneVelocity || 0)) * Math.sign(unit.laneVelocity || 1);
+    } else {
+      const pursuitPull = Math.sign(carLane - unit.lane) * dt * (0.18 + raceState.heat / 260) * damageDrag;
+      unit.lane += pursuitPull;
+    }
+    unit.lane += (unit.laneVelocity || 0) * dt;
+    unit.laneVelocity = (unit.laneVelocity || 0) * Math.max(0, 1 - dt * 1.05);
+    unit.lane = Math.max(-2.2, Math.min(2.2, unit.lane));
+    unit.y += (Math.max(16, unit.speed * damageDrag) + Math.max(0, raceState.speed) * (unit.wrecked ? 0.22 : 0.12)) * dt;
+    if (!unit.passed && !unit.wrecked && unit.y > canvas.height * 0.72) {
       unit.passed = true;
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.2);
@@ -1195,16 +1264,20 @@ function moveObjects(dt) {
     }
     const laneHit = Math.abs(unit.lane - carLane) < 0.56;
     const yHit = unit.y > canvas.height * 0.61 && unit.y < canvas.height * 0.9;
-    if (laneHit && yHit && !unit.hit) {
-      unit.hit = true;
+    if (laneHit && yHit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+      unit.contactCooldown = 0.65;
       const shield = activeProfile.upgrades.shield;
       const impact = Math.max(12, (38 - shield * 2.5) / Math.max(0.72, vehicle.mass));
+      const side = Math.sign(unit.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
       applyVehicleDamage(impact, "Police contact");
+      applyTrafficDamage(unit, impact * 1.25, "Interceptor damaged", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, 12);
       raceState.heat = Math.min(100, raceState.heat + 12);
-      raceState.speed *= Math.max(0.48, 0.76 - impact * 0.005);
-      raceState.lateralVelocity += Math.sign(carLane - unit.lane || 1) * 1.2;
+      raceState.speed *= Math.max(0.36, 0.72 - impact * 0.006);
+      raceState.lateralVelocity -= side * 1.3;
+      unit.laneVelocity += side * 1.5;
+      unit.speed *= Math.max(0.22, 0.58 - impact * 0.004);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#ff3348");
       playHitSound("police");
@@ -1226,8 +1299,8 @@ function moveObjects(dt) {
       playHitSound("coin");
     }
   });
-  raceState.rivals = raceState.rivals.filter((r) => r.y < canvas.height + 120 && !r.hit);
-  raceState.police = raceState.police.filter((p) => p.y < canvas.height + 150 && !p.hit);
+  raceState.rivals = raceState.rivals.filter((r) => r.y < canvas.height + 220);
+  raceState.police = raceState.police.filter((p) => p.y < canvas.height + 240);
   if (!raceState.police.length && raceState.heat < 16) raceState.chaseActive = false;
   raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => c.y < canvas.height + 80 && !c.hit);
   raceState.particles.forEach((p) => {
@@ -1238,6 +1311,52 @@ function moveObjects(dt) {
     p.life -= dt;
   });
   raceState.particles = raceState.particles.filter((p) => p.life > 0);
+}
+
+function applyOpponentDamage(opponent, amount, reason, x, y, color) {
+  if (!opponent || amount <= 0) return;
+  opponent.damage = Math.max(0, Math.min(100, (opponent.damage || 0) + amount));
+  opponent.bumpCooldown = Math.max(opponent.bumpCooldown || 0, 0.7);
+  opponent.focus = Math.max(0, (opponent.focus || 100) - amount * 0.85);
+  if (opponent.damage >= 100 && !opponent.wrecked) {
+    opponent.wrecked = true;
+    opponent.speed *= 0.22;
+    opponent.laneVelocity += (Math.random() > 0.5 ? 1 : -1) * 1.4;
+    opponent.spin += 0.8;
+    showToast(`${reason}. Rival limping.`);
+  }
+  burst(x, y, color || "#ffd166");
+  if (opponent.damage > 48) emitVehicleSmoke(x, y, opponent.damage, color || "#888888");
+}
+
+function applyTrafficDamage(target, amount, reason, x, y, color) {
+  if (!target || amount <= 0) return;
+  target.damage = Math.max(0, Math.min(100, (target.damage || 0) + amount));
+  if (target.damage >= 100 && !target.wrecked) {
+    target.wrecked = true;
+    target.speed *= 0.18;
+    target.spin += 1.2;
+    target.laneVelocity += (Math.random() > 0.5 ? 1 : -1) * 1.2;
+    showToast(reason);
+  }
+  if (target.damage > 35) emitVehicleSmoke(x, y, target.damage, color || "#777777");
+}
+
+function emitVehicleSmoke(x, y, damage, color = "#777777") {
+  const count = Math.min(10, 3 + Math.floor(damage / 18));
+  for (let i = 0; i < count; i += 1) {
+    const life = 0.45 + Math.random() * 0.5;
+    raceState.particles.push({
+      x: x + (Math.random() - 0.5) * 32,
+      y: y + (Math.random() - 0.5) * 22,
+      vx: (Math.random() - 0.5) * 80,
+      vy: -40 - Math.random() * 80,
+      life,
+      maxLife: life,
+      radius: 10 + Math.random() * 18,
+      color: damage > 72 ? "rgba(22,22,20,0.48)" : "rgba(120,126,120,0.34)"
+    });
+  }
 }
 
 function applyVehicleDamage(amount, reason = "Impact", quiet = false) {
@@ -2448,8 +2567,9 @@ function drawHeadlightBeams(w, h, theme, horizon) {
 function objectPos(lane, y) {
   const h = canvas.height;
   const t = Math.max(0, y / h);
+  const curveShift = (raceState.roadCurve || 0) * (1 - Math.min(1, t)) * canvas.width * 0.18;
   return {
-    x: canvas.width / 2 + lane * laneWidth() * (0.42 + t * 0.72),
+    x: canvas.width / 2 + curveShift + lane * laneWidth() * (0.42 + t * 0.72),
     y,
     scale: 0.52 + t * 0.55
   };
@@ -2462,7 +2582,7 @@ function drawObjects() {
     if (y < canvas.height * 0.28 || y > canvas.height * 1.02) return;
     const p = objectPos(opponent.lane, y);
     const vehicle = vehicleById(opponent.vehicleId);
-    drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name);
+    drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0);
   });
   raceState.coinsOnRoad.forEach((coin) => {
     const p = objectPos(coin.lane, coin.y);
@@ -2470,11 +2590,11 @@ function drawObjects() {
   });
   raceState.rivals.forEach((rival) => {
     const p = objectPos(rival.lane, rival.y);
-    drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car");
+    drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0);
   });
   raceState.police.forEach((unit) => {
     const p = objectPos(unit.lane, unit.y);
-    drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car");
+    drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0);
   });
 }
 
@@ -2532,9 +2652,10 @@ function drawRaceStandings(w, h) {
   ctx.restore();
 }
 
-function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleType = "car", label = "") {
+function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleType = "car", label = "", damage = 0, wrecked = false, spin = 0) {
   ctx.save();
   ctx.translate(x, y);
+  if (wrecked || damage > 45) ctx.rotate(Math.max(-0.22, Math.min(0.22, (spin || 0) * 0.18)));
   const t = Math.max(0.3, Math.min(1.25, y / canvas.height));
   const w = width * (0.76 + t * 0.28);
   const h = height * (0.72 + t * 0.12);
@@ -2546,6 +2667,8 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(w, h, color, vehicleType, false);
+    drawVehicleDamageMarks(w, h, damage);
+    drawTrafficDamageBadge(w, h, damage, wrecked);
     if (label) {
       ctx.fillStyle = "rgba(5,8,7,0.72)";
       roundRect(-w * 0.36, -h * 0.76, w * 0.72, h * 0.16, 4);
@@ -2621,6 +2744,31 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.fillStyle = "rgba(244,251,248,0.58)";
   roundRect(-w * 0.08, h * 0.32, w * 0.16, h * 0.035, 3);
   ctx.fill();
+  drawVehicleDamageMarks(w, h, damage);
+  drawTrafficDamageBadge(w, h, damage, wrecked);
+  ctx.restore();
+}
+
+function drawTrafficDamageBadge(w, h, damage, wrecked) {
+  if (damage < 12 && !wrecked) return;
+  ctx.save();
+  const barWidth = w * 0.58;
+  const pct = Math.min(1, damage / 100);
+  ctx.fillStyle = "rgba(5,8,7,0.74)";
+  roundRect(-barWidth / 2, -h * 0.88, barWidth, h * 0.055, 3);
+  ctx.fill();
+  ctx.fillStyle = wrecked ? "#ff5b6b" : damage > 58 ? "#ffd166" : "#bbf24a";
+  roundRect(-barWidth / 2, -h * 0.88, barWidth * pct, h * 0.055, 3);
+  ctx.fill();
+  if (wrecked) {
+    ctx.fillStyle = "rgba(255,91,107,0.72)";
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.16, -h * 0.72);
+    ctx.lineTo(0, -h * 0.56);
+    ctx.lineTo(w * 0.16, -h * 0.72);
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.restore();
 }
 
