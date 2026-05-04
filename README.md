@@ -6,7 +6,7 @@ A standalone browser racing game built with local-only profiles, age-band select
 
 Open `index.html` in a browser.
 
-Use `Quick Play` to launch straight into a race, or `Enter Garage` to review upgrades, missions, and AI tuning first.
+Use `Quick Play` to launch straight into a race, or `Enter Garage` to review vehicles, upgrades, missions, and AI tuning first.
 
 Controls:
 
@@ -26,10 +26,11 @@ Driver views:
 
 Real-world style visuals:
 
-- Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, and a Rocky Mountain pass.
+- Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, Rocky Mountain pass, Miami harbor, Aspen snowfields, and a Nevada airfield.
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, and pass-specific colors.
-- Cars are original generic performance models with wider stances, shaded paint, wheels, headlights, tail lights, windows, panel seams, police markings, and light-bar glow. No real automaker trademarks or licensed car models are used.
-- Traffic now uses rear-view performance-car silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
+- Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
+- Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
+- Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
 - Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
@@ -42,6 +43,8 @@ Visual direction references:
 - Forza Horizon-style scenic variety: coast roads, city streets, canyon routes, and mountain passes.
 - Tokyo night-highway feel: neon signage, wet road reflections, tunnel/highway rhythm, and rival traffic tension.
 - Sim/cockpit cues: windshield framing, steering wheel, dashboard speed readout, heat alert, and road-focused forward camera.
+
+Graphics note: this is a practical standalone browser build using high-detail canvas rendering and 3D-style perspective. A true full 3D/console-level build would need a WebGL or game-engine asset pipeline, but this version is designed to load from GitHub Pages and install as a lightweight phone/computer app.
 
 ## Install As An App
 
