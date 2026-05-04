@@ -227,6 +227,7 @@ function showView(next) {
   document.body.classList.toggle("race-live", next === "race");
   if (next !== "race") clearTouchDriveInputs();
   setTouchDriveMode(touchDriveMode, true);
+  syncViewportSize();
   fitCanvas();
 }
 
@@ -1112,7 +1113,7 @@ function tick(dt) {
   const performanceHealth = Math.max(0.42, 1 - damageRatio * 0.44);
   const handlingHealth = Math.max(0.48, 1 - damageRatio * 0.34);
   const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost * performanceHealth;
-  const keySteer = Number(input.left) - Number(input.right);
+  const keySteer = Number(input.right) - Number(input.left);
   const steerInput = Math.abs(input.gamepadSteer) > Math.abs(keySteer) ? input.gamepadSteer : keySteer;
   const boostPower = boostInput && gasInput && raceState.focus > 2 ? (60 + upgrades.boost * 17) * performanceHealth : 0;
   const speedLimit = maxSpeed + boostPower;
@@ -1556,6 +1557,12 @@ function drawFrame() {
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
+    if (raceState.active) {
+      drawObjects();
+      drawCar(w, h);
+    } else {
+      drawDemoPursuitTraffic(w, h);
+    }
     drawCameraOverlay(w, h, theme);
     drawDamageOverlay(w, h, theme);
     if (raceState.active) drawRaceStandings(w, h);
@@ -2687,6 +2694,10 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.fill();
   roundRect(w * 0.4, -h * 0.03, w * 0.16, h * 0.36, 5);
   ctx.fill();
+  drawWheelRim(-w * 0.49, h * 0.08, w * 0.075, h * 0.15);
+  drawWheelRim(w * 0.49, h * 0.08, w * 0.075, h * 0.15);
+  drawWheelRim(-w * 0.48, h * 0.3, w * 0.065, h * 0.105, "rgba(255,209,102,0.24)");
+  drawWheelRim(w * 0.48, h * 0.3, w * 0.065, h * 0.105, "rgba(255,209,102,0.24)");
 
   const body = ctx.createLinearGradient(-w * 0.48, -h * 0.48, w * 0.48, h * 0.44);
   body.addColorStop(0, police ? "#ffffff" : shade(color, 38));
@@ -2705,13 +2716,25 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = Math.max(1, w * 0.016);
   ctx.stroke();
+  drawVehicleTrimDetails(w, h, color, police);
 
   ctx.fillStyle = "rgba(5,8,7,0.86)";
   roundRect(-w * 0.28, -h * 0.35, w * 0.56, h * 0.2, 7);
   ctx.fill();
+  ctx.fillStyle = "rgba(222,249,255,0.22)";
+  roundRect(-w * 0.22, -h * 0.31, w * 0.24, h * 0.035, 3);
+  ctx.fill();
   ctx.fillStyle = "rgba(5,8,7,0.92)";
   roundRect(-w * 0.34, h * 0.02, w * 0.68, h * 0.21, 8);
   ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.18)";
+  ctx.lineWidth = Math.max(1, w * 0.012);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.26, h * 0.06);
+  ctx.lineTo(w * 0.26, h * 0.06);
+  ctx.moveTo(0, h * 0.02);
+  ctx.lineTo(0, h * 0.23);
+  ctx.stroke();
 
   if (police) {
     ctx.fillStyle = "#111817";
@@ -2744,6 +2767,11 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.fillStyle = "rgba(244,251,248,0.58)";
   roundRect(-w * 0.08, h * 0.32, w * 0.16, h * 0.035, 3);
   ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.9)";
+  roundRect(-w * 0.17, h * 0.43, w * 0.12, h * 0.035, 3);
+  ctx.fill();
+  roundRect(w * 0.05, h * 0.43, w * 0.12, h * 0.035, 3);
+  ctx.fill();
   drawVehicleDamageMarks(w, h, damage);
   drawTrafficDamageBadge(w, h, damage, wrecked);
   ctx.restore();
@@ -2769,6 +2797,68 @@ function drawTrafficDamageBadge(w, h, damage, wrecked) {
     ctx.closePath();
     ctx.fill();
   }
+  ctx.restore();
+}
+
+function drawWheelRim(x, y, rx, ry, accent = "rgba(70,217,255,0.26)") {
+  ctx.save();
+  ctx.fillStyle = "rgba(4,6,6,0.96)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.28)";
+  ctx.lineWidth = Math.max(1, rx * 0.18);
+  ctx.stroke();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = Math.max(1, rx * 0.12);
+  ctx.beginPath();
+  ctx.moveTo(x - rx * 0.58, y);
+  ctx.lineTo(x + rx * 0.58, y);
+  ctx.moveTo(x, y - ry * 0.55);
+  ctx.lineTo(x, y + ry * 0.55);
+  ctx.moveTo(x - rx * 0.38, y - ry * 0.38);
+  ctx.lineTo(x + rx * 0.38, y + ry * 0.38);
+  ctx.moveTo(x + rx * 0.38, y - ry * 0.38);
+  ctx.lineTo(x - rx * 0.38, y + ry * 0.38);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawVehicleTrimDetails(w, h, color, police = false) {
+  ctx.save();
+  const trim = police ? "#111817" : shade(color, -46);
+  ctx.fillStyle = trim;
+  roundRect(-w * 0.65, -h * 0.24, w * 0.14, h * 0.06, 3);
+  ctx.fill();
+  roundRect(w * 0.51, -h * 0.24, w * 0.14, h * 0.06, 3);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.22)";
+  ctx.lineWidth = Math.max(1, w * 0.011);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.33, -h * 0.08);
+  ctx.lineTo(-w * 0.42, h * 0.38);
+  ctx.moveTo(w * 0.33, -h * 0.08);
+  ctx.lineTo(w * 0.42, h * 0.38);
+  ctx.moveTo(-w * 0.22, -h * 0.36);
+  ctx.lineTo(w * 0.22, -h * 0.36);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(5,8,7,0.86)";
+  roundRect(-w * 0.23, h * 0.38, w * 0.46, h * 0.065, 4);
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.74)";
+  roundRect(-w * 0.075, h * 0.392, w * 0.15, h * 0.032, 3);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,248,214,0.8)";
+  roundRect(-w * 0.37, -h * 0.46, w * 0.17, h * 0.055, 3);
+  ctx.fill();
+  roundRect(w * 0.2, -h * 0.46, w * 0.17, h * 0.055, 3);
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.84)";
+  roundRect(-w * 0.34, h * 0.25, w * 0.68, h * 0.055, 3);
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.18)";
+  roundRect(-w * 0.22, -h * 0.31, w * 0.44, h * 0.045, 3);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -2922,6 +3012,55 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.fill();
   }
 
+  const groundVehicle = !["boat", "snowmobile", "helicopter", "airplane"].includes(vehicleType);
+  if (groundVehicle) {
+    const rimAccent = vehicleType === "tractor" ? "rgba(255,209,102,0.38)" : "rgba(70,217,255,0.28)";
+    const frontY = vehicleType === "f1" || vehicleType === "prototype" ? h * 0.33 : h * 0.18;
+    const rearY = vehicleType === "f1" || vehicleType === "prototype" ? h * 0.43 : h * 0.38;
+    drawWheelRim(-w * 0.55, frontY, w * 0.075, h * 0.12, rimAccent);
+    drawWheelRim(w * 0.55, frontY, w * 0.075, h * 0.12, rimAccent);
+    drawWheelRim(-w * 0.5, rearY, w * 0.07, h * 0.105, rimAccent);
+    drawWheelRim(w * 0.5, rearY, w * 0.07, h * 0.105, rimAccent);
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.26, h * 0.31, w * 0.52, h * 0.075, 3);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,248,214,0.86)";
+    roundRect(-w * 0.34, -h * 0.5, w * 0.18, h * 0.055, 3);
+    ctx.fill();
+    roundRect(w * 0.16, -h * 0.5, w * 0.18, h * 0.055, 3);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.2)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.32, -h * 0.08);
+    ctx.lineTo(-w * 0.36, h * 0.3);
+    ctx.moveTo(w * 0.32, -h * 0.08);
+    ctx.lineTo(w * 0.36, h * 0.3);
+    ctx.stroke();
+  } else if (vehicleType === "boat" || vehicleType === "snowmobile") {
+    ctx.fillStyle = "rgba(244,251,248,0.18)";
+    roundRect(-w * 0.18, -h * 0.4, w * 0.36, h * 0.055, 3);
+    ctx.fill();
+    ctx.fillStyle = vehicleType === "boat" ? "rgba(70,217,255,0.44)" : "rgba(244,251,248,0.44)";
+    roundRect(-w * 0.34, h * 0.35, w * 0.68, h * 0.045, 3);
+    ctx.fill();
+  } else if (vehicleType === "helicopter") {
+    ctx.fillStyle = "rgba(244,251,248,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.62, w * 0.66, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.1, h * 0.48, w * 0.2, h * 0.08, 3);
+    ctx.fill();
+  } else if (vehicleType === "airplane") {
+    ctx.fillStyle = "rgba(255,248,214,0.82)";
+    roundRect(-w * 0.08, -h * 0.54, w * 0.16, h * 0.05, 3);
+    ctx.fill();
+    ctx.fillStyle = "rgba(70,217,255,0.36)";
+    roundRect(-w * 0.48, h * 0.08, w * 0.96, h * 0.035, 3);
+    ctx.fill();
+  }
+
   ctx.strokeStyle = "rgba(255,255,255,0.24)";
   ctx.lineWidth = Math.max(1, w * 0.016);
   ctx.stroke();
@@ -3015,6 +3154,10 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   ctx.fill();
   roundRect(width * 0.4, -height * 0.18, width * 0.16, height * 0.5, 8);
   ctx.fill();
+  drawWheelRim(-width * 0.49, -height * 0.01, width * 0.08, height * 0.16);
+  drawWheelRim(width * 0.49, -height * 0.01, width * 0.08, height * 0.16);
+  drawWheelRim(-width * 0.48, height * 0.27, width * 0.07, height * 0.12, "rgba(255,209,102,0.24)");
+  drawWheelRim(width * 0.48, height * 0.27, width * 0.07, height * 0.12, "rgba(255,209,102,0.24)");
 
   ctx.fillStyle = paint;
   ctx.beginPath();
@@ -3031,6 +3174,7 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   ctx.strokeStyle = "rgba(255,255,255,0.28)";
   ctx.lineWidth = Math.max(2, width * 0.018);
   ctx.stroke();
+  drawVehicleTrimDetails(width, height, color, false);
 
   const windshield = ctx.createLinearGradient(0, -height * 0.46, 0, height * 0.08);
   windshield.addColorStop(0, "rgba(222,249,255,0.72)");
@@ -3477,6 +3621,10 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.fill();
   roundRect(width * 0.39, height * 0.14, tireW, tireH, 5);
   ctx.fill();
+  drawWheelRim(-width * 0.475, -height * 0.14, width * 0.07, height * 0.12);
+  drawWheelRim(width * 0.475, -height * 0.14, width * 0.07, height * 0.12);
+  drawWheelRim(-width * 0.475, height * 0.26, width * 0.07, height * 0.12, "rgba(255,209,102,0.24)");
+  drawWheelRim(width * 0.475, height * 0.26, width * 0.07, height * 0.12, "rgba(255,209,102,0.24)");
 
   const body = ctx.createLinearGradient(-width * 0.48, -height * 0.52, width * 0.48, height * 0.52);
   body.addColorStop(0, shade(color, 42));
@@ -3498,6 +3646,7 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.strokeStyle = "rgba(255,255,255,0.28)";
   ctx.lineWidth = Math.max(1, width * 0.018);
   ctx.stroke();
+  drawVehicleTrimDetails(width, height, color, police);
 
   ctx.fillStyle = police ? "#111817" : shade(color, -36);
   ctx.globalAlpha = 0.64;
@@ -3663,10 +3812,22 @@ function drawPause(w, h) {
   ctx.fillText("Paused", w / 2, h / 2);
 }
 
+function syncViewportSize() {
+  const viewport = window.visualViewport;
+  const width = Math.max(320, Math.floor(viewport ? viewport.width : window.innerWidth));
+  const height = Math.max(240, Math.floor(viewport ? viewport.height : window.innerHeight));
+  document.documentElement.style.setProperty("--vvw", `${width}px`);
+  document.documentElement.style.setProperty("--vvh", `${height}px`);
+}
+
 function fitCanvas() {
+  syncViewportSize();
   const rect = canvas.getBoundingClientRect();
-  const width = Math.max(640, Math.floor(rect.width));
-  const height = Math.max(420, Math.floor(rect.height));
+  const racingViewport = document.body.classList.contains("race-live");
+  const minWidth = racingViewport ? 320 : 640;
+  const minHeight = racingViewport ? 240 : 420;
+  const width = Math.max(minWidth, Math.floor(rect.width));
+  const height = Math.max(minHeight, Math.floor(rect.height));
   canvas.width = width;
   canvas.height = height;
   if (glCanvas) {
@@ -3753,7 +3914,16 @@ function bindEvents() {
   mobileLayer.addEventListener("touchcancel", handleMobileTouchEnd, { passive: false });
   window.addEventListener("keydown", (event) => setKey(event, true));
   window.addEventListener("keyup", (event) => setKey(event, false));
-  window.addEventListener("resize", fitCanvas);
+  const resizeGame = () => {
+    syncViewportSize();
+    fitCanvas();
+  };
+  window.addEventListener("resize", resizeGame);
+  window.addEventListener("orientationchange", () => setTimeout(resizeGame, 180));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resizeGame);
+    window.visualViewport.addEventListener("scroll", resizeGame);
+  }
   window.addEventListener("gamepadconnected", (event) => setController(event.gamepad));
   window.addEventListener("gamepaddisconnected", () => clearController());
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -3909,6 +4079,7 @@ function setKey(event, down) {
 }
 
 bindEvents();
+syncViewportSize();
 fitCanvas();
 updateHud();
 setCameraMode(cameraMode, true);

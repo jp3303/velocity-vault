@@ -398,6 +398,8 @@
       const dark = [0.01, 0.015, 0.014, 1];
       const red = [1, 0.08, 0.12, 1];
       const blue = [0.1, 0.55, 1, 1];
+      const glass = [0.52, 0.72, 0.78, 1];
+      const chrome = [0.76, 0.82, 0.78, 1];
       if (type === "semi") {
         taperedBox(x, 0.8 * scale, z + 0.95 * scale, 1.75 * scale, 1.25 * scale, 1.2 * scale, 1.6 * scale, paint);
         taperedBox(x, 0.95 * scale, z - 1.25 * scale, 2.05 * scale, 1.78 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
@@ -436,8 +438,20 @@
         box(x, 0.46 * scale, z + 1.08 * scale, 0.58 * scale, 0.06 * scale, 0.08 * scale, shade(dark, 1.5));
         box(x - 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.72));
         box(x + 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.84));
+        box(x - 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.64));
+        box(x + 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.72));
+        box(x, 1.02 * scale, z + 0.38 * scale, 0.72 * scale, 0.08 * scale, 0.36 * scale, glass);
+        box(x, 0.94 * scale, z - 0.66 * scale, 0.86 * scale, 0.08 * scale, 0.28 * scale, shade(glass, 0.6));
+        box(x, 0.52 * scale, z - 1.22 * scale, 0.36 * scale, 0.055 * scale, 0.07 * scale, chrome);
+        box(x, 0.42 * scale, z + 1.12 * scale, 0.78 * scale, 0.055 * scale, 0.08 * scale, dark);
+        box(x - 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
+        box(x + 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
         if (type === "f1" || type === "prototype" || type === "car") {
           box(x, 0.8 * scale, z - 1.16 * scale, 1.28 * scale, 0.1 * scale, 0.16 * scale, shade(paint, 0.65));
+        }
+        if (type === "semi" || type === "truck") {
+          box(x, 1.25 * scale, z - 0.86 * scale, 1.55 * scale, 0.06 * scale, 0.12 * scale, chrome);
+          box(x, 0.72 * scale, z - 1.84 * scale, 1.45 * scale, 0.08 * scale, 0.1 * scale, shade(paint, 1.18));
         }
       } else {
         box(x - 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
@@ -454,6 +468,10 @@
       box(x + 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
       box(x - 0.64 * scale, 0.24 * scale, z - 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
       box(x + 0.64 * scale, 0.24 * scale, z - 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
+      box(x - 0.64 * scale, 0.28 * scale, z + 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
+      box(x + 0.64 * scale, 0.28 * scale, z + 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
+      box(x - 0.64 * scale, 0.28 * scale, z - 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
+      box(x + 0.64 * scale, 0.28 * scale, z - 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
       box(x - 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? blue : red);
       box(x + 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? red : red);
     }

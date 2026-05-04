@@ -24,6 +24,10 @@ body {
   height: 100%;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -786,21 +790,29 @@ input:focus {
     overflow: auto;
   }
 
+  body:not(.race-live) .stage {
+    touch-action: pan-y;
+  }
+
   body:not(.race-live) .shell {
     height: auto;
     min-height: 100dvh;
   }
 
   body.race-live .shell {
+    position: fixed;
+    inset: 0;
     display: block;
-    height: 100dvh;
+    width: var(--vvw, 100dvw);
+    height: var(--vvh, 100dvh);
     min-height: 0;
     padding: 0;
+    overflow: hidden;
   }
 
   body.race-live .stage {
-    width: 100vw;
-    height: 100dvh;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     border-radius: 0;
     border: 0;
@@ -825,10 +837,10 @@ input:focus {
   }
 
   body.race-live .hud-stats {
-    grid-template-columns: repeat(5, 54px);
+    grid-template-columns: repeat(5, minmax(44px, 54px));
     gap: 5px;
     margin-left: auto;
-    margin-right: 100px;
+    margin-right: 78px;
   }
 
   body.race-live .hud-stats div {
@@ -956,16 +968,16 @@ input:focus {
   body.race-live .direction-pad {
     left: max(10px, env(safe-area-inset-left));
     bottom: max(12px, env(safe-area-inset-bottom));
-    grid-template-columns: repeat(3, clamp(52px, 12dvh, 74px));
-    gap: 8px;
+    grid-template-columns: repeat(3, clamp(44px, 11dvh, 66px));
+    gap: 6px;
   }
 
   body.race-live .pedal-pad {
     right: max(10px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
-    grid-template-columns: clamp(68px, 15dvh, 96px) clamp(76px, 17dvh, 112px);
-    grid-template-rows: clamp(48px, 10dvh, 64px) clamp(56px, 12dvh, 76px);
-    gap: 8px;
+    grid-template-columns: clamp(58px, 14dvh, 86px) clamp(66px, 16dvh, 100px);
+    grid-template-rows: clamp(42px, 9dvh, 58px) clamp(48px, 11dvh, 68px);
+    gap: 6px;
   }
 
   body.race-live .mobile-control {
@@ -977,7 +989,7 @@ input:focus {
       linear-gradient(145deg, rgba(255,255,255,0.12), rgba(5,8,7,0.34)),
       rgba(5, 8, 7, 0.54);
     color: #f4fbf8;
-    font-size: 13px;
+    font-size: clamp(10px, 2.8dvh, 13px);
     font-weight: 900;
     opacity: 0.92;
     box-shadow: 0 10px 30px rgba(0,0,0,0.24);
@@ -992,7 +1004,7 @@ input:focus {
   body.race-live .mobile-control.steer-neutral,
   body.race-live .mobile-control.steer-right {
     width: 100%;
-    height: clamp(52px, 12dvh, 74px);
+    height: clamp(44px, 11dvh, 66px);
   }
 
   body.race-live .mobile-control.gas {
@@ -1017,10 +1029,10 @@ input:focus {
   body.race-live .mobile-control.control-mode {
     position: absolute;
     left: 50%;
-    bottom: max(14px, env(safe-area-inset-bottom));
+    bottom: max(10px, env(safe-area-inset-bottom));
     z-index: 9;
-    width: clamp(78px, 18dvh, 116px);
-    height: clamp(36px, 8dvh, 48px);
+    width: clamp(70px, 17dvh, 104px);
+    height: clamp(32px, 7dvh, 42px);
     transform: translateX(-50%);
     pointer-events: auto;
     background: rgba(5, 8, 7, 0.58);
@@ -1103,7 +1115,13 @@ input:focus {
 
 @media (orientation: landscape) and (max-height: 430px) {
   body.race-live .hud-stats {
-    grid-template-columns: repeat(5, 48px);
+    grid-template-columns: repeat(3, 46px);
+    margin-right: 64px;
+  }
+
+  body.race-live .brand-mark,
+  body.race-live .hud-stats div:nth-child(n+4) {
+    display: none;
   }
 
   body.race-live #saveRace,
@@ -1111,8 +1129,35 @@ input:focus {
     display: none;
   }
 
+  body.race-live #pauseBtn,
+  body.race-live #resetCar {
+    width: 62px;
+    min-height: 32px;
+    height: 32px;
+    font-size: 11px;
+  }
+
+  body.race-live #resetCar {
+    top: 46px;
+  }
+
   body.race-live .camera-grid,
   body.race-live .renderer-grid {
     display: none;
+  }
+
+  body.race-live .direction-pad {
+    grid-template-columns: repeat(3, clamp(40px, 11dvh, 52px));
+  }
+
+  body.race-live .pedal-pad {
+    grid-template-columns: clamp(52px, 14dvh, 68px) clamp(58px, 16dvh, 76px);
+    grid-template-rows: clamp(38px, 9dvh, 48px) clamp(44px, 11dvh, 56px);
+  }
+
+  body.race-live .mobile-control.steer-left,
+  body.race-live .mobile-control.steer-neutral,
+  body.race-live .mobile-control.steer-right {
+    height: clamp(40px, 11dvh, 52px);
   }
 }
