@@ -62,6 +62,7 @@ button {
   border-radius: 8px;
   background: #050807;
   box-shadow: var(--shadow);
+  touch-action: none;
 }
 
 .stage canvas {
@@ -896,51 +897,55 @@ input:focus {
 
   .panel:has(#raceView.active) .control-grid button {
     position: fixed;
-    min-height: 74px;
+    min-height: 88px;
     border-color: rgba(244, 251, 248, 0.22);
     background: rgba(5, 8, 7, 0.46);
-    font-size: 13px;
-    opacity: 0.88;
+    font-size: 14px;
+    opacity: 0.9;
+    touch-action: none;
+    user-select: none;
   }
 
   .panel:has(#raceView.active) #leftBtn {
-    left: 10px;
-    bottom: 12px;
-    width: 74px;
+    left: 12px;
+    bottom: 20px;
+    width: 92px;
   }
 
   .panel:has(#raceView.active) #rightBtn {
-    left: 92px;
-    bottom: 12px;
-    width: 74px;
+    left: 112px;
+    bottom: 20px;
+    width: 92px;
   }
 
   .panel:has(#raceView.active) #boostBtn {
-    right: 10px;
-    bottom: 12px;
-    width: 78px;
+    right: 14px;
+    bottom: 118px;
+    width: 98px;
+    min-height: 54px;
     background: linear-gradient(135deg, rgba(255, 209, 102, 0.74), rgba(255, 91, 107, 0.72));
   }
 
   .panel:has(#raceView.active) #gasBtn {
-    right: 96px;
-    bottom: 12px;
-    width: 78px;
+    right: 14px;
+    bottom: 20px;
+    width: 98px;
   }
 
   .panel:has(#raceView.active) #brakeBtn {
-    right: 182px;
-    bottom: 12px;
-    width: 92px;
-    font-size: 11px;
+    right: 120px;
+    bottom: 20px;
+    width: 108px;
+    font-size: 12px;
   }
 
   .panel:has(#raceView.active) .camera-grid {
     position: fixed;
     left: 50%;
-    bottom: 10px;
+    top: 8px;
+    bottom: auto;
     z-index: 4;
-    width: min(300px, 38vw);
+    width: min(280px, 38vw);
     transform: translateX(-50%);
     gap: 5px;
     margin: 0;
@@ -959,9 +964,10 @@ input:focus {
   .panel:has(#raceView.active) .renderer-grid {
     position: fixed;
     left: 50%;
-    bottom: 48px;
+    top: 46px;
+    bottom: auto;
     z-index: 4;
-    width: min(220px, 30vw);
+    width: min(210px, 30vw);
     transform: translateX(-50%);
     gap: 5px;
     margin: 0;

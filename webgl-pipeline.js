@@ -155,8 +155,34 @@
       quad([x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z0], shade(color, 0.64));
     }
 
-    function uprightTriangle(x, z, w, h, color) {
-      tri([x, h, z], [x - w, 0, z], [x + w, 0, z], color);
+    function taperedBox(x, y, z, bottomW, topW, h, d, color) {
+      const y0 = y - h / 2;
+      const y1 = y + h / 2;
+      const z0 = z - d / 2;
+      const z1 = z + d / 2;
+      const b0 = x - bottomW / 2;
+      const b1 = x + bottomW / 2;
+      const t0 = x - topW / 2;
+      const t1 = x + topW / 2;
+      quad([t0, y1, z0], [t1, y1, z0], [t1, y1, z1], [t0, y1, z1], shade(color, 1.16));
+      quad([b0, y0, z1], [b1, y0, z1], [b1, y0, z0], [b0, y0, z0], shade(color, 0.55));
+      quad([b0, y0, z0], [t0, y1, z0], [t0, y1, z1], [b0, y0, z1], shade(color, 0.78));
+      quad([b1, y0, z1], [t1, y1, z1], [t1, y1, z0], [b1, y0, z0], shade(color, 0.9));
+      quad([b0, y0, z1], [t0, y1, z1], [t1, y1, z1], [b1, y0, z1], shade(color, 1.02));
+      quad([b1, y0, z0], [t1, y1, z0], [t0, y1, z0], [b0, y0, z0], shade(color, 0.66));
+    }
+
+    function lowMound(x, z, w, h, d, color) {
+      taperedBox(x, h * 0.3, z, w, w * 0.72, h * 0.6, d, shade(color, 0.82));
+      taperedBox(x, h * 0.78, z - d * 0.05, w * 0.72, w * 0.42, h * 0.44, d * 0.76, color);
+      taperedBox(x, h * 1.08, z - d * 0.1, w * 0.42, w * 0.18, h * 0.24, d * 0.48, shade(color, 1.18));
+    }
+
+    function signPanel(x, z, textColor, baseColor) {
+      box(x, 2.15, z, 3.2, 1.25, 0.14, baseColor);
+      box(x, 2.22, z - 0.08, 2.35, 0.14, 0.16, textColor);
+      box(x - 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
+      box(x + 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
     }
 
     function wrapZ(index, spacing, offset, speed = 0.07) {
@@ -224,29 +250,33 @@
         const x = side * (11 + (i % 5) * 3.4);
         if (place === "city" || place === "tokyo") {
           const height = 5 + (i % 7) * 2.2;
-          box(x, height / 2, z, 2.6 + (i % 3), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
+          taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
           box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
+          if (i % 6 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
         } else if (place === "farm") {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
-          uprightTriangle(x, z - 1.25, 1.35, 2.15, [0.44, 0.22, 0.12, 1]);
+          taperedBox(x, 1.95, z - 1.25, 2.45, 1.3, 0.6, 2.55, [0.44, 0.22, 0.12, 1]);
           box(side * 8.5, 0.35, z + 3, 0.12, 0.7, 4, [0.72, 0.56, 0.32, 1]);
+          if (i % 5 === 0) box(x + side * 3.4, 0.65, z - 1, 2.2, 1.3, 1.8, [0.86, 0.72, 0.34, 1]);
         } else if (place === "freight") {
           box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
           box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
+          if (i % 4 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
         } else if (place === "desert" || place === "canyon") {
-          uprightTriangle(x, z, 2.5 + (i % 3), 2.2 + (i % 5) * 0.7, place === "canyon" ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
+          lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === "canyon" ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
         } else if (place === "rainforest") {
-          box(x, 2.0, z, 0.5, 4, 0.5, [0.12, 0.22, 0.12, 1]);
-          box(x, 4.3, z, 3.1, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
+          taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
+          taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
         } else if (place === "snow" || place === "alpine" || place === "europe") {
-          uprightTriangle(x, z, 3.2 + (i % 4), 4.4 + (i % 5), [0.74, 0.82, 0.84, 1]);
+          lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
           if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
         } else if (place === "harbor" || place === "coast") {
           box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
           box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
+          if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
         } else if (place === "airfield") {
           box(x, 1.1, z, 4.4, 2.2, 3.4, [0.18, 0.18, 0.16, 1]);
-          uprightTriangle(x, z - 1.8, 2.3, 2.5, [0.24, 0.24, 0.22, 1]);
+          taperedBox(x, 2.35, z - 1.8, 4.8, 2.4, 0.6, 3.6, [0.24, 0.24, 0.22, 1]);
         }
       }
     }
@@ -257,33 +287,35 @@
       const red = [1, 0.08, 0.12, 1];
       const blue = [0.1, 0.55, 1, 1];
       if (type === "semi") {
-        box(x, 0.8 * scale, z + 0.95 * scale, 1.6 * scale, 1.2 * scale, 1.6 * scale, paint);
-        box(x, 0.95 * scale, z - 1.25 * scale, 1.9 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
+        taperedBox(x, 0.8 * scale, z + 0.95 * scale, 1.75 * scale, 1.25 * scale, 1.2 * scale, 1.6 * scale, paint);
+        taperedBox(x, 0.95 * scale, z - 1.25 * scale, 2.05 * scale, 1.78 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
+        box(x, 1.14 * scale, z + 1.45 * scale, 0.95 * scale, 0.16 * scale, 0.08 * scale, [0.72, 0.86, 0.9, 1]);
       } else if (type === "tractor") {
-        box(x, 0.7 * scale, z, 1.25 * scale, 0.8 * scale, 1.55 * scale, paint);
-        box(x, 1.25 * scale, z - 0.2 * scale, 0.9 * scale, 0.9 * scale, 0.8 * scale, shade(paint, 0.9));
+        taperedBox(x, 0.7 * scale, z, 1.45 * scale, 0.95 * scale, 0.8 * scale, 1.55 * scale, paint);
+        taperedBox(x, 1.25 * scale, z - 0.2 * scale, 1.0 * scale, 0.72 * scale, 0.9 * scale, 0.8 * scale, shade(paint, 0.9));
         box(x - 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
         box(x + 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
       } else if (type === "f1" || type === "prototype") {
-        box(x, 0.36 * scale, z, 0.7 * scale, 0.34 * scale, 2.5 * scale, paint);
-        box(x, 0.54 * scale, z - 0.2 * scale, 0.5 * scale, 0.32 * scale, 0.55 * scale, dark);
+        taperedBox(x, 0.36 * scale, z, 0.9 * scale, 0.36 * scale, 0.34 * scale, 2.5 * scale, paint);
+        taperedBox(x, 0.54 * scale, z - 0.2 * scale, 0.58 * scale, 0.32 * scale, 0.32 * scale, 0.55 * scale, dark);
         box(x, 0.28 * scale, z + 1.0 * scale, 1.5 * scale, 0.12 * scale, 0.25 * scale, shade(paint, 0.7));
       } else if (type === "truck" || type === "monster" || type === "tank") {
-        box(x, 0.75 * scale, z, 1.65 * scale, type === "tank" ? 0.75 * scale : 1.0 * scale, 2.1 * scale, paint);
-        box(x, 1.25 * scale, z - 0.25 * scale, 1.05 * scale, 0.65 * scale, 0.9 * scale, shade(paint, 0.82));
+        taperedBox(x, 0.75 * scale, z, 1.85 * scale, 1.35 * scale, type === "tank" ? 0.75 * scale : 1.0 * scale, 2.1 * scale, paint);
+        taperedBox(x, 1.25 * scale, z - 0.25 * scale, 1.1 * scale, 0.78 * scale, 0.65 * scale, 0.9 * scale, shade(paint, 0.82));
         if (type === "tank") box(x, 1.55 * scale, z - 1.15 * scale, 0.22 * scale, 0.18 * scale, 1.8 * scale, shade(paint, 0.7));
       } else if (type === "boat" || type === "snowmobile") {
-        box(x, 0.42 * scale, z, 1.2 * scale, 0.36 * scale, 2.3 * scale, paint);
-        box(x, 0.68 * scale, z - 0.25 * scale, 0.55 * scale, 0.42 * scale, 0.75 * scale, dark);
+        taperedBox(x, 0.42 * scale, z, 1.45 * scale, 0.7 * scale, 0.36 * scale, 2.3 * scale, paint);
+        taperedBox(x, 0.68 * scale, z - 0.25 * scale, 0.62 * scale, 0.35 * scale, 0.42 * scale, 0.75 * scale, dark);
       } else if (type === "airplane") {
-        box(x, 0.7 * scale, z, 0.52 * scale, 0.45 * scale, 2.9 * scale, paint);
+        taperedBox(x, 0.7 * scale, z, 0.68 * scale, 0.38 * scale, 0.45 * scale, 2.9 * scale, paint);
         box(x, 0.66 * scale, z, 2.55 * scale, 0.13 * scale, 0.42 * scale, shade(paint, 0.88));
       } else if (type === "helicopter") {
-        box(x, 0.95 * scale, z, 1.1 * scale, 0.65 * scale, 1.45 * scale, paint);
+        taperedBox(x, 0.95 * scale, z, 1.2 * scale, 0.78 * scale, 0.65 * scale, 1.45 * scale, paint);
         box(x, 1.45 * scale, z, 2.3 * scale, 0.08 * scale, 0.1 * scale, [0.9, 0.94, 0.94, 1]);
       } else {
-        box(x, 0.55 * scale, z, 1.25 * scale, 0.55 * scale, 2.1 * scale, paint);
-        box(x, 0.95 * scale, z - 0.25 * scale, 0.85 * scale, 0.45 * scale, 0.82 * scale, dark);
+        taperedBox(x, 0.55 * scale, z, 1.46 * scale, 0.9 * scale, 0.55 * scale, 2.1 * scale, paint);
+        taperedBox(x, 0.95 * scale, z - 0.25 * scale, 0.88 * scale, 0.55 * scale, 0.45 * scale, 0.82 * scale, dark);
+        box(x, 0.78 * scale, z + 0.8 * scale, 0.7 * scale, 0.08 * scale, 0.08 * scale, [0.86, 0.93, 1, 1]);
       }
       box(x - 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
       box(x + 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);

@@ -1037,6 +1037,7 @@ function drawFrame() {
     });
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
+    drawWebGLRouteAtmosphere(w, h, theme);
     drawCameraOverlay(w, h, theme);
     if (raceState.active) drawRaceStandings(w, h);
     drawParticles();
@@ -1069,6 +1070,75 @@ function drawFrame() {
   if (input.paused && raceState.active) drawPause(w, h);
   ctx.restore();
   requestAnimationFrame(loop);
+}
+
+function drawWebGLRouteAtmosphere(w, h, theme) {
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  ctx.save();
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  sky.addColorStop(0, `${theme[0]}99`);
+  sky.addColorStop(0.6, "rgba(5,8,7,0.08)");
+  sky.addColorStop(1, "rgba(5,8,7,0)");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h * 0.62);
+
+  const glow = ctx.createRadialGradient(w * 0.5, h * 0.42, w * 0.06, w * 0.5, h * 0.55, w * 0.62);
+  glow.addColorStop(0, `${theme[1]}24`);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, w, h);
+
+  if (place === "tokyo" || place === "city") {
+    ctx.globalAlpha = place === "tokyo" ? 0.4 : 0.24;
+    ctx.strokeStyle = place === "tokyo" ? "#ff4fd8" : theme[1];
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 18; i += 1) {
+      const x = (i * 97 + raceState.roadOffset * 0.18) % (w + 120) - 60;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.16);
+      ctx.lineTo(x + 42, h * 0.78);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  if (place === "desert" || place === "canyon" || place === "freight") {
+    const dust = ctx.createLinearGradient(0, h * 0.38, 0, h);
+    dust.addColorStop(0, "rgba(255,183,74,0)");
+    dust.addColorStop(0.72, "rgba(255,183,74,0.12)");
+    dust.addColorStop(1, "rgba(255,183,74,0.18)");
+    ctx.fillStyle = dust;
+    ctx.fillRect(0, h * 0.34, w, h * 0.66);
+  }
+
+  if (place === "rainforest" || place === "snow") {
+    ctx.strokeStyle = place === "snow" ? "rgba(244,251,248,0.28)" : "rgba(185,255,220,0.16)";
+    ctx.lineWidth = place === "snow" ? 2 : 1;
+    for (let i = 0; i < 58; i += 1) {
+      const x = (i * 53 + raceState.elapsed * (place === "snow" ? 24 : 70)) % w;
+      const y = (i * 37 + raceState.elapsed * (place === "snow" ? 18 : 110)) % h;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - (place === "snow" ? 4 : 12), y + (place === "snow" ? 6 : 28));
+      ctx.stroke();
+    }
+  }
+
+  if (raceState.speed > 90) {
+    ctx.globalAlpha = Math.min(0.35, raceState.speed / 900);
+    ctx.strokeStyle = theme[1];
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 24; i += 1) {
+      const y = h * (0.36 + (i % 12) * 0.05);
+      const side = i % 2 ? -1 : 1;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5 + side * w * 0.12, y);
+      ctx.lineTo(w * 0.5 + side * w * (0.38 + (i % 4) * 0.06), y + h * 0.16);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
 }
 
 function drawScenery(w, h, theme) {
@@ -2928,14 +2998,30 @@ function bindHold(button, key) {
   const start = (event) => {
     event.preventDefault();
     input[key] = true;
+    if (button.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        button.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture after synthetic pointer events.
+      }
+    }
   };
-  const stop = () => {
+  const stop = (event) => {
+    if (event) event.preventDefault();
     input[key] = false;
+    if (button.releasePointerCapture && event && event.pointerId !== undefined) {
+      try {
+        button.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already be released by the browser.
+      }
+    }
   };
   button.addEventListener("pointerdown", start);
   button.addEventListener("pointerup", stop);
-  button.addEventListener("pointerleave", stop);
   button.addEventListener("pointercancel", stop);
+  button.addEventListener("lostpointercapture", stop);
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
 }
 
 function setController(gamepad) {
