@@ -800,6 +800,10 @@ function setTouchControlSize(size, quiet = false) {
   touchControlSize = size === "full" ? "full" : "mini";
   localStorage.setItem("velocityVaultTouchControlSize", touchControlSize);
   document.body.classList.toggle("control-mini", touchControlSize === "mini");
+  if (touchControlSize === "mini" && touchDriveMode === "toggle") {
+    setTouchDriveMode("hold", true);
+    clearTouchDriveInputs();
+  }
   const label = $("#touchSizeLabel");
   const sizeButton = $(".control-size");
   if (label) label.textContent = touchControlSize === "mini" ? "Full" : "Mini";
@@ -809,7 +813,7 @@ function setTouchControlSize(size, quiet = false) {
   }
   if (!quiet) {
     updateRaceUi();
-    showToast(touchControlSize === "mini" ? "Mini controls on. Tap Full for larger buttons." : "Full controls on. Tap Mini for more screen space.");
+    showToast(touchControlSize === "mini" ? "Mini one-thumb drive stick on. Drag diagonally to steer while accelerating." : "Full controls on. Tap Mini for more screen space.");
   }
 }
 
@@ -850,15 +854,48 @@ function toggleDriveInput(control) {
   }
 }
 
+function isDriveStickControl(control) {
+  return typeof control === "string" && control.startsWith("stick:");
+}
+
+function driveStickControlAt(stick, clientX, clientY) {
+  const rect = stick.getBoundingClientRect();
+  if (!rect.width || !rect.height) return "";
+  const nx = (clientX - rect.left) / rect.width - 0.5;
+  const ny = (clientY - rect.top) / rect.height - 0.5;
+  const dead = 0.15;
+  const controls = ["stick"];
+  if (ny < -dead) controls.push("gas");
+  if (ny > dead) controls.push("brake");
+  if (nx < -dead) controls.push("left");
+  if (nx > dead) controls.push("right");
+  if (controls.length === 1) controls.push("neutral");
+  return controls.join(":");
+}
+
+function addTouchControls(control, controls) {
+  if (!control) return;
+  if (!isDriveStickControl(control)) {
+    controls.add(control);
+    return;
+  }
+  control.split(":").forEach((part) => {
+    if (part && part !== "stick") controls.add(part);
+  });
+}
+
 function mobileControlAt(clientX, clientY) {
   const el = document.elementFromPoint(clientX, clientY);
+  const stick = el && el.closest ? el.closest(".drive-stick") : null;
+  if (stick && document.body.classList.contains("control-mini")) return driveStickControlAt(stick, clientX, clientY);
   const button = el && el.closest ? el.closest(".mobile-control") : null;
   return button && button.dataset ? button.dataset.control : "";
 }
 
 function applyMobileTouchSnapshot() {
   if (touchDriveMode === "toggle") return;
-  const controls = new Set(mobileTouchState.active.values());
+  const controls = new Set();
+  mobileTouchState.active.forEach((control) => addTouchControls(control, controls));
   const neutral = controls.has("neutral");
   const left = controls.has("left");
   const right = controls.has("right");
@@ -892,7 +929,7 @@ function handleMobileTouchStart(event) {
       }
       return;
     }
-    if (touchDriveMode === "toggle") {
+    if (touchDriveMode === "toggle" && !isDriveStickControl(control)) {
       toggleDriveInput(control);
       updateRaceUi();
       return;
@@ -921,6 +958,49 @@ function handleMobileTouchEnd(event) {
   event.preventDefault();
   Array.from(event.changedTouches).forEach((touch) => mobileTouchState.active.delete(touch.identifier));
   applyMobileTouchSnapshot();
+}
+
+function bindDriveStickPointerControl() {
+  const stick = $(".drive-stick");
+  if (!stick) return;
+  const pointerKey = "drive-stick-pointer";
+  const applyStick = (event) => {
+    if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (touchControlSize !== "mini") return;
+    event.preventDefault();
+    mobileTouchState.active.set(pointerKey, driveStickControlAt(stick, event.clientX, event.clientY));
+    applyMobileTouchSnapshot();
+  };
+  const stopStick = (event) => {
+    if (event && event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (event) event.preventDefault();
+    mobileTouchState.active.delete(pointerKey);
+    applyMobileTouchSnapshot();
+    if (stick.releasePointerCapture && event && event.pointerId !== undefined) {
+      try {
+        stick.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already be released by the browser.
+      }
+    }
+  };
+  stick.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    startAudio();
+    if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+    if (stick.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        stick.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture after synthetic pointer events.
+      }
+    }
+    applyStick(event);
+  });
+  stick.addEventListener("pointermove", applyStick);
+  stick.addEventListener("pointerup", stopStick);
+  stick.addEventListener("pointercancel", stopStick);
+  stick.addEventListener("lostpointercapture", stopStick);
 }
 
 function registerOfflineApp() {
@@ -2697,6 +2777,30 @@ function drawTrafficLabel(w, h, label) {
   ctx.fillText(label, 0, -h * 0.64);
 }
 
+function drawVehicleGroundContact(w, h, speedFactor = 0.5) {
+  const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
+  ctx.save();
+  const contact = ctx.createRadialGradient(0, h * 0.43, w * 0.08, 0, h * 0.47, w * 0.7);
+  contact.addColorStop(0, "rgba(0,0,0,0.5)");
+  contact.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = contact;
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.47, w * 0.68, h * 0.15, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.28 + speed * 0.18;
+  ctx.strokeStyle = "rgba(3,5,5,0.78)";
+  ctx.lineWidth = Math.max(1.2, w * 0.018);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.32, h * 0.32);
+  ctx.lineTo(-w * (0.34 + speed * 0.14), h * 0.58);
+  ctx.moveTo(w * 0.32, h * 0.32);
+  ctx.lineTo(w * (0.34 + speed * 0.14), h * 0.58);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = false, damage = 0) {
   const assets = window.VelocityPhoneAssets;
   if (!assets || !assets.ready || typeof assets.getVehicleSprite !== "function") return false;
@@ -2709,7 +2813,8 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   const spriteH = h * (type === "semi" ? 1.66 : air ? 1.48 : 1.56);
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.56, spriteW, spriteH);
+  drawVehicleGroundContact(w, h, Math.abs(raceState.speed || 0) / 220);
+  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.52, spriteW, spriteH);
   ctx.restore();
   return true;
 }
@@ -2747,7 +2852,7 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
 
   ctx.fillStyle = "rgba(0,0,0,0.38)";
   ctx.beginPath();
-  ctx.ellipse(0, h * 0.34, w * 0.62, h * 0.16, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, h * 0.42, w * 0.62, h * 0.14, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (drawPhoneAssetVehicleSprite(w, h, color, vehicleType, police, damage)) {
@@ -3986,6 +4091,7 @@ function bindEvents() {
   bindHold($("#brakeBtn"), "brake");
   bindHold($("#boostBtn"), "boost");
   $$(".mobile-control").forEach((button) => bindMobileControl(button));
+  bindDriveStickPointerControl();
   const mobileLayer = $(".mobile-drive-controls");
   mobileLayer.addEventListener("touchstart", handleMobileTouchStart, { passive: false });
   mobileLayer.addEventListener("touchmove", handleMobileTouchMove, { passive: false });

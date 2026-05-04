@@ -51,7 +51,8 @@ Real-world style visuals:
 - Driving effects include tire smoke, launch haze, boost exhaust, brake/slip wash, speed streaks, road reflections, depth haze, headlight wash, dust/snow/weather layers, camera shake, off-road drag, and car body lean during hard steering.
 - Phone landscape racing moves touch controls to a transparent driver-pad overlay so steering, center, gas, brake/reverse, boost, pause, and touch mode switching stay usable without covering the driving screen.
 - Touch controls use a multi-touch tracker plus pointer fallback so gas, brake, boost, and steering can stay active together until finger-up/cancel even if both thumbs are down at once.
-- Phone mode has a separate in-game control dock that is fixed to the visible app window in both portrait and landscape, so steering, gas, brake, boost, and the Hold/Toggle switch stay visible even when the phone reports unusual installed-app viewport sizes. The default Mini layout uses smaller corner controls and a tiny `Full` switch to reclaim screen space; tapping `Full` expands the larger controls, then `Mini` shrinks them again.
+- Phone mode has a separate in-game control dock that is fixed to the visible app window in both portrait and landscape. The default Mini layout is now one compact 4-way drive stick: push up for gas, down for brake/reverse, left/right for steering, and drag diagonally to accelerate while steering. Tapping `Full` expands the larger separate controls.
+- Generated vehicle sprites now draw with stronger tire contact shadows, short road streaks, and lower pavement anchoring so cars, trucks, semis, tractors, and opponents read as driving on the road instead of floating above it.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 - Race routes now run almost three times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.
 
