@@ -283,6 +283,26 @@ function setActiveProfile(profile) {
   showToast(`Welcome, ${profile.name}. Garage unlocked.`);
 }
 
+function enterProfile(openRace = false) {
+  const name = sanitizeName($("#driverName").value);
+  const pin = $("#driverPin").value.replace(/\D/g, "").slice(0, 6);
+  const id = `${selectedAge}:${name.toLowerCase()}`;
+  const existing = profiles[id];
+  if (existing && existing.pinHash && existing.pinHash !== hashPin(pin)) {
+    showToast("PIN did not match this local profile.");
+    return null;
+  }
+  const profile = existing || makeProfile(name, pin, selectedAge);
+  profiles[profile.id] = profile;
+  saveProfiles();
+  setActiveProfile(profile);
+  if (openRace) {
+    selectedRace = races[Math.min(profile.stats.races, races.length - 1)];
+    launchRace();
+  }
+  return profile;
+}
+
 function renderHub() {
   if (!activeProfile) return;
   $("#driverSummary").textContent = `${ageBands[activeProfile.age].label} | ${activeProfile.coins} coins | ${activeProfile.rep} rep | Power ${profilePower(activeProfile)}`;
@@ -1307,16 +1327,125 @@ function drawCar(w, h) {
   const y = cameraMode === "hood" ? h * 0.99 : h * 0.82;
   const carWidth = cameraMode === "hood" ? 220 : 118;
   const carHeight = cameraMode === "hood" ? 190 : 178;
-  drawVehicle(x, y, carWidth, carHeight, "#1bb7e8", true);
+  if (cameraMode === "chase") {
+    drawPlayerChaseCar(x, y + 18, carWidth * 1.26, carHeight * 1.02, "#1bb7e8");
+  } else {
+    drawVehicle(x, y, carWidth, carHeight, "#1bb7e8", true);
+  }
   if ((input.boost || input.gamepadBoost) && raceState.active) {
     ctx.fillStyle = "rgba(255,209,102,0.82)";
     ctx.beginPath();
-    ctx.moveTo(x - carWidth * 0.22, y + carHeight * 0.45);
-    ctx.lineTo(x, y + carHeight * 0.82 + Math.random() * 30);
-    ctx.lineTo(x + carWidth * 0.22, y + carHeight * 0.45);
+    ctx.moveTo(x - carWidth * 0.28, y + carHeight * 0.44);
+    ctx.lineTo(x, y + carHeight * 0.95 + Math.random() * 34);
+    ctx.lineTo(x + carWidth * 0.28, y + carHeight * 0.44);
     ctx.closePath();
     ctx.fill();
   }
+}
+
+function drawPlayerChaseCar(x, y, width, height, color) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const shadow = ctx.createRadialGradient(0, height * 0.38, width * 0.08, 0, height * 0.42, width * 0.72);
+  shadow.addColorStop(0, "rgba(0,0,0,0.54)");
+  shadow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.ellipse(0, height * 0.42, width * 0.74, height * 0.18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const paint = ctx.createLinearGradient(-width * 0.5, -height * 0.52, width * 0.42, height * 0.5);
+  paint.addColorStop(0, shade(color, 56));
+  paint.addColorStop(0.22, color);
+  paint.addColorStop(0.58, shade(color, -22));
+  paint.addColorStop(1, shade(color, -56));
+
+  ctx.fillStyle = "#050807";
+  roundRect(-width * 0.56, -height * 0.18, width * 0.16, height * 0.5, 8);
+  ctx.fill();
+  roundRect(width * 0.4, -height * 0.18, width * 0.16, height * 0.5, 8);
+  ctx.fill();
+
+  ctx.fillStyle = paint;
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.34, -height * 0.52);
+  ctx.lineTo(width * 0.34, -height * 0.52);
+  ctx.quadraticCurveTo(width * 0.54, -height * 0.38, width * 0.5, -height * 0.08);
+  ctx.lineTo(width * 0.43, height * 0.36);
+  ctx.quadraticCurveTo(width * 0.31, height * 0.55, 0, height * 0.58);
+  ctx.quadraticCurveTo(-width * 0.31, height * 0.55, -width * 0.43, height * 0.36);
+  ctx.lineTo(-width * 0.5, -height * 0.08);
+  ctx.quadraticCurveTo(-width * 0.54, -height * 0.38, -width * 0.34, -height * 0.52);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.28)";
+  ctx.lineWidth = Math.max(2, width * 0.018);
+  ctx.stroke();
+
+  const windshield = ctx.createLinearGradient(0, -height * 0.46, 0, height * 0.08);
+  windshield.addColorStop(0, "rgba(222,249,255,0.72)");
+  windshield.addColorStop(0.38, "rgba(58,88,94,0.82)");
+  windshield.addColorStop(1, "rgba(3,6,7,0.96)");
+  ctx.fillStyle = windshield;
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.28, -height * 0.39);
+  ctx.lineTo(width * 0.28, -height * 0.39);
+  ctx.lineTo(width * 0.34, -height * 0.08);
+  ctx.quadraticCurveTo(0, height * 0.03, -width * 0.34, -height * 0.08);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(5,8,7,0.9)";
+  roundRect(-width * 0.32, height * 0.12, width * 0.64, height * 0.27, 10);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.18)";
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(5,8,7,0.52)";
+  ctx.lineWidth = Math.max(2, width * 0.024);
+  ctx.beginPath();
+  ctx.moveTo(0, -height * 0.49);
+  ctx.lineTo(0, height * 0.55);
+  ctx.moveTo(-width * 0.42, -height * 0.05);
+  ctx.lineTo(width * 0.42, -height * 0.05);
+  ctx.moveTo(-width * 0.38, height * 0.36);
+  ctx.lineTo(width * 0.38, height * 0.36);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.31, -height * 0.48);
+  ctx.lineTo(-width * 0.08, -height * 0.43);
+  ctx.lineTo(-width * 0.23, -height * 0.3);
+  ctx.closePath();
+  ctx.moveTo(width * 0.31, -height * 0.48);
+  ctx.lineTo(width * 0.08, -height * 0.43);
+  ctx.lineTo(width * 0.23, -height * 0.3);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ff3348";
+  roundRect(-width * 0.36, height * 0.42, width * 0.22, height * 0.055, 4);
+  ctx.fill();
+  roundRect(width * 0.14, height * 0.42, width * 0.22, height * 0.055, 4);
+  ctx.fill();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = "#ff3348";
+  ctx.beginPath();
+  ctx.ellipse(-width * 0.25, height * 0.44, width * 0.32, height * 0.08, 0, 0, Math.PI * 2);
+  ctx.ellipse(width * 0.25, height * 0.44, width * 0.32, height * 0.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = "rgba(5,8,7,0.9)";
+  roundRect(-width * 0.19, height * 0.49, width * 0.38, height * 0.05, 4);
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.64)";
+  roundRect(-width * 0.08, height * 0.5, width * 0.16, height * 0.03, 3);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawCameraOverlay(w, h, theme) {
@@ -1650,10 +1779,10 @@ function drawAttract(w, h) {
   ctx.fill();
   ctx.fillStyle = "#f4fbf8";
   ctx.font = "900 34px system-ui";
-  ctx.fillText("Highway Pursuits. Real-World Routes.", w / 2, h * 0.36);
+  ctx.fillText("Press Quick Play. Hit The Street.", w / 2, h * 0.36);
   ctx.fillStyle = "#a9bbb5";
   ctx.font = "700 16px system-ui";
-  ctx.fillText("Generic performance cars, police heat, and cinematic street racing.", w / 2, h * 0.36 + 34);
+  ctx.fillText("Performance cars, police heat, and cinematic routes built for replay.", w / 2, h * 0.36 + 34);
   ctx.restore();
 }
 
@@ -1679,20 +1808,8 @@ function bindEvents() {
       $$(".age-card").forEach((item) => item.classList.toggle("selected", item === btn));
     });
   });
-  $("#startProfile").addEventListener("click", () => {
-    const name = sanitizeName($("#driverName").value);
-    const pin = $("#driverPin").value.replace(/\D/g, "").slice(0, 6);
-    const id = `${selectedAge}:${name.toLowerCase()}`;
-    const existing = profiles[id];
-    if (existing && existing.pinHash && existing.pinHash !== hashPin(pin)) {
-      showToast("PIN did not match this local profile.");
-      return;
-    }
-    const profile = existing || makeProfile(name, pin, selectedAge);
-    profiles[profile.id] = profile;
-    saveProfiles();
-    setActiveProfile(profile);
-  });
+  $("#quickPlay").addEventListener("click", () => enterProfile(true));
+  $("#startProfile").addEventListener("click", () => enterProfile(false));
   $("#installApp").addEventListener("click", installApp);
   $("#resetProfiles").addEventListener("click", () => {
     if (!confirm("Clear all local Velocity Vault profiles on this device?")) return;

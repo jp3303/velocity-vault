@@ -6,6 +6,8 @@ A standalone browser racing game built with local-only profiles, age-band select
 
 Open `index.html` in a browser.
 
+Use `Quick Play` to launch straight into a race, or `Enter Garage` to review upgrades, missions, and AI tuning first.
+
 Controls:
 
 - `Left/Right` or `A/D`: steer
