@@ -27,6 +27,8 @@ Real-world style visuals:
 - Cars include more realistic body panels, wheels, headlights, tail lights, windows, and visible driver helmets.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
+- Phone landscape racing moves touch controls to slim transparent edge buttons so steering, boost, pause, save, and view switching stay usable without covering the driving screen.
+- `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 
 Visual direction references:
 

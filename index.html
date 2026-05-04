@@ -94,6 +94,7 @@
         <div id="racesTab" class="tab-panel active">
           <div id="raceList" class="race-list"></div>
           <button id="launchRace" class="primary" type="button">Launch Race</button>
+          <button id="resumeRace" class="ghost" type="button">Resume Saved Race</button>
         </div>
 
         <div id="upgradesTab" class="tab-panel">
@@ -118,6 +119,7 @@
           </div>
           <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause race" title="Pause race">Pause</button>
         </div>
+        <button id="saveRace" class="ghost save-race" type="button">Save Race</button>
         <div class="control-grid">
           <button id="leftBtn" type="button" aria-label="Steer left">Left</button>
           <button id="boostBtn" type="button" aria-label="Boost">BOOST</button>
@@ -132,11 +134,11 @@
           <strong id="controllerName">Bluetooth controller ready</strong>
           <span>Pair a controller with your device, press any controller button, then steer with the left stick or D-pad. A / RT boosts. Start pauses.</span>
         </div>
-        <div class="progress-card">
+        <div class="progress-card distance-progress">
           <span>Distance</span>
           <div class="bar"><i id="distanceBar"></i></div>
         </div>
-        <div class="progress-card">
+        <div class="progress-card mission-progress">
           <span>Mission</span>
           <div class="bar"><i id="missionBar"></i></div>
         </div>

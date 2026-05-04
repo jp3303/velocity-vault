@@ -7,6 +7,7 @@ const canvas = $("#gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const storeKey = "velocityVaultProfilesV1";
+const saveKey = "velocityVaultSavedRaceV1";
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
   prodigy: { label: "Prodigy 9-12", help: "Sharper goals, more traffic, better rewards.", speed: 1, traffic: 1, rewards: 1 },
@@ -109,6 +110,19 @@ function loadProfiles() {
 
 function saveProfiles() {
   localStorage.setItem(storeKey, JSON.stringify(profiles));
+}
+
+function loadSavedRace() {
+  try {
+    const raw = localStorage.getItem(saveKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearSavedRace() {
+  localStorage.removeItem(saveKey);
 }
 
 function makeProfile(name, pin, age) {
@@ -276,6 +290,20 @@ function renderHub() {
   renderUpgrades();
   renderMissions();
   renderDirector();
+  renderSavedRaceButton();
+}
+
+function renderSavedRaceButton() {
+  const btn = $("#resumeRace");
+  const saved = loadSavedRace();
+  const canResume = saved && activeProfile && saved.profileId === activeProfile.id;
+  btn.disabled = !canResume;
+  if (canResume) {
+    const race = races.find((item) => item.id === saved.selectedRaceId);
+    btn.textContent = `Resume ${race ? race.name : "Saved Race"}`;
+  } else {
+    btn.textContent = saved ? "Saved Race For Another Driver" : "No Saved Race";
+  }
 }
 
 function renderRaces() {
@@ -408,14 +436,94 @@ function launchRace() {
   showToast("Race launched. Keyboard, touch, or Bluetooth controller ready.");
 }
 
+function saveRace() {
+  if (!activeProfile) return;
+  if (!raceState.active) {
+    saveProfiles();
+    showToast("Garage progress saved on this device.");
+    renderSavedRaceButton();
+    return;
+  }
+  const snapshot = {
+    version: 1,
+    savedAt: Date.now(),
+    profileId: activeProfile.id,
+    selectedRaceId: selectedRace.id,
+    cameraMode,
+    inputPaused: input.paused,
+    state: {
+      active: true,
+      distance: raceState.distance,
+      speed: raceState.speed,
+      focus: raceState.focus,
+      score: raceState.score,
+      coins: raceState.coins,
+      dodges: raceState.dodges,
+      combo: raceState.combo,
+      lane: raceState.lane,
+      x: raceState.x,
+      roadOffset: raceState.roadOffset,
+      spawnClock: raceState.spawnClock,
+      coinClock: raceState.coinClock,
+      rivals: raceState.rivals,
+      police: raceState.police,
+      coinsOnRoad: raceState.coinsOnRoad,
+      elapsed: raceState.elapsed,
+      heat: raceState.heat,
+      heatClock: raceState.heatClock,
+      chaseActive: raceState.chaseActive,
+      cameraShake: 0,
+      countdown: 0,
+      finished: false
+    }
+  };
+  localStorage.setItem(saveKey, JSON.stringify(snapshot));
+  saveProfiles();
+  renderSavedRaceButton();
+  showToast("Race saved on this device.");
+}
+
+function resumeSavedRace() {
+  const saved = loadSavedRace();
+  if (!saved || !activeProfile || saved.profileId !== activeProfile.id) {
+    showToast("No saved race for this driver.");
+    renderSavedRaceButton();
+    return;
+  }
+  const race = races.find((item) => item.id === saved.selectedRaceId) || races[0];
+  selectedRace = race;
+  setCameraMode(saved.cameraMode || cameraMode, true);
+  const director = getDirector(activeProfile);
+  Object.assign(raceState, saved.state, {
+    active: true,
+    particles: [],
+    director,
+    cameraShake: 0
+  });
+  input.paused = Boolean(saved.inputPaused);
+  $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
+  $("#raceTitle").textContent = selectedRace.name;
+  $("#raceBrief").textContent = selectedRace.target;
+  $("#modeChip").textContent = selectedRace.name;
+  $("#missionChip").textContent = raceState.chaseActive ? `Police heat ${Math.round(raceState.heat)}% | Escape clean` : `${selectedRace.target} | ${director.event.name}`;
+  startAudio();
+  if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+  showView("race");
+  updateRaceUi();
+  showToast("Saved race resumed.");
+}
+
 function endRace(manual = false) {
   if (!raceState.active) return;
-  raceState.active = false;
   if (manual) {
+    saveRace();
+    raceState.active = false;
+    updateHud();
     showView("garage");
     renderHub();
     return;
   }
+  raceState.active = false;
   const success = missionProgress() >= 1 && raceState.focus > 0;
   const age = ageBands[activeProfile.age];
   const directorReward = raceState.director ? raceState.director.reward : 1;
@@ -430,6 +538,7 @@ function endRace(manual = false) {
   if (raceState.focus >= 50) activeProfile.stats.steadyRuns += 1;
   profiles[activeProfile.id] = activeProfile;
   saveProfiles();
+  clearSavedRace();
   $("#finishTitle").textContent = success ? "Challenge Cleared" : "Race Complete";
   $("#finishStats").innerHTML = `
     <div><span>Coins earned</span><strong>${reward}</strong></div>
@@ -1398,6 +1507,8 @@ function bindEvents() {
     if (!confirm("Clear all local Velocity Vault profiles on this device?")) return;
     profiles = {};
     saveProfiles();
+    clearSavedRace();
+    renderSavedRaceButton();
     showToast("Local profiles cleared.");
   });
   $("#logoutBtn").addEventListener("click", () => {
@@ -1416,6 +1527,8 @@ function bindEvents() {
     });
   });
   $("#launchRace").addEventListener("click", launchRace);
+  $("#resumeRace").addEventListener("click", resumeSavedRace);
+  $("#saveRace").addEventListener("click", saveRace);
   $("#endRace").addEventListener("click", () => endRace(true));
   $("#toGarage").addEventListener("click", () => {
     showView("garage");

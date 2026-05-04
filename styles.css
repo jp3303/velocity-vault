@@ -289,6 +289,11 @@ input:focus {
   color: var(--text);
 }
 
+.ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .danger {
   color: #ffc5cc;
 }
@@ -590,5 +595,227 @@ input:focus {
 
   .view {
     padding: 16px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 620px) and (max-width: 980px) {
+  body {
+    overflow: auto;
+  }
+
+  .shell:has(#raceView.active) {
+    display: block;
+    height: 100dvh;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .shell:has(#raceView.active) .stage {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 0;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .shell:has(#raceView.active) .hud {
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .shell:has(#raceView.active) .brand-mark {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .shell:has(#raceView.active) .chips {
+    display: none;
+  }
+
+  .shell:has(#raceView.active) .hud-stats {
+    grid-template-columns: repeat(4, 54px);
+    gap: 5px;
+    margin-left: auto;
+  }
+
+  .shell:has(#raceView.active) .hud-stats div {
+    padding: 5px 6px;
+  }
+
+  .shell:has(#raceView.active) .hud-stats span {
+    font-size: 8px;
+  }
+
+  .shell:has(#raceView.active) .hud-stats strong {
+    font-size: 14px;
+  }
+
+  .panel:has(#raceView.active) {
+    position: fixed;
+    inset: 0;
+    overflow: visible;
+    pointer-events: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .panel:has(#raceView.active) #raceView {
+    display: block;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .panel:has(#raceView.active) .section-head {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    display: block;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .panel:has(#raceView.active) .section-head div {
+    display: none;
+  }
+
+  .panel:has(#raceView.active) #pauseBtn,
+  .panel:has(#raceView.active) #saveRace,
+  .panel:has(#raceView.active) #endRace,
+  .panel:has(#raceView.active) .control-grid button,
+  .panel:has(#raceView.active) .camera-grid button {
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+  }
+
+  .panel:has(#raceView.active) #pauseBtn {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    width: 68px;
+    height: 38px;
+    font-size: 12px;
+    background: rgba(5, 8, 7, 0.72);
+  }
+
+  .panel:has(#raceView.active) #saveRace {
+    position: fixed;
+    top: 52px;
+    right: 8px;
+    z-index: 6;
+    width: 88px;
+    min-height: 36px;
+    margin: 0;
+    font-size: 12px;
+    background: rgba(5, 8, 7, 0.58);
+  }
+
+  .panel:has(#raceView.active) #endRace {
+    position: fixed;
+    top: 96px;
+    right: 8px;
+    z-index: 6;
+    width: 88px;
+    min-height: 36px;
+    margin: 0;
+    font-size: 12px;
+    background: rgba(5, 8, 7, 0.58);
+  }
+
+  .panel:has(#raceView.active) .control-grid {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: block;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .panel:has(#raceView.active) .control-grid button {
+    position: fixed;
+    min-height: 74px;
+    border-color: rgba(244, 251, 248, 0.22);
+    background: rgba(5, 8, 7, 0.46);
+    font-size: 13px;
+    opacity: 0.88;
+  }
+
+  .panel:has(#raceView.active) #leftBtn {
+    left: 10px;
+    bottom: 12px;
+    width: 74px;
+  }
+
+  .panel:has(#raceView.active) #rightBtn {
+    left: 92px;
+    bottom: 12px;
+    width: 74px;
+  }
+
+  .panel:has(#raceView.active) #boostBtn {
+    right: 10px;
+    bottom: 12px;
+    width: 104px;
+    background: linear-gradient(135deg, rgba(255, 209, 102, 0.74), rgba(255, 91, 107, 0.72));
+  }
+
+  .panel:has(#raceView.active) .camera-grid {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    z-index: 4;
+    width: min(300px, 38vw);
+    transform: translateX(-50%);
+    gap: 5px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .panel:has(#raceView.active) .camera-grid button {
+    min-height: 32px;
+    padding: 0 5px;
+    overflow: hidden;
+    background: rgba(5, 8, 7, 0.48);
+    font-size: 10px;
+    text-overflow: ellipsis;
+  }
+
+  .panel:has(#raceView.active) .controller-card {
+    display: none;
+  }
+
+  .panel:has(#raceView.active) .progress-card {
+    position: fixed;
+    left: 50%;
+    z-index: 4;
+    width: min(300px, 38vw);
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 7px;
+    background: rgba(5, 8, 7, 0.44);
+    pointer-events: none;
+  }
+
+  .panel:has(#raceView.active) .distance-progress {
+    top: 8px;
+  }
+
+  .panel:has(#raceView.active) .mission-progress {
+    top: 48px;
+  }
+
+  .panel:has(#raceView.active) .progress-card span {
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+
+  .panel:has(#raceView.active) .progress-card .bar {
+    height: 6px;
   }
 }
