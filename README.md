@@ -22,7 +22,7 @@ Driver views:
 
 Real-world style visuals:
 
-- Race routes use fictional places inspired by recognizable real-world driving environments: coastal bridge, metro downtown, red-rock canyon, and alpine mountain pass.
+- Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, and a Rocky Mountain pass.
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, roadside route signs, and pass-specific colors.
 - Cars include more realistic body panels, wheels, headlights, tail lights, windows, and visible driver helmets.
 
