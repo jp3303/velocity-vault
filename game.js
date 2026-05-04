@@ -83,6 +83,7 @@ let deferredInstallPrompt = null;
 let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "chase";
 let rendererMode = localStorage.getItem("velocityVaultRendererMode") || "webgl";
 let touchDriveMode = localStorage.getItem("velocityVaultTouchDriveMode") === "toggle" ? "toggle" : "hold";
+let touchControlSize = localStorage.getItem("velocityVaultTouchControlSize") === "full" ? "full" : "mini";
 let webglRenderer = null;
 let audioSystem = null;
 
@@ -795,6 +796,23 @@ function setTouchDriveMode(mode, quiet = false) {
   }
 }
 
+function setTouchControlSize(size, quiet = false) {
+  touchControlSize = size === "full" ? "full" : "mini";
+  localStorage.setItem("velocityVaultTouchControlSize", touchControlSize);
+  document.body.classList.toggle("control-mini", touchControlSize === "mini");
+  const label = $("#touchSizeLabel");
+  const sizeButton = $(".control-size");
+  if (label) label.textContent = touchControlSize === "mini" ? "Full" : "Mini";
+  if (sizeButton) {
+    sizeButton.setAttribute("aria-pressed", touchControlSize === "mini" ? "true" : "false");
+    sizeButton.setAttribute("aria-label", touchControlSize === "mini" ? "Switch to full controls" : "Switch to mini controls");
+  }
+  if (!quiet) {
+    updateRaceUi();
+    showToast(touchControlSize === "mini" ? "Mini controls on. Tap Full for larger buttons." : "Full controls on. Tap Mini for more screen space.");
+  }
+}
+
 function setDriveInput(control, pressed) {
   if (control === "left") {
     input.left = pressed;
@@ -862,6 +880,10 @@ function handleMobileTouchStart(event) {
   Array.from(event.changedTouches).forEach((touch) => {
     const control = mobileControlAt(touch.clientX, touch.clientY);
     if (!control) return;
+    if (control === "size") {
+      setTouchControlSize(touchControlSize === "mini" ? "full" : "mini");
+      return;
+    }
     if (control === "mode") {
       const now = performance.now();
       if (now - mobileTouchState.modeToggleAt > 260) {
@@ -885,7 +907,7 @@ function handleMobileTouchMove(event) {
   event.preventDefault();
   Array.from(event.changedTouches).forEach((touch) => {
     const control = mobileControlAt(touch.clientX, touch.clientY);
-    if (control && control !== "mode") {
+    if (control && control !== "mode" && control !== "size") {
       mobileTouchState.active.set(touch.identifier, control);
     } else {
       mobileTouchState.active.delete(touch.identifier);
@@ -1512,11 +1534,14 @@ function updateRaceUi() {
             : control === "brake" ? input.brake || input.gamepadBrake
               : control === "boost" ? input.boost || input.gamepadBoost
                 : control === "mode" ? touchDriveMode === "toggle"
-                  : false;
+                  : control === "size" ? touchControlSize === "mini"
+                    : false;
     button.classList.toggle("pressed", pressed);
   });
   const touchLabel = $("#touchModeLabel");
   if (touchLabel) touchLabel.textContent = touchDriveMode === "toggle" ? "Toggle" : "Hold";
+  const sizeLabel = $("#touchSizeLabel");
+  if (sizeLabel) sizeLabel.textContent = touchControlSize === "mini" ? "Full" : "Mini";
   updateHud();
 }
 
@@ -4028,6 +4053,10 @@ function bindMobileControl(button) {
     event.preventDefault();
     startAudio();
     if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+    if (control === "size") {
+      setTouchControlSize(touchControlSize === "mini" ? "full" : "mini");
+      return;
+    }
     if (control === "mode") {
       setTouchDriveMode(touchDriveMode === "toggle" ? "hold" : "toggle");
       return;
@@ -4050,7 +4079,7 @@ function bindMobileControl(button) {
   const stop = (event) => {
     if (event && event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
     if (event) event.preventDefault();
-    if (touchDriveMode === "toggle" || control === "mode") return;
+    if (touchDriveMode === "toggle" || control === "mode" || control === "size") return;
     setDriveInput(control, false);
     updateRaceUi();
     if (button.releasePointerCapture && event && event.pointerId !== undefined) {
@@ -4138,6 +4167,7 @@ fitCanvas();
 updateHud();
 setCameraMode(cameraMode, true);
 setTouchDriveMode(touchDriveMode, true);
+setTouchControlSize(touchControlSize, true);
 initWebGLRenderer();
 setRendererMode(rendererMode, true);
 registerOfflineApp();

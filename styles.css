@@ -1417,3 +1417,145 @@ input:focus {
     height: clamp(40px, 11dvh, 52px);
   }
 }
+
+@media (max-width: 980px), (pointer: coarse) {
+  body.race-live .control-size {
+    position: fixed;
+    left: 50%;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 34;
+    width: 58px;
+    height: 32px;
+    transform: translateX(calc(-50% - 72px));
+    pointer-events: auto;
+    border-radius: 999px;
+    background: rgba(5, 8, 7, 0.72);
+  }
+
+  body.race-live .control-size span,
+  body.race-live .control-size strong {
+    display: block;
+    line-height: 1;
+  }
+
+  body.race-live .control-size span {
+    color: rgba(244, 251, 248, 0.68);
+    font-size: 8px;
+    text-transform: uppercase;
+  }
+
+  body.race-live .control-size strong {
+    font-size: 11px;
+  }
+
+  body.race-live.control-mini .control-mode {
+    display: none;
+  }
+
+  body.race-live.control-mini .direction-pad {
+    left: max(8px, env(safe-area-inset-left));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(2, clamp(34px, 9vw, 46px));
+    gap: 5px;
+  }
+
+  body.race-live.control-mini .mobile-control.steer-neutral {
+    display: none;
+  }
+
+  body.race-live.control-mini .mobile-control.steer-left,
+  body.race-live.control-mini .mobile-control.steer-right {
+    width: clamp(34px, 9vw, 46px);
+    height: clamp(34px, 9vw, 46px);
+    border-radius: 999px;
+    font-size: 0;
+  }
+
+  body.race-live.control-mini .mobile-control.steer-left::after,
+  body.race-live.control-mini .mobile-control.steer-right::after {
+    font-size: clamp(17px, 4.5vw, 22px);
+    line-height: 1;
+  }
+
+  body.race-live.control-mini .mobile-control.steer-left::after {
+    content: "<";
+  }
+
+  body.race-live.control-mini .mobile-control.steer-right::after {
+    content: ">";
+  }
+
+  body.race-live.control-mini .pedal-pad {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    grid-template-columns: clamp(36px, 10vw, 48px) clamp(42px, 12vw, 58px);
+    grid-template-rows: clamp(30px, 8vw, 40px) clamp(34px, 9vw, 46px);
+    gap: 5px;
+  }
+
+  body.race-live.control-mini .mobile-control.gas {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    font-size: clamp(10px, 2.7vw, 12px);
+  }
+
+  body.race-live.control-mini .mobile-control.brake,
+  body.race-live.control-mini .mobile-control.boost {
+    border-radius: 999px;
+    font-size: 0;
+  }
+
+  body.race-live.control-mini .mobile-control.brake::after,
+  body.race-live.control-mini .mobile-control.boost::after {
+    font-size: clamp(9px, 2.7vw, 11px);
+    line-height: 1;
+  }
+
+  body.race-live.control-mini .mobile-control.brake::after {
+    content: "Brake";
+  }
+
+  body.race-live.control-mini .mobile-control.boost::after {
+    content: "Boost";
+  }
+
+  body.race-live.control-mini .control-size {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 52px;
+    height: 30px;
+    transform: translateX(-50%);
+    opacity: 0.88;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 760px), (orientation: landscape) and (pointer: coarse) {
+  body.race-live.control-mini .direction-pad {
+    grid-template-columns: repeat(2, clamp(34px, 10dvh, 44px));
+  }
+
+  body.race-live.control-mini .mobile-control.steer-left,
+  body.race-live.control-mini .mobile-control.steer-right {
+    width: clamp(34px, 10dvh, 44px);
+    height: clamp(34px, 10dvh, 44px);
+  }
+
+  body.race-live.control-mini .pedal-pad {
+    grid-template-columns: clamp(36px, 10dvh, 48px) clamp(42px, 12dvh, 56px);
+    grid-template-rows: clamp(30px, 8dvh, 38px) clamp(34px, 10dvh, 46px);
+  }
+}
+
+@media (orientation: portrait) and (max-width: 980px) {
+  body.race-live.control-mini .direction-pad {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  body.race-live.control-mini .pedal-pad {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  body.race-live.control-mini .control-size {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
