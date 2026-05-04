@@ -105,6 +105,12 @@ const controllerState = {
   index: null
 };
 
+const mobileTouchState = {
+  active: new Map(),
+  usingTouchEvents: false,
+  modeToggleAt: 0
+};
+
 const raceState = {
   active: false,
   distance: 0,
@@ -116,6 +122,11 @@ const raceState = {
   combo: 1,
   lane: 0,
   x: 0,
+  lateralVelocity: 0,
+  steerAngle: 0,
+  throttleLoad: 0,
+  brakeHeat: 0,
+  slip: 0,
   roadOffset: 0,
   spawnClock: 0,
   coinClock: 0,
@@ -509,6 +520,11 @@ function launchRace() {
     combo: 1,
     lane: 0,
     x: 0,
+    lateralVelocity: 0,
+    steerAngle: 0,
+    throttleLoad: 0,
+    brakeHeat: 0,
+    slip: 0,
     roadOffset: 0,
     spawnClock: 0,
     coinClock: 0,
@@ -560,6 +576,11 @@ function saveRace() {
       combo: raceState.combo,
       lane: raceState.lane,
       x: raceState.x,
+      lateralVelocity: raceState.lateralVelocity,
+      steerAngle: raceState.steerAngle,
+      throttleLoad: raceState.throttleLoad,
+      brakeHeat: raceState.brakeHeat,
+      slip: raceState.slip,
       roadOffset: raceState.roadOffset,
       spawnClock: raceState.spawnClock,
       coinClock: raceState.coinClock,
@@ -600,6 +621,11 @@ function resumeSavedRace() {
     director,
     cameraShake: 0
   });
+  raceState.lateralVelocity = Number(saved.state.lateralVelocity) || 0;
+  raceState.steerAngle = Number(saved.state.steerAngle) || 0;
+  raceState.throttleLoad = Number(saved.state.throttleLoad) || 0;
+  raceState.brakeHeat = Number(saved.state.brakeHeat) || 0;
+  raceState.slip = Number(saved.state.slip) || 0;
   input.paused = Boolean(saved.inputPaused);
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
@@ -719,6 +745,7 @@ function clearTouchDriveInputs() {
   input.gas = false;
   input.brake = false;
   input.boost = false;
+  mobileTouchState.active.clear();
 }
 
 function setTouchDriveMode(mode, quiet = false) {
@@ -771,6 +798,75 @@ function toggleDriveInput(control) {
   } else if (control === "boost") {
     setDriveInput("boost", !input.boost);
   }
+}
+
+function mobileControlAt(clientX, clientY) {
+  const el = document.elementFromPoint(clientX, clientY);
+  const button = el && el.closest ? el.closest(".mobile-control") : null;
+  return button && button.dataset ? button.dataset.control : "";
+}
+
+function applyMobileTouchSnapshot() {
+  if (touchDriveMode === "toggle") return;
+  const controls = new Set(mobileTouchState.active.values());
+  const neutral = controls.has("neutral");
+  const left = controls.has("left");
+  const right = controls.has("right");
+  const gas = controls.has("gas");
+  const brake = controls.has("brake");
+  input.left = neutral ? false : left && !right;
+  input.right = neutral ? false : right && !left;
+  input.gas = gas && !brake;
+  input.brake = brake && !gas;
+  input.boost = controls.has("boost");
+  updateRaceUi();
+}
+
+function handleMobileTouchStart(event) {
+  mobileTouchState.usingTouchEvents = true;
+  event.preventDefault();
+  startAudio();
+  if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+  Array.from(event.changedTouches).forEach((touch) => {
+    const control = mobileControlAt(touch.clientX, touch.clientY);
+    if (!control) return;
+    if (control === "mode") {
+      const now = performance.now();
+      if (now - mobileTouchState.modeToggleAt > 260) {
+        mobileTouchState.modeToggleAt = now;
+        setTouchDriveMode(touchDriveMode === "toggle" ? "hold" : "toggle");
+      }
+      return;
+    }
+    if (touchDriveMode === "toggle") {
+      toggleDriveInput(control);
+      updateRaceUi();
+      return;
+    }
+    mobileTouchState.active.set(touch.identifier, control);
+  });
+  applyMobileTouchSnapshot();
+}
+
+function handleMobileTouchMove(event) {
+  if (touchDriveMode === "toggle") return;
+  event.preventDefault();
+  Array.from(event.changedTouches).forEach((touch) => {
+    const control = mobileControlAt(touch.clientX, touch.clientY);
+    if (control && control !== "mode") {
+      mobileTouchState.active.set(touch.identifier, control);
+    } else {
+      mobileTouchState.active.delete(touch.identifier);
+    }
+  });
+  applyMobileTouchSnapshot();
+}
+
+function handleMobileTouchEnd(event) {
+  if (touchDriveMode === "toggle") return;
+  event.preventDefault();
+  Array.from(event.changedTouches).forEach((touch) => mobileTouchState.active.delete(touch.identifier));
+  applyMobileTouchSnapshot();
 }
 
 function registerOfflineApp() {
@@ -921,23 +1017,55 @@ function tick(dt) {
   const age = ageBands[activeProfile.age];
   const director = raceState.director || getDirector(activeProfile);
   const vehicle = selectedVehicle();
-  const steerPower = (2.15 + upgrades.tires * 0.22) * vehicle.handling;
   const gasInput = input.gas || input.gamepadGas;
   const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
   const surfaceBoost = routeVehicleBoost(selectedRace.place, vehicle.type);
   const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost;
-  const boostPower = boostInput && gasInput && raceState.focus > 2 ? 72 + upgrades.boost * 16 : 0;
-  const targetSpeed = gasInput ? maxSpeed + boostPower : brakeInput ? (raceState.speed > 10 ? 0 : -36) : 0;
-  const response = gasInput ? 1.95 : brakeInput ? 3.2 : 0.88;
-  raceState.speed += (targetSpeed - raceState.speed) * Math.min(1, dt * response);
-  if (boostInput && gasInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
   const keySteer = Number(input.right) - Number(input.left);
   const steerInput = Math.abs(input.gamepadSteer) > Math.abs(keySteer) ? input.gamepadSteer : keySteer;
-  const steeringSpeedFactor = Math.max(0.28, Math.min(1.05, Math.abs(raceState.speed) / 110));
-  raceState.lane += steerInput * steerPower * steeringSpeedFactor * dt * (raceState.speed < -1 ? -0.65 : 1);
-  raceState.lane += (0 - raceState.lane) * dt * 0.18;
-  raceState.lane = Math.max(-2.18, Math.min(2.18, raceState.lane));
+  const boostPower = boostInput && gasInput && raceState.focus > 2 ? 60 + upgrades.boost * 17 : 0;
+  const speedLimit = maxSpeed + boostPower;
+  const forwardSpeed = Math.max(0, raceState.speed);
+  const reverseSpeed = Math.min(0, raceState.speed);
+  const throttleAccel = (42 + upgrades.engine * 4.8) * age.speed * vehicle.speed * surfaceBoost;
+  const boostAccel = boostInput && gasInput && raceState.focus > 2 ? 54 + upgrades.boost * 9 : 0;
+  const brakeForce = (88 + upgrades.tires * 5) / Math.max(0.72, vehicle.mass);
+  const reverseAccel = 34 / Math.max(0.8, vehicle.mass);
+  const rollingDrag = raceState.speed > 0 ? (10 + forwardSpeed * 0.035 + forwardSpeed * forwardSpeed * 0.00045) : (14 + Math.abs(reverseSpeed) * 0.12);
+
+  if (gasInput) {
+    raceState.speed += (throttleAccel + boostAccel) * dt;
+  }
+  if (brakeInput) {
+    raceState.speed -= (raceState.speed > 4 ? brakeForce : reverseAccel) * dt;
+  }
+  if (!gasInput && !brakeInput && Math.abs(raceState.speed) > 0.05) {
+    const drag = Math.min(Math.abs(raceState.speed), rollingDrag * dt);
+    raceState.speed += raceState.speed > 0 ? -drag : drag;
+  }
+  raceState.speed = Math.max(-38, Math.min(speedLimit, raceState.speed));
+  raceState.throttleLoad += ((gasInput ? 1 : 0) - raceState.throttleLoad) * Math.min(1, dt * 4.4);
+  raceState.brakeHeat += ((brakeInput && Math.abs(raceState.speed) > 12 ? 1 : 0) - raceState.brakeHeat) * Math.min(1, dt * 5.2);
+  if (boostInput && gasInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
+
+  const speedGrip = Math.max(0.28, Math.min(1.18, Math.abs(raceState.speed) / 120));
+  const steerTarget = steerInput * (0.92 + upgrades.tires * 0.045) * (raceState.speed < -1 ? -0.62 : 1);
+  raceState.steerAngle += (steerTarget - raceState.steerAngle) * Math.min(1, dt * (5.4 + vehicle.handling * 2.2));
+  const lateralAccel = raceState.steerAngle * speedGrip * (4.2 + vehicle.handling * 1.35 + upgrades.tires * 0.28);
+  raceState.lateralVelocity += lateralAccel * dt;
+  const grip = 2.15 + vehicle.handling * 1.25 + upgrades.tires * 0.32 + (brakeInput ? 0.75 : 0);
+  raceState.lateralVelocity *= Math.max(0, 1 - dt * grip);
+  raceState.lane += raceState.lateralVelocity * dt;
+  raceState.x = raceState.lane;
+  const offRoad = Math.max(0, Math.abs(raceState.lane) - 2.04);
+  if (offRoad > 0) {
+    raceState.lane = Math.max(-2.28, Math.min(2.28, raceState.lane));
+    raceState.lateralVelocity -= Math.sign(raceState.lane) * offRoad * 6.5 * dt;
+    raceState.speed *= Math.max(0.985, 1 - dt * (0.22 + offRoad * 0.24));
+    raceState.focus -= dt * offRoad * 1.8;
+  }
+  raceState.slip = Math.min(1, Math.abs(raceState.lateralVelocity) * 0.42 + Math.abs(raceState.steerAngle) * speedGrip * 0.18 + raceState.brakeHeat * 0.22 + offRoad * 0.5);
   raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
   raceState.roadOffset += raceState.speed * dt;
   raceState.elapsed += dt;
@@ -945,6 +1073,7 @@ function tick(dt) {
   raceState.heat = Math.min(100, raceState.heat + dt * (gasInput ? 0.8 + Math.max(0, raceState.speed) / 185 : 0.1) + (boostInput && gasInput ? dt * 2.4 : 0));
   raceState.heatClock -= dt;
   raceState.cameraShake = Math.max(0, raceState.cameraShake - dt * 18);
+  emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput);
   updateOpponents(dt, maxSpeed);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
@@ -1040,6 +1169,8 @@ function moveObjects(dt) {
   raceState.particles.forEach((p) => {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    p.vx *= Math.max(0, 1 - dt * 1.8);
+    p.vy *= Math.max(0, 1 - dt * 1.2);
     p.life -= dt;
   });
   raceState.particles = raceState.particles.filter((p) => p.life > 0);
@@ -1047,13 +1178,64 @@ function moveObjects(dt) {
 
 function burst(x, y, color) {
   for (let i = 0; i < 16; i += 1) {
+    const life = 0.35 + Math.random() * 0.35;
     raceState.particles.push({
       x,
       y,
       vx: (Math.random() - 0.5) * 240,
       vy: (Math.random() - 0.8) * 220,
-      life: 0.35 + Math.random() * 0.35,
+      life,
+      maxLife: life,
+      radius: 4 + Math.random() * 4,
       color
+    });
+  }
+}
+
+function emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput) {
+  if (!raceState.active || canvas.width <= 0 || canvas.height <= 0) return;
+  const speed = Math.abs(raceState.speed);
+  const x = canvas.width / 2 + raceState.lane * laneWidth();
+  const baseY = cameraMode === "cockpit" ? canvas.height * 0.78 : cameraMode === "hood" ? canvas.height * 0.93 : canvas.height * 0.87;
+  const slipChance = Math.min(0.75, raceState.slip * 0.34 + (brakeInput && speed > 24 ? 0.12 : 0) + (Math.abs(steerInput) > 0 && speed > 90 ? 0.06 : 0));
+  if (Math.random() < slipChance * dt * 18) {
+    const side = Math.random() > 0.5 ? -1 : 1;
+    const life = 0.35 + Math.random() * 0.28;
+    raceState.particles.push({
+      x: x + side * laneWidth() * 0.24 + (Math.random() - 0.5) * 18,
+      y: baseY + Math.random() * 24,
+      vx: -raceState.lateralVelocity * 34 + (Math.random() - 0.5) * 42,
+      vy: -32 - Math.random() * 34,
+      life,
+      maxLife: life,
+      radius: 10 + Math.random() * 18,
+      color: brakeInput ? "rgba(190,205,205,0.42)" : "rgba(120,134,128,0.32)"
+    });
+  }
+  if (boostInput && gasInput && raceState.focus > 2 && Math.random() < dt * 22) {
+    const life = 0.25 + Math.random() * 0.18;
+    raceState.particles.push({
+      x: x + (Math.random() - 0.5) * laneWidth() * 0.5,
+      y: baseY + 18 + Math.random() * 22,
+      vx: (Math.random() - 0.5) * 36,
+      vy: 80 + Math.random() * 90,
+      life,
+      maxLife: life,
+      radius: 12 + Math.random() * 16,
+      color: "rgba(255,209,102,0.58)"
+    });
+  }
+  if (gasInput && speed < 20 && Math.random() < dt * 8) {
+    const life = 0.28 + Math.random() * 0.22;
+    raceState.particles.push({
+      x: x + (Math.random() - 0.5) * laneWidth() * 0.42,
+      y: baseY + 12,
+      vx: (Math.random() - 0.5) * 24,
+      vy: 34 + Math.random() * 36,
+      life,
+      maxLife: life,
+      radius: 8 + Math.random() * 12,
+      color: "rgba(244,251,248,0.26)"
     });
   }
 }
@@ -2515,6 +2697,8 @@ function drawCar(w, h) {
 function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   ctx.save();
   ctx.translate(x, y);
+  const bodyYaw = Math.max(-0.12, Math.min(0.12, (raceState.steerAngle || 0) * 0.055 + (raceState.lateralVelocity || 0) * 0.018));
+  ctx.rotate(bodyYaw);
 
   const shadow = ctx.createRadialGradient(0, height * 0.38, width * 0.08, 0, height * 0.42, width * 0.72);
   shadow.addColorStop(0, "rgba(0,0,0,0.54)");
@@ -2760,6 +2944,16 @@ function drawCinematicGrade(w, h, theme) {
     }
     ctx.restore();
   }
+  const slipGlow = Math.min(0.24, (raceState.slip || 0) * 0.18 + (raceState.brakeHeat || 0) * 0.08);
+  if (slipGlow > 0.01 && raceState.active) {
+    ctx.save();
+    const gripWash = ctx.createLinearGradient(0, h * 0.55, 0, h);
+    gripWash.addColorStop(0, "rgba(255,255,255,0)");
+    gripWash.addColorStop(1, `rgba(244,251,248,${slipGlow})`);
+    ctx.fillStyle = gripWash;
+    ctx.fillRect(0, h * 0.55, w, h * 0.45);
+    ctx.restore();
+  }
   const vignette = ctx.createRadialGradient(w * 0.5, h * 0.52, h * 0.22, w * 0.5, h * 0.52, h * 0.9);
   vignette.addColorStop(0, "rgba(0,0,0,0)");
   vignette.addColorStop(1, "rgba(0,0,0,0.58)");
@@ -2943,10 +3137,11 @@ function roundRect(x, y, width, height, radius) {
 
 function drawParticles() {
   raceState.particles.forEach((p) => {
-    ctx.globalAlpha = Math.max(0, p.life / 0.7);
+    const fade = Math.max(0, p.life / (p.maxLife || 0.7));
+    ctx.globalAlpha = fade;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 4 + p.life * 10, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, (p.radius || 4) * (1.1 - fade * 0.35), 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   });
@@ -3058,6 +3253,11 @@ function bindEvents() {
   bindHold($("#brakeBtn"), "brake");
   bindHold($("#boostBtn"), "boost");
   $$(".mobile-control").forEach((button) => bindMobileControl(button));
+  const mobileLayer = $(".mobile-drive-controls");
+  mobileLayer.addEventListener("touchstart", handleMobileTouchStart, { passive: false });
+  mobileLayer.addEventListener("touchmove", handleMobileTouchMove, { passive: false });
+  mobileLayer.addEventListener("touchend", handleMobileTouchEnd, { passive: false });
+  mobileLayer.addEventListener("touchcancel", handleMobileTouchEnd, { passive: false });
   window.addEventListener("keydown", (event) => setKey(event, true));
   window.addEventListener("keyup", (event) => setKey(event, false));
   window.addEventListener("resize", fitCanvas);
@@ -3107,6 +3307,7 @@ function bindHold(button, key) {
 function bindMobileControl(button) {
   const control = button.dataset.control;
   const start = (event) => {
+    if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
     event.preventDefault();
     startAudio();
     if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
@@ -3130,6 +3331,7 @@ function bindMobileControl(button) {
     }
   };
   const stop = (event) => {
+    if (event && event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
     if (event) event.preventDefault();
     if (touchDriveMode === "toggle" || control === "mode") return;
     setDriveInput(control, false);

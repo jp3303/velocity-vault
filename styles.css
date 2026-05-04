@@ -191,16 +191,20 @@ button {
 
 .mobile-drive-controls {
   display: none;
+  touch-action: none;
 }
 
 .mobile-control {
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .direction-pad,
 .pedal-pad {
   display: none;
+  touch-action: none;
 }
 
 .panel {
