@@ -149,7 +149,7 @@ button {
 
 .hud-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(70px, 1fr));
+  grid-template-columns: repeat(5, minmax(70px, 1fr));
   gap: 8px;
 }
 
@@ -707,6 +707,10 @@ input:focus {
   background: linear-gradient(90deg, var(--lime), var(--cyan));
 }
 
+.damage-bar i {
+  background: linear-gradient(90deg, var(--lime), var(--amber) 48%, var(--red));
+}
+
 .finish-stats {
   display: grid;
   gap: 10px;
@@ -821,9 +825,10 @@ input:focus {
   }
 
   body.race-live .hud-stats {
-    grid-template-columns: repeat(4, 54px);
+    grid-template-columns: repeat(5, 54px);
     gap: 5px;
     margin-left: auto;
+    margin-right: 100px;
   }
 
   body.race-live .hud-stats div {
@@ -841,6 +846,7 @@ input:focus {
   body.race-live .panel {
     position: fixed;
     inset: 0;
+    z-index: 10;
     overflow: visible;
     pointer-events: none;
     border: 0;
@@ -871,6 +877,7 @@ input:focus {
 
   body.race-live #pauseBtn,
   body.race-live #saveRace,
+  body.race-live #resetCar,
   body.race-live #endRace,
   body.race-live .camera-grid button,
   body.race-live .renderer-grid button,
@@ -883,6 +890,7 @@ input:focus {
     position: fixed;
     top: 8px;
     right: 8px;
+    z-index: 12;
     width: 68px;
     height: 38px;
     font-size: 12px;
@@ -893,7 +901,7 @@ input:focus {
     position: fixed;
     top: 52px;
     right: 8px;
-    z-index: 6;
+    z-index: 12;
     width: 88px;
     min-height: 36px;
     margin: 0;
@@ -903,14 +911,26 @@ input:focus {
 
   body.race-live #endRace {
     position: fixed;
-    top: 96px;
+    top: 140px;
     right: 8px;
-    z-index: 6;
+    z-index: 12;
     width: 88px;
     min-height: 36px;
     margin: 0;
     font-size: 12px;
     background: rgba(5, 8, 7, 0.58);
+  }
+
+  body.race-live #resetCar {
+    position: fixed;
+    top: 96px;
+    right: 8px;
+    z-index: 12;
+    width: 88px;
+    min-height: 36px;
+    margin: 0;
+    font-size: 12px;
+    background: rgba(255, 91, 107, 0.28);
   }
 
   body.race-live .control-grid {
@@ -1083,7 +1103,7 @@ input:focus {
 
 @media (orientation: landscape) and (max-height: 430px) {
   body.race-live .hud-stats {
-    grid-template-columns: repeat(4, 48px);
+    grid-template-columns: repeat(5, 48px);
   }
 
   body.race-live #saveRace,

@@ -34,6 +34,7 @@
         <div class="hud-stats" aria-live="polite">
           <div><span>Speed</span><strong id="speedStat">0</strong></div>
           <div><span>Focus</span><strong id="focusStat">100</strong></div>
+          <div><span>Damage</span><strong id="damageStat">0%</strong></div>
           <div><span>Coins</span><strong id="coinStat">0</strong></div>
           <div><span id="repLabel">Rep</span><strong id="repStat">0</strong></div>
         </div>
@@ -143,6 +144,7 @@
           <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause race" title="Pause race">Pause</button>
         </div>
         <button id="saveRace" class="ghost save-race" type="button">Save Race</button>
+        <button id="resetCar" class="ghost reset-car" type="button">Reset Car</button>
         <div class="control-grid">
           <button id="leftBtn" type="button" aria-label="Steer left">Left</button>
           <button id="gasBtn" type="button" aria-label="Accelerate">Gas</button>
@@ -161,7 +163,7 @@
         </div>
         <div class="controller-card">
           <strong id="controllerName">Bluetooth controller ready</strong>
-          <span>Pair a controller with your device, press any controller button, then steer with the left stick or D-pad. RT / A accelerates, LT brakes or reverses, B boosts. Start pauses.</span>
+          <span>Pair a controller with your device, press any controller button, then steer with the left stick or D-pad. RT / A accelerates, LT brakes or reverses, B boosts. Y resets the vehicle. Start pauses.</span>
         </div>
         <div class="progress-card distance-progress">
           <span>Distance</span>
@@ -170,6 +172,10 @@
         <div class="progress-card mission-progress">
           <span>Mission</span>
           <div class="bar"><i id="missionBar"></i></div>
+        </div>
+        <div class="progress-card damage-progress">
+          <span>Damage</span>
+          <div class="bar damage-bar"><i id="damageBar"></i></div>
         </div>
         <button id="endRace" class="ghost" type="button">Return to Hub</button>
       </div>

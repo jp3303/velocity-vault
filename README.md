@@ -15,9 +15,10 @@ Controls:
 - `Down` or `S`: brake, then reverse when stopped
 - `Space`: boost while accelerating
 - `P`: pause
+- `R`: reset the vehicle after a crash or bad position
 - On touch screens, use the on-screen buttons. Phone landscape mode has a dedicated multi-touch driver pad with left, center, right, gas, brake/reverse, boost, and a Hold/Toggle control mode switch. One thumb can stay on gas while the other steers.
 - Landscape scrolling stays available in menus and the garage; the full-screen no-scroll layout only turns on while a race is live.
-- Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, and Start / Select to pause
+- Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, Y to reset, and Start / Select to pause
 
 Driver views:
 
@@ -34,11 +35,14 @@ Real-world style visuals:
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
 - The WebGL route pass now uses smoother world landmarks, neon signs, mounds, hangars, barns, freight stops, streetlights, trees, barriers, spectators, weather overlays, speed streaks, and detailed vehicle bodies instead of the first sharp spike scenery and plain box vehicles.
+- The WebGL route pass also adds overhead highway gantries, neon vertical signs, harbor cranes, extra wet-road reflection strips, bridge-style structures, and route-specific foreground details so the world feels less empty and more like a real drive.
 - Roads now include darker asphalt patches, reflective studs, shoulders, rumble strips, center paint, city crosswalk-style stripes, signs, spectator groups, guardrail details, and route-specific landmarks so each place reads more like a real location.
-- Vehicles now have extra WebGL body details such as glass, headlights, grilles, side panels, rear wings on fast cars, larger stance cues for trucks, and route-appropriate traffic types.
+- Vehicles now have extra WebGL body details such as glass, headlights, grilles, side panels, rear wings on fast cars, larger stance cues for trucks, visible damage panels, and route-appropriate traffic types.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
+- Opponents can now make wheel-to-wheel side contact when the player catches them, causing speed loss, focus loss, camera shake, particles, and real vehicle damage.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
-- Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected touch steering direction, and vehicle body yaw instead of automatic forward motion or lane-snapping movement.
+- Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected touch steering direction, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
+- Collision damage now appears in the HUD, finish stats, damage bar, car scuffs, smoke, cracked windshield overlays, impact flashes, and reset countdowns. At critical damage the vehicle enters a timed reset, and the manual `Reset Car` button or `R` key can recover from a bad crash position.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
 - Driving effects include tire smoke, launch haze, boost exhaust, brake/slip wash, speed streaks, road reflections, depth haze, headlight wash, dust/snow/weather layers, camera shake, off-road drag, and car body lean during hard steering.

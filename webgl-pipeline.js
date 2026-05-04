@@ -305,6 +305,22 @@
           }
         }
       }
+      if (["city", "tokyo", "coast", "harbor", "rainforest"].includes(place)) {
+        for (let i = 0; i < 22; i += 1) {
+          const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
+          box(Math.sin(i * 1.7) * 1.6, 0.095, z, 1.15 + (i % 4) * 0.55, 0.025, 0.18, shade(accent, i % 2 ? 0.76 : 1.12));
+        }
+      }
+      if (["city", "tokyo", "europe", "freight"].includes(place)) {
+        for (let i = 0; i < 8; i += 1) {
+          const z = wrapZ(i, 22, data.raceState.roadOffset, 0.08);
+          box(-6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
+          box(6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
+          box(0, 6.12, z, 13.8, 0.22, 0.3, [0.34, 0.36, 0.34, 1]);
+          box(-2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? accent : [0.08, 0.1, 0.1, 1]);
+          box(2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? [0.08, 0.1, 0.1, 1] : accent);
+        }
+      }
     }
 
     function addScenery(data) {
@@ -323,6 +339,10 @@
           box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
           box(x, height * 0.32, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent2 : accent);
           box(x, height * 0.72, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent : accent2);
+          if (place === "tokyo" && i % 5 === 0) {
+            box(side * 6.6, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent2);
+            box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
+          }
           if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === "tokyo" ? accent2 : accent);
           if (i % 6 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
           if (i % 8 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
@@ -356,6 +376,11 @@
         } else if (place === "harbor" || place === "coast") {
           box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
           box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
+          if (i % 6 === 0) {
+            box(side * 14.2, 2.1, z, 0.24, 4.2, 0.24, [0.72, 0.48, 0.2, 1]);
+            box(side * 12.4, 4.0, z - 0.6, 3.8, 0.22, 0.24, [0.72, 0.48, 0.2, 1]);
+            taperedBox(side * 15.4, 0.5, z + 1.8, 2.4, 1.5, 0.72, 3.2, accent2);
+          }
           if (i % 4 === 0) roadsideTree(side * 10.4, z + 0.9, [0.18, 0.48, 0.2, 1], "palm");
           if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
           if (i % 9 === 0) spectatorCluster(side * 9.1, z + 2.8, accent, accent2);
@@ -368,7 +393,7 @@
       }
     }
 
-    function addVehicle(type, x, z, colorHex, scale = 1, police = false) {
+    function addVehicle(type, x, z, colorHex, scale = 1, police = false, damage = 0) {
       const paint = police ? [0.9, 0.92, 0.9, 1] : hexToRgba(colorHex, 1);
       const dark = [0.01, 0.015, 0.014, 1];
       const red = [1, 0.08, 0.12, 1];
@@ -418,6 +443,13 @@
         box(x - 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x + 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
       }
+      if (damage > 18) {
+        const dent = [0.02, 0.022, 0.02, 1];
+        box(x - 0.28 * scale, 1.04 * scale, z - 0.34 * scale, 0.48 * scale, 0.035 * scale, 0.16 * scale, dent);
+        box(x + 0.34 * scale, 0.86 * scale, z + 0.18 * scale, 0.42 * scale, 0.035 * scale, 0.14 * scale, dent);
+        if (damage > 52) box(x - 0.1 * scale, 0.72 * scale, z + 0.9 * scale, 0.36 * scale, 0.06 * scale, 0.1 * scale, [1, 0.18, 0.16, 1]);
+        if (damage > 76) box(x + 0.18 * scale, 1.2 * scale, z - 0.86 * scale, 0.28 * scale, 0.08 * scale, 0.18 * scale, [0.05, 0.05, 0.045, 1]);
+      }
       box(x - 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
       box(x + 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
       box(x - 0.64 * scale, 0.24 * scale, z - 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
@@ -456,9 +488,10 @@
         box(coin.lane * laneScale, 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
       });
       if (data.cameraMode === "chase") {
-        addVehicle(data.selectedVehicle.type, data.raceState.lane * laneScale, 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false);
+        addVehicle(data.selectedVehicle.type, data.raceState.lane * laneScale, 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false, data.raceState.damage || 0);
       } else if (data.cameraMode === "hood") {
         box(data.raceState.lane * laneScale, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
+        if ((data.raceState.damage || 0) > 25) box(data.raceState.lane * laneScale - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
       }
     }
 

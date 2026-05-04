@@ -97,7 +97,8 @@ const input = {
   gamepadGas: false,
   gamepadBrake: false,
   gamepadBoost: false,
-  gamepadPauseHeld: false
+  gamepadPauseHeld: false,
+  gamepadResetHeld: false
 };
 
 const controllerState = {
@@ -128,6 +129,10 @@ const raceState = {
   throttleLoad: 0,
   brakeHeat: 0,
   slip: 0,
+  damage: 0,
+  resetTimer: 0,
+  resetReason: "",
+  crashCooldown: 0,
   roadOffset: 0,
   spawnClock: 0,
   coinClock: 0,
@@ -531,6 +536,10 @@ function launchRace() {
     throttleLoad: 0,
     brakeHeat: 0,
     slip: 0,
+    damage: 0,
+    resetTimer: 0,
+    resetReason: "",
+    crashCooldown: 0,
     roadOffset: 0,
     spawnClock: 0,
     coinClock: 0,
@@ -587,6 +596,10 @@ function saveRace() {
       throttleLoad: raceState.throttleLoad,
       brakeHeat: raceState.brakeHeat,
       slip: raceState.slip,
+      damage: raceState.damage,
+      resetTimer: raceState.resetTimer,
+      resetReason: raceState.resetReason,
+      crashCooldown: raceState.crashCooldown,
       roadOffset: raceState.roadOffset,
       spawnClock: raceState.spawnClock,
       coinClock: raceState.coinClock,
@@ -632,6 +645,10 @@ function resumeSavedRace() {
   raceState.throttleLoad = Number(saved.state.throttleLoad) || 0;
   raceState.brakeHeat = Number(saved.state.brakeHeat) || 0;
   raceState.slip = Number(saved.state.slip) || 0;
+  raceState.damage = Math.max(0, Math.min(100, Number(saved.state.damage) || 0));
+  raceState.resetTimer = Math.max(0, Number(saved.state.resetTimer) || 0);
+  raceState.resetReason = saved.state.resetReason || "";
+  raceState.crashCooldown = Math.max(0, Number(saved.state.crashCooldown) || 0);
   input.paused = Boolean(saved.inputPaused);
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
@@ -679,6 +696,7 @@ function endRace(manual = false) {
     <div><span>Coins earned</span><strong>${reward}</strong></div>
     <div><span>Reputation</span><strong>+${rep}</strong></div>
     <div><span>Score</span><strong>${Math.round(raceState.score)}</strong></div>
+    <div><span>Damage</span><strong>${Math.round(raceState.damage)}%</strong></div>
     <div><span>Focus left</span><strong>${Math.max(0, Math.round(raceState.focus))}</strong></div>
   `;
   updateHud();
@@ -700,6 +718,8 @@ function updateHud() {
   $("#repStat").textContent = raceState.active ? Math.round(raceState.heat) : activeProfile ? activeProfile.rep : 0;
   $("#speedStat").textContent = Math.max(0, Math.round(raceState.speed));
   $("#focusStat").textContent = Math.max(0, Math.round(raceState.focus));
+  const damageStat = $("#damageStat");
+  if (damageStat) damageStat.textContent = raceState.active ? `${Math.round(raceState.damage)}%` : "0%";
   if (raceState.active) {
     const pos = playerPosition();
     const leader = raceRankings()[0];
@@ -707,6 +727,7 @@ function updateHud() {
       ? `P${pos}/6 | Police heat ${Math.round(raceState.heat)}%`
       : `P${pos}/6 | Leader ${leader.name} | ${selectedRace.target}`;
     if (raceState.speed < 8) $("#missionChip").textContent = "Hold Gas to accelerate | Brake to stop/reverse";
+    if (raceState.resetTimer > 0) $("#missionChip").textContent = `Vehicle reset in ${Math.ceil(raceState.resetTimer)} | ${raceState.resetReason}`;
   }
 }
 
@@ -920,6 +941,7 @@ function makeOpponents(playerVehicle, age, director) {
       focus: 100,
       color: vehicle.color,
       wobble: Math.random() * Math.PI * 2,
+      bumpCooldown: 0,
       finished: false,
       ageSpeed: age.speed,
       aiTune: director.traffic
@@ -941,6 +963,19 @@ function updateOpponents(dt, maxSpeed) {
     const laneTarget = Math.sin(opponent.wobble) * 1.7 + Math.sin(opponent.wobble * 0.47 + index) * 0.34;
     opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling;
     opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
+    opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < 18 && Math.abs(opponent.lane - raceState.lane) < 0.46;
+    if (wheelToWheel && opponent.bumpCooldown <= 0 && raceState.resetTimer <= 0) {
+      opponent.bumpCooldown = 1.35;
+      opponent.speed *= 0.86;
+      opponent.focus = Math.max(0, opponent.focus - 22);
+      raceState.speed *= 0.88;
+      raceState.lateralVelocity += Math.sign(raceState.lane - opponent.lane || 1) * 0.85;
+      raceState.cameraShake = Math.max(raceState.cameraShake, 9);
+      applyVehicleDamage(12 / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
+      burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
+      playHitSound("impact");
+    }
     if (opponent.distance >= length) opponent.finished = true;
   });
 }
@@ -1027,17 +1062,34 @@ function tick(dt) {
   const gasInput = input.gas || input.gamepadGas;
   const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
+  raceState.crashCooldown = Math.max(0, raceState.crashCooldown - dt);
+  if (raceState.resetTimer > 0) {
+    raceState.resetTimer = Math.max(0, raceState.resetTimer - dt);
+    raceState.speed *= Math.max(0, 1 - dt * 5.6);
+    raceState.lateralVelocity *= Math.max(0, 1 - dt * 6.8);
+    raceState.steerAngle *= Math.max(0, 1 - dt * 6.4);
+    raceState.slip = Math.max(raceState.slip * 0.9, 0.55);
+    raceState.cameraShake = Math.max(raceState.cameraShake, 2 + raceState.resetTimer * 1.8);
+    emitDrivingEffects(dt, false, true, false, 0);
+    if (raceState.resetTimer <= 0) completeVehicleReset();
+    updateRaceUi();
+    updateAudio();
+    return;
+  }
   const surfaceBoost = routeVehicleBoost(selectedRace.place, vehicle.type);
-  const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost;
+  const damageRatio = Math.min(0.86, (raceState.damage || 0) / 120);
+  const performanceHealth = Math.max(0.42, 1 - damageRatio * 0.44);
+  const handlingHealth = Math.max(0.48, 1 - damageRatio * 0.34);
+  const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost * performanceHealth;
   const keySteer = Number(input.left) - Number(input.right);
   const steerInput = Math.abs(input.gamepadSteer) > Math.abs(keySteer) ? input.gamepadSteer : keySteer;
-  const boostPower = boostInput && gasInput && raceState.focus > 2 ? 60 + upgrades.boost * 17 : 0;
+  const boostPower = boostInput && gasInput && raceState.focus > 2 ? (60 + upgrades.boost * 17) * performanceHealth : 0;
   const speedLimit = maxSpeed + boostPower;
   const forwardSpeed = Math.max(0, raceState.speed);
   const reverseSpeed = Math.min(0, raceState.speed);
-  const throttleAccel = (42 + upgrades.engine * 4.8) * age.speed * vehicle.speed * surfaceBoost;
-  const boostAccel = boostInput && gasInput && raceState.focus > 2 ? 54 + upgrades.boost * 9 : 0;
-  const brakeForce = (88 + upgrades.tires * 5) / Math.max(0.72, vehicle.mass);
+  const throttleAccel = (42 + upgrades.engine * 4.8) * age.speed * vehicle.speed * surfaceBoost * performanceHealth;
+  const boostAccel = boostInput && gasInput && raceState.focus > 2 ? (54 + upgrades.boost * 9) * performanceHealth : 0;
+  const brakeForce = ((88 + upgrades.tires * 5) / Math.max(0.72, vehicle.mass)) * Math.max(0.64, 1 - damageRatio * 0.24);
   const reverseAccel = 34 / Math.max(0.8, vehicle.mass);
   const rollingDrag = raceState.speed > 0 ? (10 + forwardSpeed * 0.035 + forwardSpeed * forwardSpeed * 0.00045) : (14 + Math.abs(reverseSpeed) * 0.12);
 
@@ -1057,11 +1109,11 @@ function tick(dt) {
   if (boostInput && gasInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
 
   const speedGrip = Math.max(0.28, Math.min(1.18, Math.abs(raceState.speed) / 120));
-  const steerTarget = steerInput * (0.92 + upgrades.tires * 0.045) * (raceState.speed < -1 ? -0.62 : 1);
-  raceState.steerAngle += (steerTarget - raceState.steerAngle) * Math.min(1, dt * (5.4 + vehicle.handling * 2.2));
-  const lateralAccel = raceState.steerAngle * speedGrip * (4.2 + vehicle.handling * 1.35 + upgrades.tires * 0.28);
+  const steerTarget = steerInput * (0.92 + upgrades.tires * 0.045) * handlingHealth * (raceState.speed < -1 ? -0.62 : 1);
+  raceState.steerAngle += (steerTarget - raceState.steerAngle) * Math.min(1, dt * (5.4 + vehicle.handling * 2.2) * handlingHealth);
+  const lateralAccel = raceState.steerAngle * speedGrip * (4.2 + vehicle.handling * 1.35 + upgrades.tires * 0.28) * handlingHealth;
   raceState.lateralVelocity += lateralAccel * dt;
-  const grip = 2.15 + vehicle.handling * 1.25 + upgrades.tires * 0.32 + (brakeInput ? 0.75 : 0);
+  const grip = (2.15 + vehicle.handling * 1.25 + upgrades.tires * 0.32 + (brakeInput ? 0.75 : 0)) * handlingHealth;
   raceState.lateralVelocity *= Math.max(0, 1 - dt * grip);
   raceState.lane += raceState.lateralVelocity * dt;
   raceState.x = raceState.lane;
@@ -1071,6 +1123,7 @@ function tick(dt) {
     raceState.lateralVelocity -= Math.sign(raceState.lane) * offRoad * 6.5 * dt;
     raceState.speed *= Math.max(0.985, 1 - dt * (0.22 + offRoad * 0.24));
     raceState.focus -= dt * offRoad * 1.8;
+    if (Math.abs(raceState.speed) > 90) applyVehicleDamage(dt * offRoad * (Math.abs(raceState.speed) / 34), "Off-road damage", true);
   }
   raceState.slip = Math.min(1, Math.abs(raceState.lateralVelocity) * 0.42 + Math.abs(raceState.steerAngle) * speedGrip * 0.18 + raceState.brakeHeat * 0.22 + offRoad * 0.5);
   raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
@@ -1119,12 +1172,14 @@ function moveObjects(dt) {
     if (laneHit && yHit && !rival.hit) {
       rival.hit = true;
       const shield = activeProfile.upgrades.shield;
-      raceState.focus -= Math.max(6, (24 - shield * 3.4) / Math.max(0.72, vehicle.mass));
+      const impact = Math.max(8, (28 - shield * 2.7) / Math.max(0.72, vehicle.mass));
+      applyVehicleDamage(impact, "Traffic impact");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, 7);
+      raceState.speed *= Math.max(0.55, 0.82 - impact * 0.006);
+      raceState.lateralVelocity += Math.sign(carLane - rival.lane || 1) * 0.9;
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, "#ff5b6b");
       playHitSound("impact");
-      showToast("Impact absorbed. Hold focus.");
     }
   });
   raceState.police.forEach((unit) => {
@@ -1143,14 +1198,16 @@ function moveObjects(dt) {
     if (laneHit && yHit && !unit.hit) {
       unit.hit = true;
       const shield = activeProfile.upgrades.shield;
-      raceState.focus -= Math.max(8, (32 - shield * 3) / Math.max(0.72, vehicle.mass));
+      const impact = Math.max(12, (38 - shield * 2.5) / Math.max(0.72, vehicle.mass));
+      applyVehicleDamage(impact, "Police contact");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, 12);
       raceState.heat = Math.min(100, raceState.heat + 12);
+      raceState.speed *= Math.max(0.48, 0.76 - impact * 0.005);
+      raceState.lateralVelocity += Math.sign(carLane - unit.lane || 1) * 1.2;
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#ff3348");
       playHitSound("police");
-      showToast("Police contact. Break away and rebuild focus.");
     }
   });
   const magnet = activeProfile.upgrades.magnet;
@@ -1181,6 +1238,61 @@ function moveObjects(dt) {
     p.life -= dt;
   });
   raceState.particles = raceState.particles.filter((p) => p.life > 0);
+}
+
+function applyVehicleDamage(amount, reason = "Impact", quiet = false) {
+  if (!raceState.active || raceState.resetTimer > 0 || amount <= 0) return;
+  const shield = activeProfile ? activeProfile.upgrades.shield : 0;
+  const vehicle = selectedVehicle();
+  const massResist = Math.max(0.55, Math.min(1.15, 1.18 / Math.max(0.72, vehicle.mass)));
+  const shieldResist = Math.max(0.58, 1 - shield * 0.055);
+  const finalAmount = amount * massResist * shieldResist;
+  raceState.damage = Math.max(0, Math.min(100, (raceState.damage || 0) + finalAmount));
+  raceState.focus = Math.max(0, raceState.focus - Math.max(3, finalAmount * 0.64));
+  raceState.crashCooldown = Math.max(raceState.crashCooldown, quiet ? 0.18 : 0.75);
+  if (!quiet) {
+    const label = raceState.damage >= 100 ? "Critical damage" : `${reason}: ${Math.round(raceState.damage)}% damage`;
+    showToast(label);
+  }
+  if (raceState.damage >= 100) triggerVehicleReset(reason);
+}
+
+function triggerVehicleReset(reason = "Critical damage") {
+  if (!raceState.active || raceState.resetTimer > 0) return;
+  raceState.resetTimer = 3.2;
+  raceState.resetReason = reason;
+  raceState.speed = Math.min(18, Math.max(-4, raceState.speed * 0.18));
+  raceState.lateralVelocity = 0;
+  raceState.steerAngle = 0;
+  raceState.combo = 1;
+  raceState.cameraShake = Math.max(raceState.cameraShake, 18);
+  raceState.focus = Math.max(8, raceState.focus - 7);
+  clearTouchDriveInputs();
+  burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.78, "#ff5b6b");
+  burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.78, "#ffd166");
+  playHitSound("impact");
+  showToast(`${reason}. Resetting vehicle.`);
+}
+
+function completeVehicleReset() {
+  raceState.resetTimer = 0;
+  raceState.resetReason = "";
+  raceState.damage = Math.min(42, raceState.damage * 0.42);
+  raceState.lane = 0;
+  raceState.x = 0;
+  raceState.speed = 0;
+  raceState.lateralVelocity = 0;
+  raceState.steerAngle = 0;
+  raceState.slip = 0;
+  raceState.crashCooldown = 1.2;
+  showToast("Vehicle reset. Damage stabilized.");
+}
+
+function manualResetVehicle() {
+  if (!raceState.active) return;
+  if (raceState.resetTimer > 0) return;
+  raceState.damage = Math.min(100, raceState.damage + 6);
+  triggerVehicleReset("Manual reset");
 }
 
 function burst(x, y, color) {
@@ -1245,11 +1357,29 @@ function emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput) {
       color: "rgba(244,251,248,0.26)"
     });
   }
+  const damage = raceState.damage || 0;
+  if (damage > 24 && Math.random() < dt * (4 + damage * 0.12)) {
+    const life = 0.48 + Math.random() * 0.5;
+    raceState.particles.push({
+      x: x + (Math.random() - 0.5) * laneWidth() * 0.38,
+      y: baseY + 8 + Math.random() * 18,
+      vx: (Math.random() - 0.5) * 36 - raceState.lateralVelocity * 18,
+      vy: 38 + Math.random() * 80,
+      life,
+      maxLife: life,
+      radius: 12 + Math.random() * 24,
+      color: damage > 70 ? "rgba(25,25,24,0.42)" : "rgba(135,138,132,0.28)"
+    });
+  }
 }
 
 function updateRaceUi() {
   $("#distanceBar").style.width = `${Math.min(100, (raceState.distance / raceLength()) * 100)}%`;
   $("#missionBar").style.width = `${Math.min(100, missionProgress() * 100)}%`;
+  const damageBar = $("#damageBar");
+  if (damageBar) damageBar.style.width = `${Math.min(100, raceState.damage || 0)}%`;
+  const resetCar = $("#resetCar");
+  if (resetCar) resetCar.textContent = raceState.resetTimer > 0 ? `Reset ${Math.ceil(raceState.resetTimer)}` : "Reset Car";
   $("#gasBtn").classList.toggle("pressed", input.gas || input.gamepadGas);
   $("#brakeBtn").classList.toggle("pressed", input.brake || input.gamepadBrake);
   $("#boostBtn").classList.toggle("pressed", input.boost || input.gamepadBoost);
@@ -1308,6 +1438,7 @@ function drawFrame() {
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
     drawCameraOverlay(w, h, theme);
+    drawDamageOverlay(w, h, theme);
     if (raceState.active) drawRaceStandings(w, h);
     drawParticles();
     drawCinematicGrade(w, h, theme);
@@ -1333,6 +1464,7 @@ function drawFrame() {
   drawCar(w, h);
   drawRealisticDrivingPass(w, h, theme);
   drawCameraOverlay(w, h, theme);
+  drawDamageOverlay(w, h, theme);
   if (raceState.active) drawRaceStandings(w, h);
   drawParticles();
   drawCinematicGrade(w, h, theme);
@@ -2645,6 +2777,7 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
   ctx.strokeStyle = "rgba(255,255,255,0.24)";
   ctx.lineWidth = Math.max(1, w * 0.016);
   ctx.stroke();
+  if (player) drawVehicleDamageMarks(w, h, raceState.damage || 0);
   if (player) {
     ctx.fillStyle = "rgba(255,209,102,0.55)";
     ctx.beginPath();
@@ -2813,6 +2946,41 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   roundRect(-width * 0.08, height * 0.5, width * 0.16, height * 0.03, 3);
   ctx.fill();
 
+  drawVehicleDamageMarks(width, height, raceState.damage || 0);
+  ctx.restore();
+}
+
+function drawVehicleDamageMarks(width, height, damage) {
+  if (!damage || damage < 14) return;
+  ctx.save();
+  const dents = Math.min(8, Math.floor(damage / 12));
+  ctx.strokeStyle = "rgba(5,8,7,0.72)";
+  ctx.lineWidth = Math.max(1.5, width * 0.018);
+  ctx.lineCap = "round";
+  for (let i = 0; i < dents; i += 1) {
+    const side = i % 2 ? -1 : 1;
+    const x = side * width * (0.12 + (i % 3) * 0.085);
+    const y = -height * 0.25 + (i % 5) * height * 0.14;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + side * width * 0.16, y + height * (0.04 + (i % 2) * 0.035));
+    ctx.stroke();
+  }
+  ctx.globalAlpha = Math.min(0.45, damage / 160);
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  for (let i = 0; i < dents; i += 1) {
+    const x = ((i * 41) % 100 - 50) / 100 * width * 0.62;
+    const y = ((i * 29) % 100 - 48) / 100 * height * 0.72;
+    ctx.beginPath();
+    ctx.ellipse(x, y, width * 0.035, height * 0.025, i * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (damage > 58) {
+    ctx.globalAlpha = Math.min(0.62, damage / 140);
+    ctx.fillStyle = "rgba(255,91,107,0.42)";
+    roundRect(-width * 0.3, -height * 0.48, width * 0.18, height * 0.055, 3);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -2933,6 +3101,53 @@ function drawCameraOverlay(w, h, theme) {
     ctx.fillStyle = "#46d9ff";
     ctx.fillRect(w * 0.5, 0, w * 0.5, h);
     ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+function drawDamageOverlay(w, h, theme) {
+  if (!raceState.active) return;
+  const damage = Math.max(0, raceState.damage || 0);
+  const resetting = raceState.resetTimer > 0;
+  if (damage < 10 && !resetting) return;
+  ctx.save();
+  const danger = Math.min(0.34, damage / 280 + (resetting ? 0.18 : 0));
+  const edge = ctx.createRadialGradient(w * 0.5, h * 0.52, h * 0.28, w * 0.5, h * 0.52, h * 0.9);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(0.68, "rgba(0,0,0,0)");
+  edge.addColorStop(1, `rgba(255,51,72,${danger})`);
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, w, h);
+
+  if (cameraMode === "cockpit" || damage > 48) {
+    ctx.strokeStyle = `rgba(244,251,248,${Math.min(0.28, damage / 240)})`;
+    ctx.lineWidth = Math.max(1, w * 0.002);
+    const cracks = Math.floor(Math.min(8, damage / 12));
+    for (let i = 0; i < cracks; i += 1) {
+      const anchorX = w * (0.2 + ((i * 0.17) % 0.6));
+      const anchorY = h * (0.18 + ((i * 0.13) % 0.38));
+      ctx.beginPath();
+      ctx.moveTo(anchorX, anchorY);
+      ctx.lineTo(anchorX + Math.sin(i * 1.9) * w * 0.08, anchorY + h * (0.05 + (i % 3) * 0.025));
+      ctx.lineTo(anchorX + Math.cos(i * 1.4) * w * 0.1, anchorY + h * (0.1 + (i % 2) * 0.03));
+      ctx.stroke();
+    }
+  }
+
+  if (resetting) {
+    ctx.fillStyle = "rgba(5,8,7,0.78)";
+    roundRect(w * 0.5 - 132, h * 0.36, 264, 78, 8);
+    ctx.fill();
+    ctx.strokeStyle = theme[2];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 20px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(`RESET ${Math.ceil(raceState.resetTimer)}`, w * 0.5, h * 0.36 + 32);
+    ctx.fillStyle = "#a9bbb5";
+    ctx.font = "800 12px system-ui";
+    ctx.fillText(raceState.resetReason || "Vehicle recovery", w * 0.5, h * 0.36 + 55);
   }
   ctx.restore();
 }
@@ -3237,6 +3452,7 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.moveTo(width * 0.43, -height * 0.13);
   ctx.quadraticCurveTo(width * 0.56, height * 0.02, width * 0.42, height * 0.33);
   ctx.stroke();
+  if (player) drawVehicleDamageMarks(width, height, raceState.damage || 0);
   ctx.restore();
 }
 
@@ -3348,6 +3564,7 @@ function bindEvents() {
   $("#launchRace").addEventListener("click", launchRace);
   $("#resumeRace").addEventListener("click", resumeSavedRace);
   $("#saveRace").addEventListener("click", saveRace);
+  $("#resetCar").addEventListener("click", manualResetVehicle);
   $("#endRace").addEventListener("click", () => endRace(true));
   $("#toGarage").addEventListener("click", () => {
     showView("garage");
@@ -3497,6 +3714,7 @@ function clearController() {
   input.gamepadBrake = false;
   input.gamepadBoost = false;
   input.gamepadPauseHeld = false;
+  input.gamepadResetHeld = false;
   $("#controllerChip").textContent = "Controller: Off";
   $("#controllerName").textContent = "Bluetooth controller ready";
   showToast("Controller disconnected.");
@@ -3524,6 +3742,9 @@ function pollGamepad() {
     $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   }
   input.gamepadPauseHeld = pausePressed;
+  const resetPressed = Boolean(pad.buttons[3] && pad.buttons[3].pressed);
+  if (resetPressed && !input.gamepadResetHeld) manualResetVehicle();
+  input.gamepadResetHeld = resetPressed;
 }
 
 function setKey(event, down) {
@@ -3536,6 +3757,7 @@ function setKey(event, down) {
     input.paused = !input.paused;
     $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   }
+  if (event.key.toLowerCase() === "r" && down) manualResetVehicle();
 }
 
 bindEvents();
