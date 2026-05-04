@@ -435,10 +435,13 @@ function renderVehicles() {
     card.type = "button";
     card.className = `vehicle-card ${current.id === vehicle.id ? "selected" : ""}`;
     card.innerHTML = `
-      <div class="vehicle-preview" data-type="${vehicle.type}" style="--vehicle-color:${vehicle.color}"></div>
+      <div class="vehicle-preview asset-preview" data-type="${vehicle.type}" style="--vehicle-color:${vehicle.color}">
+        <canvas class="vehicle-preview-canvas" width="180" height="116" aria-hidden="true"></canvas>
+      </div>
       <div class="card-top"><strong>${vehicle.name}</strong><span class="badge">${current.id === vehicle.id ? "Active" : `${Math.round(vehicle.speed * 100)} spd`}</span></div>
       <div class="tiny">${vehicle.desc} | Handling ${Math.round(vehicle.handling * 100)} | Mass ${Math.round(vehicle.mass * 100)}</div>
     `;
+    drawVehiclePreview(card.querySelector(".vehicle-preview-canvas"), vehicle);
     card.addEventListener("click", () => {
       activeProfile.selectedVehicle = vehicle.id;
       profiles[activeProfile.id] = activeProfile;
@@ -448,6 +451,79 @@ function renderVehicles() {
     });
     list.appendChild(card);
   });
+}
+
+function drawVehiclePreview(canvasEl, vehicle) {
+  if (!canvasEl || !vehicle) return;
+  const previewCtx = canvasEl.getContext("2d");
+  const w = canvasEl.width;
+  const h = canvasEl.height;
+  previewCtx.clearRect(0, 0, w, h);
+  const road = previewCtx.createLinearGradient(0, 0, 0, h);
+  road.addColorStop(0, "rgba(21,31,30,0.96)");
+  road.addColorStop(0.58, "rgba(10,16,15,0.98)");
+  road.addColorStop(1, "rgba(5,8,7,0.98)");
+  previewCtx.fillStyle = road;
+  previewCtx.fillRect(0, 0, w, h);
+  previewCtx.strokeStyle = "rgba(244,251,248,0.12)";
+  previewCtx.lineWidth = 2;
+  previewCtx.beginPath();
+  previewCtx.moveTo(w * 0.18, 0);
+  previewCtx.lineTo(w * 0.08, h);
+  previewCtx.moveTo(w * 0.82, 0);
+  previewCtx.lineTo(w * 0.92, h);
+  previewCtx.stroke();
+  previewCtx.strokeStyle = "rgba(255,209,102,0.32)";
+  previewCtx.setLineDash([12, 10]);
+  previewCtx.beginPath();
+  previewCtx.moveTo(w * 0.5, h * 0.08);
+  previewCtx.lineTo(w * 0.5, h * 0.96);
+  previewCtx.stroke();
+  previewCtx.setLineDash([]);
+
+  const assets = window.VelocityPhoneAssets;
+  const sprite = assets && assets.ready && typeof assets.getVehicleSprite === "function"
+    ? assets.getVehicleSprite(vehicle.type, vehicle.color, { damage: 0 })
+    : null;
+  const baseWidth = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicle.type) ? 100 : 88;
+  const spriteW = vehicle.type === "semi" ? 122 : baseWidth;
+  const spriteH = vehicle.type === "semi" ? 104 : ["airplane", "helicopter"].includes(vehicle.type) ? 98 : 102;
+  previewCtx.save();
+  previewCtx.translate(w * 0.5, h * 0.56);
+  drawPreviewGroundContact(previewCtx, spriteW, spriteH, vehicle.type);
+  if (sprite) {
+    previewCtx.imageSmoothingEnabled = true;
+    previewCtx.drawImage(sprite, -spriteW / 2, -spriteH * 0.54, spriteW, spriteH);
+  } else {
+    previewCtx.fillStyle = vehicle.color;
+    roundRect(-spriteW * 0.28, -spriteH * 0.42, spriteW * 0.56, spriteH * 0.8, 8);
+    previewCtx.fill();
+  }
+  previewCtx.restore();
+}
+
+function drawPreviewGroundContact(previewCtx, w, h, vehicleType = "car") {
+  previewCtx.save();
+  const air = ["airplane", "helicopter"].includes(vehicleType);
+  const water = vehicleType === "boat";
+  const contactY = h * (air ? 0.46 : water ? 0.5 : 0.56);
+  const shadow = previewCtx.createRadialGradient(0, contactY, w * 0.08, 0, contactY + h * 0.06, w * 0.64);
+  shadow.addColorStop(0, air ? "rgba(0,0,0,0.28)" : "rgba(0,0,0,0.62)");
+  shadow.addColorStop(1, "rgba(0,0,0,0)");
+  previewCtx.fillStyle = shadow;
+  previewCtx.beginPath();
+  previewCtx.ellipse(0, contactY + h * 0.08, w * 0.62, h * 0.13, 0, 0, Math.PI * 2);
+  previewCtx.fill();
+  if (!air && !water) {
+    previewCtx.fillStyle = "rgba(3,5,5,0.78)";
+    previewCtx.beginPath();
+    previewCtx.ellipse(-w * 0.28, h * 0.38, w * 0.14, h * 0.055, 0, 0, Math.PI * 2);
+    previewCtx.ellipse(w * 0.28, h * 0.38, w * 0.14, h * 0.055, 0, 0, Math.PI * 2);
+    previewCtx.ellipse(-w * 0.28, h * 0.65, w * 0.16, h * 0.07, 0, 0, Math.PI * 2);
+    previewCtx.ellipse(w * 0.28, h * 0.65, w * 0.16, h * 0.07, 0, 0, Math.PI * 2);
+    previewCtx.fill();
+  }
+  previewCtx.restore();
 }
 
 function renderUpgrades() {
@@ -2777,26 +2853,75 @@ function drawTrafficLabel(w, h, label) {
   ctx.fillText(label, 0, -h * 0.64);
 }
 
-function drawVehicleGroundContact(w, h, speedFactor = 0.5) {
+function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) {
   const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
+  const air = ["airplane", "helicopter"].includes(vehicleType);
+  const water = vehicleType === "boat";
+  const snow = vehicleType === "snowmobile";
   ctx.save();
-  const contact = ctx.createRadialGradient(0, h * 0.43, w * 0.08, 0, h * 0.47, w * 0.7);
-  contact.addColorStop(0, "rgba(0,0,0,0.5)");
+  const contactY = h * (air ? 0.42 : water ? 0.52 : 0.64);
+  const contact = ctx.createRadialGradient(0, contactY - h * 0.03, w * 0.08, 0, contactY + h * 0.02, w * 0.74);
+  contact.addColorStop(0, air ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.68)");
   contact.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = contact;
   ctx.beginPath();
-  ctx.ellipse(0, h * 0.47, w * 0.68, h * 0.15, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, contactY, w * 0.72, h * (air ? 0.1 : 0.18), 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.globalAlpha = 0.28 + speed * 0.18;
-  ctx.strokeStyle = "rgba(3,5,5,0.78)";
+  if (!air && !water) {
+    ctx.fillStyle = snow ? "rgba(244,251,248,0.36)" : "rgba(3,5,5,0.86)";
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.32, h * 0.36, w * 0.12, h * 0.045, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.32, h * 0.36, w * 0.12, h * 0.045, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.33, h * 0.68, w * 0.16, h * 0.065, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.33, h * 0.68, w * 0.16, h * 0.065, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = (air ? 0.14 : 0.34) + speed * 0.18;
+  ctx.strokeStyle = water ? "rgba(70,217,255,0.62)" : snow ? "rgba(244,251,248,0.7)" : "rgba(3,5,5,0.82)";
   ctx.lineWidth = Math.max(1.2, w * 0.018);
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(-w * 0.32, h * 0.32);
-  ctx.lineTo(-w * (0.34 + speed * 0.14), h * 0.58);
-  ctx.moveTo(w * 0.32, h * 0.32);
-  ctx.lineTo(w * (0.34 + speed * 0.14), h * 0.58);
+  ctx.moveTo(-w * 0.3, contactY - h * 0.05);
+  ctx.lineTo(-w * (0.34 + speed * 0.22), contactY + h * 0.22);
+  ctx.moveTo(w * 0.3, contactY - h * 0.05);
+  ctx.lineTo(w * (0.34 + speed * 0.22), contactY + h * 0.22);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawVehicleRoadLock(w, h, vehicleType = "car", speedFactor = 0.5) {
+  const air = ["airplane", "helicopter"].includes(vehicleType);
+  const water = vehicleType === "boat";
+  const snow = vehicleType === "snowmobile";
+  const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
+  ctx.save();
+  ctx.globalAlpha = air ? 0.26 : 0.82;
+  ctx.fillStyle = water ? "rgba(70,217,255,0.48)" : snow ? "rgba(244,251,248,0.58)" : "rgba(2,4,4,0.92)";
+  if (air || water) {
+    ctx.beginPath();
+    ctx.ellipse(0, h * 0.64, w * 0.38, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.36, h * 0.62, w * 0.105, h * 0.04, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.36, h * 0.62, w * 0.105, h * 0.04, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.34, h * 0.75, w * 0.13, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.34, h * 0.75, w * 0.13, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = air ? 0.16 : 0.42;
+  ctx.strokeStyle = water ? "rgba(70,217,255,0.65)" : snow ? "rgba(244,251,248,0.72)" : "rgba(1,2,2,0.72)";
+  ctx.lineWidth = Math.max(1.4, w * 0.02);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  const trailY = air || water ? h * 0.66 : h * 0.78;
+  ctx.moveTo(-w * 0.28, trailY);
+  ctx.lineTo(-w * (0.32 + speed * 0.2), trailY + h * 0.2);
+  ctx.moveTo(w * 0.28, trailY);
+  ctx.lineTo(w * (0.32 + speed * 0.2), trailY + h * 0.2);
   ctx.stroke();
   ctx.restore();
 }
@@ -2813,8 +2938,9 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   const spriteH = h * (type === "semi" ? 1.66 : air ? 1.48 : 1.56);
   ctx.save();
   ctx.imageSmoothingEnabled = true;
-  drawVehicleGroundContact(w, h, Math.abs(raceState.speed || 0) / 220);
-  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.52, spriteW, spriteH);
+  drawVehicleGroundContact(w, h, type, Math.abs(raceState.speed || 0) / 220);
+  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.46, spriteW, spriteH);
+  drawVehicleRoadLock(w, h, type, Math.abs(raceState.speed || 0) / 220);
   ctx.restore();
   return true;
 }

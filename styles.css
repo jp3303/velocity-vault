@@ -450,6 +450,20 @@ input:focus {
   overflow: hidden;
 }
 
+.vehicle-preview-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vehicle-preview.asset-preview::before,
+.vehicle-preview.asset-preview::after {
+  display: none;
+}
+
 .vehicle-preview::before {
   content: "";
   position: absolute;

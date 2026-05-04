@@ -129,6 +129,42 @@
     ctx.restore();
   }
 
+  function drawSpriteContact(ctx, w, h, type) {
+    const air = type === "airplane" || type === "helicopter";
+    const water = type === "boat";
+    const snow = type === "snowmobile";
+    ctx.save();
+    const baseY = h * (air ? 0.68 : water ? 0.78 : 0.84);
+    const contact = ctx.createRadialGradient(w * 0.5, baseY - h * 0.03, w * 0.06, w * 0.5, baseY, w * 0.48);
+    contact.addColorStop(0, air ? "rgba(0,0,0,0.22)" : "rgba(0,0,0,0.62)");
+    contact.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = contact;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, baseY, w * 0.42, h * (air ? 0.045 : 0.075), 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (!air && !water) {
+      ctx.fillStyle = snow ? "rgba(244,251,248,0.42)" : "rgba(3,5,5,0.82)";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.29, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.71, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.29, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.71, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = water ? "rgba(70,217,255,0.48)" : snow ? "rgba(244,251,248,0.52)" : "rgba(3,5,5,0.5)";
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(w * 0.3, baseY - h * 0.035);
+    ctx.lineTo(w * 0.18, baseY + h * 0.075);
+    ctx.moveTo(w * 0.7, baseY - h * 0.035);
+    ctx.lineTo(w * 0.82, baseY + h * 0.075);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawCarLike(ctx, w, h, type, color, police, damage) {
     const paint = police ? "#f2f5f2" : color;
     const accent = police ? "rgba(70,217,255,0.45)" : rgba(color, 0.45);
@@ -330,6 +366,7 @@
     ctx.beginPath();
     ctx.ellipse(160, 352, 140, 46, 0, 0, Math.PI * 2);
     ctx.fill();
+    drawSpriteContact(ctx, 320, 460, type);
 
     if (["boat", "snowmobile", "airplane", "helicopter"].includes(type)) {
       drawAirOrWater(ctx, 320, 460, type, police ? "#f4fbf8" : color, damage);
