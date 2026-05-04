@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v7";
+const cacheName = "velocity-vault-v8";
 const appShell = [
   "./",
   "./index.html",

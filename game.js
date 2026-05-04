@@ -1111,16 +1111,21 @@ function drawRoad(w, h, theme) {
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  const stripeCount = 18;
-  for (let i = 0; i < stripeCount; i += 1) {
-    const y = ((i * 80 + raceState.roadOffset * 1.35) % (h + 160)) - 80;
-    const t = Math.max(0, (y - horizon) / (h - horizon));
-    const width = 7 + t * 18;
-    const len = 28 + t * 80;
-    ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.2)" : theme[1];
-    for (let lane = -2; lane <= 2; lane += 1) {
-      const x = w / 2 + lane * laneWidth() * (0.28 + t * 0.92);
-      ctx.fillRect(x - width / 2, y, width, len);
+  for (let lane = -1.5; lane <= 1.5; lane += 1) {
+    for (let i = 0; i < 14; i += 1) {
+      const y = ((i * 116 + raceState.roadOffset * 1.42) % (h + 190)) - 95;
+      if (y < horizon) continue;
+      const t = Math.max(0, (y - horizon) / (h - horizon));
+      const x = w / 2 + lane * laneWidth() * (0.3 + t * 1.05);
+      const dashW = 2 + t * 7;
+      const dashH = 20 + t * 72;
+      const dash = ctx.createLinearGradient(x, y, x, y + dashH);
+      dash.addColorStop(0, "rgba(244,251,248,0.08)");
+      dash.addColorStop(0.35, "rgba(244,251,248,0.64)");
+      dash.addColorStop(1, "rgba(244,251,248,0.12)");
+      ctx.fillStyle = dash;
+      roundRect(x - dashW / 2, y, dashW, dashH, dashW / 2);
+      ctx.fill();
     }
   }
   ctx.strokeStyle = "rgba(244,251,248,0.72)";
@@ -1132,9 +1137,9 @@ function drawRoad(w, h, theme) {
     ctx.lineTo(w / 2 + lane * laneWidth() * 1.28, h);
     ctx.stroke();
   }
-  ctx.strokeStyle = theme[2];
-  ctx.lineWidth = 6;
-  ctx.globalAlpha = 0.84;
+  ctx.strokeStyle = "rgba(244,251,248,0.58)";
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.7;
   ctx.beginPath();
   ctx.moveTo(w / 2 - roadTop * 0.9, horizon);
   ctx.lineTo(w / 2 - roadBottom * 0.7, h);
@@ -1281,24 +1286,110 @@ function objectPos(lane, y) {
 function drawObjects() {
   raceState.coinsOnRoad.forEach((coin) => {
     const p = objectPos(coin.lane, coin.y);
-    const r = coin.r * p.scale + Math.sin(coin.pulse) * 2;
-    ctx.fillStyle = "#ffd166";
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#fff3b0";
-    ctx.beginPath();
-    ctx.arc(p.x - r * 0.25, p.y - r * 0.25, r * 0.28, 0, Math.PI * 2);
-    ctx.fill();
+    drawRouteMarker(p.x, p.y, (coin.r * 2.8) * p.scale, coin.pulse);
   });
   raceState.rivals.forEach((rival) => {
     const p = objectPos(rival.lane, rival.y);
-    drawVehicle(p.x, p.y, rival.w * p.scale, rival.h * p.scale, rival.color, false);
+    drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false);
   });
   raceState.police.forEach((unit) => {
     const p = objectPos(unit.lane, unit.y);
-    drawVehicle(p.x, p.y, unit.w * p.scale, unit.h * p.scale, "#f4fbf8", false, true);
+    drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true);
   });
+}
+
+function drawRouteMarker(x, y, size, pulse) {
+  ctx.save();
+  ctx.translate(x, y);
+  const glow = 0.18 + Math.sin(pulse) * 0.05;
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = `rgba(255,209,102,${glow})`;
+  ctx.beginPath();
+  ctx.ellipse(0, size * 0.25, size * 1.1, size * 0.28, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "rgba(255,209,102,0.86)";
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.45, -size * 0.18);
+  ctx.lineTo(0, size * 0.18);
+  ctx.lineTo(size * 0.45, -size * 0.18);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(244,251,248,0.38)";
+  ctx.lineWidth = Math.max(1, size * 0.035);
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.28, -size * 0.02);
+  ctx.lineTo(0, size * 0.2);
+  ctx.lineTo(size * 0.28, -size * 0.02);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTrafficRearCar(x, y, width, height, color, police = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  const t = Math.max(0.3, Math.min(1.25, y / canvas.height));
+  const w = width * (0.76 + t * 0.28);
+  const h = height * (0.72 + t * 0.12);
+
+  ctx.fillStyle = "rgba(0,0,0,0.38)";
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.34, w * 0.62, h * 0.16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#050807";
+  roundRect(-w * 0.56, -h * 0.03, w * 0.16, h * 0.36, 5);
+  ctx.fill();
+  roundRect(w * 0.4, -h * 0.03, w * 0.16, h * 0.36, 5);
+  ctx.fill();
+
+  const body = ctx.createLinearGradient(-w * 0.48, -h * 0.48, w * 0.48, h * 0.44);
+  body.addColorStop(0, police ? "#ffffff" : shade(color, 38));
+  body.addColorStop(0.48, police ? "#dce2e1" : color);
+  body.addColorStop(1, police ? "#9da9a7" : shade(color, -44));
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.34, -h * 0.5);
+  ctx.lineTo(w * 0.34, -h * 0.5);
+  ctx.lineTo(w * 0.52, -h * 0.12);
+  ctx.lineTo(w * 0.42, h * 0.42);
+  ctx.lineTo(-w * 0.42, h * 0.42);
+  ctx.lineTo(-w * 0.52, -h * 0.12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = Math.max(1, w * 0.016);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(5,8,7,0.86)";
+  roundRect(-w * 0.28, -h * 0.35, w * 0.56, h * 0.2, 7);
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.92)";
+  roundRect(-w * 0.34, h * 0.02, w * 0.68, h * 0.21, 8);
+  ctx.fill();
+
+  if (police) {
+    ctx.fillStyle = "#111817";
+    ctx.fillRect(-w * 0.38, -h * 0.08, w * 0.76, h * 0.09);
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = `${Math.max(7, w * 0.13)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText("POLICE", 0, h * 0.17);
+    const flash = Math.sin(raceState.elapsed * 18) > 0;
+    ctx.fillStyle = flash ? "#ff3348" : "#46d9ff";
+    roundRect(-w * 0.18, -h * 0.22, w * 0.36, h * 0.06, 3);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#ff3348";
+  roundRect(-w * 0.35, h * 0.3, w * 0.18, h * 0.06, 3);
+  ctx.fill();
+  roundRect(w * 0.17, h * 0.3, w * 0.18, h * 0.06, 3);
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.58)";
+  roundRect(-w * 0.08, h * 0.32, w * 0.16, h * 0.035, 3);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawDemoPursuitTraffic(w, h) {
@@ -1310,14 +1401,20 @@ function drawDemoPursuitTraffic(w, h) {
   ];
   demo.forEach((car) => {
     const p = objectPos(car.lane, car.y);
-    drawVehicle(p.x, p.y, 62 * car.s * p.scale, 112 * car.s * p.scale, car.color, false, car.police);
+    drawTrafficRearCar(p.x, p.y, 78 * car.s * p.scale, 118 * car.s * p.scale, car.color, car.police);
   });
   ctx.save();
-  ctx.globalAlpha = 0.24 + Math.sin(t * 12) * 0.08;
-  ctx.fillStyle = "#ff3348";
-  ctx.fillRect(0, 0, w * 0.5, h);
-  ctx.fillStyle = "#46d9ff";
-  ctx.fillRect(w * 0.5, 0, w * 0.5, h);
+  ctx.globalAlpha = 0.18 + Math.max(0, Math.sin(t * 12)) * 0.1;
+  let wash = ctx.createRadialGradient(w * 0.18, h * 0.48, 10, w * 0.18, h * 0.48, w * 0.55);
+  wash.addColorStop(0, "rgba(255,51,72,0.44)");
+  wash.addColorStop(1, "rgba(255,51,72,0)");
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, w, h);
+  wash = ctx.createRadialGradient(w * 0.82, h * 0.48, 10, w * 0.82, h * 0.48, w * 0.55);
+  wash.addColorStop(0, "rgba(70,217,255,0.4)");
+  wash.addColorStop(1, "rgba(70,217,255,0)");
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, w, h);
   ctx.restore();
 }
 
