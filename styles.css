@@ -774,8 +774,17 @@ input:focus {
 }
 
 @media (orientation: landscape) and (max-height: 760px), (orientation: landscape) and (pointer: coarse) {
-  body {
+  body.race-live {
     overflow: hidden;
+  }
+
+  body:not(.race-live) {
+    overflow: auto;
+  }
+
+  body:not(.race-live) .shell {
+    height: auto;
+    min-height: 100dvh;
   }
 
   body.race-live .shell {

@@ -16,6 +16,7 @@ Controls:
 - `Space`: boost while accelerating
 - `P`: pause
 - On touch screens, use the on-screen buttons. Phone landscape mode has a dedicated multi-touch driver pad with left, center, right, gas, brake/reverse, boost, and a Hold/Toggle control mode switch. One thumb can stay on gas while the other steers.
+- Landscape scrolling stays available in menus and the garage; the full-screen no-scroll layout only turns on while a race is live.
 - Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, and Start / Select to pause
 
 Driver views:
@@ -37,14 +38,15 @@ Real-world style visuals:
 - Vehicles now have extra WebGL body details such as glass, headlights, grilles, side panels, rear wings on fast cars, larger stance cues for trucks, and route-appropriate traffic types.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
-- Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, and vehicle body yaw instead of automatic forward motion or lane-snapping movement.
+- Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected touch steering direction, and vehicle body yaw instead of automatic forward motion or lane-snapping movement.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
-- Driving effects include tire smoke, launch haze, boost exhaust, brake/slip wash, speed streaks, camera shake, off-road drag, and car body lean during hard steering.
+- Driving effects include tire smoke, launch haze, boost exhaust, brake/slip wash, speed streaks, road reflections, depth haze, headlight wash, dust/snow/weather layers, camera shake, off-road drag, and car body lean during hard steering.
 - Phone landscape racing moves touch controls to a transparent driver-pad overlay so steering, center, gas, brake/reverse, boost, pause, and touch mode switching stay usable without covering the driving screen.
 - Touch controls use a multi-touch tracker plus pointer fallback so gas, brake, boost, and steering can stay active together until finger-up/cancel even if both thumbs are down at once.
 - Phone landscape mode has a separate in-game control dock inside the racing stage, so steering, gas, brake, boost, and the Hold/Toggle switch stay visible even when the side panel layout changes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
+- Race routes now run almost three times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.
 
 Visual direction references:
 
