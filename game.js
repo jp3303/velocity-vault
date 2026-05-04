@@ -823,6 +823,16 @@ function setCameraMode(mode, quiet = false) {
   }
 }
 
+function applyPhoneGraphicsDefaults() {
+  const key = "velocityVaultPhoneGraphicsDefaultsV27";
+  if (!phoneGraphicsActive() || localStorage.getItem(key)) return;
+  rendererMode = "webgl";
+  if (cameraMode === "chase") cameraMode = "hood";
+  localStorage.setItem("velocityVaultRendererMode", rendererMode);
+  localStorage.setItem("velocityVaultCameraMode", cameraMode);
+  localStorage.setItem(key, "applied");
+}
+
 function initWebGLRenderer() {
   if (!glCanvas || webglRenderer) return;
   try {
@@ -836,6 +846,12 @@ function initWebGLRenderer() {
 
 function useWebGLRenderer() {
   return rendererMode === "webgl" && webglRenderer && webglRenderer.ready;
+}
+
+function phoneGraphicsActive() {
+  const assets = window.VelocityPhoneAssets;
+  if (assets && typeof assets.isPhoneViewport === "function" && assets.isPhoneViewport()) return true;
+  return window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
 }
 
 function setRendererMode(mode, quiet = false) {
@@ -1739,6 +1755,7 @@ function drawFrame() {
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
     drawPhoneAssetTexturePass(w, h, theme);
+    drawPhoneUltraGraphicsPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
       drawCar(w, h);
@@ -1749,6 +1766,7 @@ function drawFrame() {
     drawDamageOverlay(w, h, theme);
     if (raceState.active) drawRaceStandings(w, h);
     drawParticles();
+    drawPhoneFilmicPost(w, h, theme);
     drawCinematicGrade(w, h, theme);
     if (!raceState.active) drawAttract(w, h);
     if (input.paused && raceState.active) drawPause(w, h);
@@ -1769,6 +1787,7 @@ function drawFrame() {
   drawRoad(w, h, theme);
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
+  drawPhoneUltraGraphicsPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
@@ -1776,6 +1795,7 @@ function drawFrame() {
   drawDamageOverlay(w, h, theme);
   if (raceState.active) drawRaceStandings(w, h);
   drawParticles();
+  drawPhoneFilmicPost(w, h, theme);
   drawCinematicGrade(w, h, theme);
   if (!raceState.active) drawAttract(w, h);
   if (input.paused && raceState.active) drawPause(w, h);
@@ -2952,8 +2972,9 @@ function drawPhoneAssetTexturePass(w, h, theme) {
   const pattern = ctx.createPattern(texture, "repeat");
   if (!pattern) return;
   ctx.save();
-  ctx.globalAlpha = assets.isPhoneViewport && assets.isPhoneViewport() ? 0.16 : 0.11;
-  ctx.translate(-((raceState.roadOffset * 0.28) % 256), -((raceState.roadOffset * 0.08) % 256));
+  ctx.globalAlpha = assets.isPhoneViewport && assets.isPhoneViewport() ? 0.24 : 0.13;
+  const tile = texture.width || 256;
+  ctx.translate(-((raceState.roadOffset * 0.28) % tile), -((raceState.roadOffset * 0.08) % tile));
   ctx.fillStyle = pattern;
   ctx.fillRect(-256, h * 0.3, w + 512, h * 0.78 + 256);
   ctx.restore();
@@ -2965,6 +2986,140 @@ function drawPhoneAssetTexturePass(w, h, theme) {
   bloom.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = bloom;
   ctx.fillRect(0, h * 0.34, w, h * 0.66);
+  ctx.restore();
+}
+
+function drawPhoneUltraGraphicsPass(w, h, theme) {
+  if (!phoneGraphicsActive()) return;
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
+  const speed = Math.max(0, raceState.speed || 0);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
+  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.closePath();
+  ctx.clip();
+
+  const rubber = ctx.createLinearGradient(0, horizon, 0, h);
+  rubber.addColorStop(0, "rgba(0,0,0,0)");
+  rubber.addColorStop(0.42, "rgba(0,0,0,0.18)");
+  rubber.addColorStop(1, "rgba(0,0,0,0.46)");
+  ctx.fillStyle = rubber;
+  ctx.fillRect(0, horizon, w, h - horizon);
+
+  ctx.globalAlpha = 0.38;
+  ctx.strokeStyle = "rgba(1,2,2,0.78)";
+  ctx.lineWidth = Math.max(2, w * 0.004);
+  for (let lane = -1; lane <= 1; lane += 2) {
+    const tireBase = laneWidth() * (0.18 + lane * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5 + lane * roadTop * 0.22, horizon + h * 0.04);
+    ctx.bezierCurveTo(
+      w * 0.5 + lane * tireBase,
+      h * 0.55,
+      w * 0.5 + lane * tireBase * 1.85 - (raceState.steerAngle || 0) * 18,
+      h * 0.78,
+      w * 0.5 + lane * tireBase * 2.4 - (raceState.lateralVelocity || 0) * 22,
+      h
+    );
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = place === "tokyo" || place === "city" || place === "harbor" || place === "rainforest" ? 0.36 : 0.18;
+  for (let i = 0; i < 18; i += 1) {
+    const y = ((i * 67 + raceState.roadOffset * 1.1) % (h + 130)) - 40;
+    if (y < horizon) continue;
+    const t = Math.max(0, (y - horizon) / (h - horizon));
+    const spread = w * (0.1 + t * 0.44);
+    const x = w * 0.5 + Math.sin(i * 2.11) * w * 0.08 * t;
+    const reflection = ctx.createLinearGradient(x - spread, y, x + spread, y);
+    reflection.addColorStop(0, "rgba(255,255,255,0)");
+    reflection.addColorStop(0.46, `${theme[1]}66`);
+    reflection.addColorStop(0.52, "rgba(255,255,255,0.22)");
+    reflection.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.strokeStyle = reflection;
+    ctx.lineWidth = 1 + t * 7;
+    ctx.beginPath();
+    ctx.moveTo(x - spread, y);
+    ctx.quadraticCurveTo(x, y + 5 + t * 18, x + spread, y + 2);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = place === "snow" ? "rgba(244,251,248,0.72)" : "rgba(2,4,4,0.86)";
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 42; i += 1) {
+    const y = ((i * 53 + raceState.roadOffset * 1.48) % (h + 120)) - 40;
+    if (y < horizon) continue;
+    const t = Math.max(0, (y - horizon) / (h - horizon));
+    const x = w * 0.5 + Math.sin(i * 8.7) * roadBottom * 0.48 * t;
+    const crack = 10 + t * 42;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.sin(i) * crack, y + 4 + t * 18);
+    ctx.lineTo(x + Math.cos(i * 1.7) * crack * 0.7, y + 10 + t * 24);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  ctx.save();
+  const foreground = ctx.createLinearGradient(0, h * 0.64, 0, h);
+  foreground.addColorStop(0, "rgba(0,0,0,0)");
+  foreground.addColorStop(0.52, speed > 70 ? "rgba(0,0,0,0.22)" : "rgba(0,0,0,0.14)");
+  foreground.addColorStop(1, "rgba(0,0,0,0.48)");
+  ctx.fillStyle = foreground;
+  ctx.fillRect(0, h * 0.58, w, h * 0.42);
+
+  if (speed > 45) {
+    ctx.globalAlpha = Math.min(0.34, speed / 620);
+    ctx.strokeStyle = "rgba(244,251,248,0.42)";
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 18; i += 1) {
+      const side = i % 2 ? -1 : 1;
+      const x = side < 0 ? (i * 59 + raceState.roadOffset * 0.8) % (w * 0.28) : w - ((i * 59 + raceState.roadOffset * 0.8) % (w * 0.28));
+      const y = h * (0.46 + (i % 9) * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + side * w * 0.12, y + h * 0.18);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawPhoneFilmicPost(w, h, theme) {
+  if (!phoneGraphicsActive()) return;
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  const bloom = ctx.createRadialGradient(w * 0.5, h * 0.54, w * 0.05, w * 0.5, h * 0.58, w * 0.7);
+  bloom.addColorStop(0, "rgba(255,255,255,0.06)");
+  bloom.addColorStop(0.42, `${theme[1]}16`);
+  bloom.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = place === "desert" || place === "canyon" ? "rgba(255,183,74,0.22)"
+    : place === "snow" || place === "europe" ? "rgba(220,232,239,0.22)"
+      : "rgba(70,217,255,0.16)";
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = "rgba(255,255,255,0.72)";
+  for (let i = 0; i < 90; i += 1) {
+    const x = (i * 71 + Math.floor(raceState.elapsed * 13) * 17) % w;
+    const y = (i * 43 + Math.floor(raceState.elapsed * 11) * 23) % h;
+    ctx.fillRect(x, y, 1, 1);
+  }
   ctx.restore();
 }
 
@@ -4397,6 +4552,7 @@ bindEvents();
 syncViewportSize();
 fitCanvas();
 updateHud();
+applyPhoneGraphicsDefaults();
 setCameraMode(cameraMode, true);
 setTouchDriveMode(touchDriveMode, true);
 setTouchControlSize(touchControlSize, true);

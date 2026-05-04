@@ -129,6 +129,92 @@
     ctx.restore();
   }
 
+  function drawBodyRealismDetails(ctx, w, h, type, color, police) {
+    const paint = police ? "#f2f5f2" : color;
+    ctx.save();
+    pathVehicleBody(ctx, w, h, type === "semi" ? "truck" : type);
+    ctx.clip();
+
+    const sideShade = ctx.createLinearGradient(w * 0.12, 0, w * 0.88, 0);
+    sideShade.addColorStop(0, "rgba(0,0,0,0.48)");
+    sideShade.addColorStop(0.22, "rgba(255,255,255,0.08)");
+    sideShade.addColorStop(0.5, "rgba(255,255,255,0.18)");
+    sideShade.addColorStop(0.78, "rgba(255,255,255,0.06)");
+    sideShade.addColorStop(1, "rgba(0,0,0,0.46)");
+    ctx.fillStyle = sideShade;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.36, h * 0.18);
+    ctx.bezierCurveTo(w * 0.42, h * 0.34, w * 0.33, h * 0.56, w * 0.28, h * 0.82);
+    ctx.moveTo(w * 0.64, h * 0.18);
+    ctx.bezierCurveTo(w * 0.58, h * 0.34, w * 0.67, h * 0.56, w * 0.72, h * 0.82);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = rgba(paint, 0.8);
+    ctx.lineWidth = Math.max(1, w * 0.006);
+    for (let i = 0; i < 18; i += 1) {
+      const y = h * (0.18 + i * 0.038);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22, y);
+      ctx.lineTo(w * 0.78, y + h * 0.012);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(3,5,5,0.68)";
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.26, h * 0.34);
+    ctx.lineTo(w * 0.2, h * 0.78);
+    ctx.moveTo(w * 0.74, h * 0.34);
+    ctx.lineTo(w * 0.8, h * 0.78);
+    ctx.moveTo(w * 0.37, h * 0.7);
+    ctx.lineTo(w * 0.63, h * 0.7);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(2,4,4,0.88)";
+    roundRect(ctx, w * 0.24, h * 0.17, w * 0.1, h * 0.04, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.66, h * 0.17, w * 0.1, h * 0.04, 5);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawAirWaterRealismDetails(ctx, w, h, type) {
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.strokeStyle = "rgba(255,255,255,0.78)";
+    ctx.lineWidth = Math.max(2, w * 0.01);
+    if (type === "airplane") {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.lineTo(w * 0.5, h * 0.86);
+      ctx.moveTo(w * 0.18, h * 0.52);
+      ctx.lineTo(w * 0.82, h * 0.52);
+      ctx.stroke();
+    } else if (type === "helicopter") {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.18);
+      ctx.lineTo(w * 0.5, h * 0.84);
+      ctx.moveTo(w * 0.28, h * 0.38);
+      ctx.lineTo(w * 0.72, h * 0.38);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.bezierCurveTo(w * 0.38, h * 0.38, w * 0.34, h * 0.66, w * 0.42, h * 0.86);
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.bezierCurveTo(w * 0.62, h * 0.38, w * 0.66, h * 0.66, w * 0.58, h * 0.86);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function drawSpriteContact(ctx, w, h, type) {
     const air = type === "airplane" || type === "helicopter";
     const water = type === "boat";
@@ -207,6 +293,7 @@
     ctx.strokeStyle = "rgba(255,255,255,0.28)";
     ctx.lineWidth = Math.max(2, w * 0.01);
     ctx.stroke();
+    drawBodyRealismDetails(ctx, w, h, semi ? "semi" : type, color, police);
 
     if (type === "tank") {
       ctx.fillStyle = shade(paint, -30);
@@ -344,6 +431,7 @@
     ctx.fillStyle = "rgba(255,248,214,0.86)";
     roundRect(ctx, w * 0.43, h * 0.18, w * 0.14, h * 0.035, 5);
     ctx.fill();
+    drawAirWaterRealismDetails(ctx, w, h, type);
     drawPaintGrain(ctx, w, h, color);
     drawDamage(ctx, w, h, damage);
   }
@@ -355,23 +443,23 @@
     const key = `${type}|${color}|${police ? 1 : 0}|${damageBucket}`;
     if (spriteCache.has(key)) return spriteCache.get(key);
 
-    const canvas = makeCanvas(320, 460);
+    const canvas = makeCanvas(384, 552);
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
 
-    const shadow = ctx.createRadialGradient(160, 352, 22, 160, 352, 146);
+    const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
     shadow.addColorStop(0, "rgba(0,0,0,0.52)");
     shadow.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = shadow;
     ctx.beginPath();
-    ctx.ellipse(160, 352, 140, 46, 0, 0, Math.PI * 2);
+    ctx.ellipse(192, 422, 168, 56, 0, 0, Math.PI * 2);
     ctx.fill();
-    drawSpriteContact(ctx, 320, 460, type);
+    drawSpriteContact(ctx, 384, 552, type);
 
     if (["boat", "snowmobile", "airplane", "helicopter"].includes(type)) {
-      drawAirOrWater(ctx, 320, 460, type, police ? "#f4fbf8" : color, damage);
+      drawAirOrWater(ctx, 384, 552, type, police ? "#f4fbf8" : color, damage);
     } else {
-      drawCarLike(ctx, 320, 460, type, color, police, damage);
+      drawCarLike(ctx, 384, 552, type, color, police, damage);
     }
 
     spriteCache.set(key, canvas);
@@ -381,13 +469,13 @@
   function getRoadTexture(place = "city", theme = ["#09100f", "#46d9ff", "#ffd166"]) {
     const key = `${place}|${theme.join("|")}`;
     if (textureCache.has(key)) return textureCache.get(key);
-    const canvas = makeCanvas(256, 256);
+    const canvas = makeCanvas(512, 512);
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = place === "snow" ? "rgba(205,222,224,0.14)" : place === "desert" || place === "canyon" ? "rgba(156,92,42,0.13)" : "rgba(244,251,248,0.08)";
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 180; i += 1) {
-      const x = (i * 47) % 256;
-      const y = (i * 83) % 256;
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 420; i += 1) {
+      const x = (i * 47) % 512;
+      const y = (i * 83) % 512;
       const len = 8 + (i % 9) * 7;
       ctx.globalAlpha = 0.08 + (i % 5) * 0.018;
       ctx.strokeStyle = i % 3 ? "rgba(255,255,255,0.55)" : rgba(theme[1], 0.75);
@@ -396,6 +484,28 @@
       ctx.moveTo(x, y);
       ctx.lineTo(x + len, y + (i % 2 ? 2 : -2));
       ctx.stroke();
+    }
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = place === "snow" ? "rgba(244,251,248,0.9)" : "rgba(0,0,0,0.85)";
+    ctx.lineCap = "round";
+    for (let i = 0; i < 54; i += 1) {
+      const x = (i * 109) % 512;
+      const y = (i * 67) % 512;
+      ctx.lineWidth = 1 + (i % 3);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + 24, y + 9, x - 18, y + 31, x + 38, y + 45);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = place === "tokyo" || place === "city" || place === "harbor" || place === "rainforest" ? 0.22 : 0.1;
+    for (let i = 0; i < 18; i += 1) {
+      const x = (i * 131) % 512;
+      const y = (i * 191) % 512;
+      const glow = ctx.createRadialGradient(x, y, 4, x, y, 92);
+      glow.addColorStop(0, rgba(theme[1], 0.9));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - 96, y - 96, 192, 192);
     }
     ctx.globalAlpha = 1;
     textureCache.set(key, canvas);
