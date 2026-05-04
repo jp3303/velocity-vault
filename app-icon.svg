@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Velocity Vault icon">
+  <rect width="512" height="512" rx="96" fill="#09100f"/>
+  <path d="M80 358 206 110h100L180 358Z" fill="#bbf24a"/>
+  <path d="M220 358 346 110h86L306 358Z" fill="#46d9ff"/>
+  <path d="M116 374h286c18 0 32 14 32 32v8H78v-8c0-18 14-32 38-32Z" fill="#f4fbf8"/>
+  <path d="M148 276c0-26 21-47 47-47h122c26 0 47 21 47 47v68H148Z" fill="#172220"/>
+  <path d="M184 250h144l-22-50H206Z" fill="#46d9ff"/>
+  <circle cx="164" cy="382" r="34" fill="#050807"/>
+  <circle cx="348" cy="382" r="34" fill="#050807"/>
+  <circle cx="164" cy="382" r="15" fill="#bbf24a"/>
+  <circle cx="348" cy="382" r="15" fill="#bbf24a"/>
+</svg>

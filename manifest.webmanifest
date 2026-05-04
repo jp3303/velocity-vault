@@ -1,0 +1,29 @@
+{
+  "name": "Velocity Vault",
+  "short_name": "Velocity",
+  "description": "A standalone racing game with local profiles, upgrades, missions, controller support, and offline play.",
+  "id": "/velocity-vault/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#09100f",
+  "theme_color": "#09100f",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Race Hub",
+      "short_name": "Hub",
+      "description": "Open Velocity Vault at the driver gate.",
+      "url": "./index.html"
+    }
+  ]
+}

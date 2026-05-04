@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#09100f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Velocity Vault">
+  <title>Velocity Vault</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="app-icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="stage" aria-label="Velocity Vault race game">
+      <canvas id="gameCanvas" width="1280" height="720" aria-label="Racing game canvas"></canvas>
+      <div class="scanline" aria-hidden="true"></div>
+      <div id="hud" class="hud">
+        <div class="hud-left">
+          <div class="brand-mark">Velocity Vault</div>
+          <div class="chips">
+            <span id="profileChip" class="chip">No Driver</span>
+            <span id="modeChip" class="chip">Select Profile</span>
+            <span id="missionChip" class="chip">Mission Ready</span>
+            <span id="controllerChip" class="chip">Controller: Off</span>
+          </div>
+        </div>
+        <div class="hud-stats" aria-live="polite">
+          <div><span>Speed</span><strong id="speedStat">0</strong></div>
+          <div><span>Focus</span><strong id="focusStat">100</strong></div>
+          <div><span>Coins</span><strong id="coinStat">0</strong></div>
+          <div><span>Rep</span><strong id="repStat">0</strong></div>
+        </div>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel" aria-label="Game controls">
+      <div id="loginView" class="view active">
+        <h1>Driver Gate</h1>
+        <p class="subtle">Profiles stay on this device. Choose a driver band, create a short callsign, and race.</p>
+        <label class="field">
+          <span>Driver callsign</span>
+          <input id="driverName" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="TurboAce">
+        </label>
+        <label class="field">
+          <span>Local PIN</span>
+          <input id="driverPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="Optional">
+        </label>
+        <div class="age-grid" role="radiogroup" aria-label="Age group">
+          <button class="age-card selected" data-age="rookie" type="button">
+            <strong>Rookie</strong>
+            <span>5-8</span>
+          </button>
+          <button class="age-card" data-age="prodigy" type="button">
+            <strong>Prodigy</strong>
+            <span>9-12</span>
+          </button>
+          <button class="age-card" data-age="elite" type="button">
+            <strong>Elite</strong>
+            <span>13+</span>
+          </button>
+          <button class="age-card" data-age="family" type="button">
+            <strong>Family</strong>
+            <span>All</span>
+          </button>
+        </div>
+        <button id="startProfile" class="primary" type="button">Enter Garage</button>
+        <button id="installApp" class="ghost" type="button">Install App</button>
+        <button id="resetProfiles" class="ghost danger" type="button">Clear Local Profiles</button>
+      </div>
+
+      <div id="garageView" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Race Hub</h2>
+            <p id="driverSummary" class="subtle"></p>
+          </div>
+          <button id="logoutBtn" class="icon-btn" type="button" aria-label="Switch driver" title="Switch driver">Back</button>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Garage tabs">
+          <button class="tab active" data-tab="races" type="button">Races</button>
+          <button class="tab" data-tab="upgrades" type="button">Upgrades</button>
+          <button class="tab" data-tab="missions" type="button">Missions</button>
+          <button class="tab" data-tab="ai" type="button">AI</button>
+        </div>
+
+        <div id="racesTab" class="tab-panel active">
+          <div id="raceList" class="race-list"></div>
+          <button id="launchRace" class="primary" type="button">Launch Race</button>
+        </div>
+
+        <div id="upgradesTab" class="tab-panel">
+          <div id="upgradeList" class="upgrade-list"></div>
+        </div>
+
+        <div id="missionsTab" class="tab-panel">
+          <div id="missionList" class="mission-list"></div>
+        </div>
+
+        <div id="aiTab" class="tab-panel">
+          <div id="directorCard" class="director-card"></div>
+          <button id="refreshDirector" class="ghost" type="button">Refresh AI Tuning</button>
+        </div>
+      </div>
+
+      <div id="raceView" class="view race-controls">
+        <div class="section-head">
+          <div>
+            <h2 id="raceTitle">Race Live</h2>
+            <p id="raceBrief" class="subtle"></p>
+          </div>
+          <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause race" title="Pause race">Pause</button>
+        </div>
+        <div class="control-grid">
+          <button id="leftBtn" type="button" aria-label="Steer left">Left</button>
+          <button id="boostBtn" type="button" aria-label="Boost">BOOST</button>
+          <button id="rightBtn" type="button" aria-label="Steer right">Right</button>
+        </div>
+        <div class="controller-card">
+          <strong id="controllerName">Bluetooth controller ready</strong>
+          <span>Pair a controller with your device, press any controller button, then steer with the left stick or D-pad. A / RT boosts. Start pauses.</span>
+        </div>
+        <div class="progress-card">
+          <span>Distance</span>
+          <div class="bar"><i id="distanceBar"></i></div>
+        </div>
+        <div class="progress-card">
+          <span>Mission</span>
+          <div class="bar"><i id="missionBar"></i></div>
+        </div>
+        <button id="endRace" class="ghost" type="button">Return to Hub</button>
+      </div>
+
+      <div id="finishView" class="view">
+        <h2 id="finishTitle">Race Complete</h2>
+        <div id="finishStats" class="finish-stats"></div>
+        <button id="nextRace" class="primary" type="button">Next Challenge</button>
+        <button id="toGarage" class="ghost" type="button">Garage</button>
+      </div>
+    </aside>
+  </main>
+  <script src="game.js" defer></script>
+</body>
+</html>
