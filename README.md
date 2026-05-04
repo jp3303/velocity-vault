@@ -33,6 +33,7 @@ Real-world style visuals:
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
 - The WebGL route pass now uses smoother world landmarks, neon signs, mounds, hangars, barns, freight stops, weather overlays, speed streaks, and tapered vehicle bodies instead of the first sharp spike scenery and plain box vehicles.
+- Roads now include shoulders, rumble strips, center paint, city crosswalk-style stripes, signs, spectator groups, guardrail details, and route-specific landmarks so each place reads more like a real location.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
 - Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.
@@ -40,6 +41,7 @@ Real-world style visuals:
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
 - Phone landscape racing moves touch controls to slim transparent edge buttons so steering, boost, pause, save, and view switching stay usable without covering the driving screen.
 - Touch controls use pointer capture so gas, brake, boost, and steering stay active until finger-up/cancel even if a thumb slides slightly while racing.
+- Phone landscape mode has a separate in-game control dock fixed inside the racing stage, so steering, gas, brake, and boost stay visible even when the side panel layout changes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 
 Visual direction references:

@@ -185,6 +185,24 @@
       box(x + 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
     }
 
+    function person(x, z, shirtColor, scale = 1) {
+      box(x, 0.18 * scale, z, 0.12 * scale, 0.36 * scale, 0.08 * scale, [0.04, 0.045, 0.04, 1]);
+      box(x, 0.62 * scale, z, 0.28 * scale, 0.52 * scale, 0.16 * scale, shirtColor);
+      box(x, 1.02 * scale, z, 0.22 * scale, 0.22 * scale, 0.18 * scale, [0.72, 0.52, 0.38, 1]);
+      box(x - 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
+      box(x + 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
+    }
+
+    function spectatorCluster(x, z, accent, accent2) {
+      for (let j = 0; j < 5; j += 1) {
+        const row = Math.floor(j / 3);
+        const px = x + (j % 3 - 1) * 0.55;
+        const pz = z + row * 0.34;
+        person(px, pz, j % 2 ? accent : accent2, 0.74);
+      }
+      box(x, 0.28, z + 0.85, 2.4, 0.14, 0.14, [0.78, 0.82, 0.78, 1]);
+    }
+
     function wrapZ(index, spacing, offset, speed = 0.07) {
       const total = spacing * 22;
       let z = index * spacing - ((offset * speed) % total);
@@ -223,6 +241,8 @@
       };
       quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColors[place] || [0.04, 0.08, 0.06, 1]);
       quad([-5.8, 0, 0], [5.8, 0, 0], [7.4, 0, 170], [-7.4, 0, 170], roadColors[place] || [0.14, 0.16, 0.15, 1]);
+      quad([-8.7, -0.02, 0], [-5.9, -0.02, 0], [-7.7, -0.02, 170], [-10.2, -0.02, 170], shade(groundColors[place] || [0.08, 0.08, 0.07, 1], 0.72));
+      quad([5.9, -0.02, 0], [8.7, -0.02, 0], [10.2, -0.02, 170], [7.7, -0.02, 170], shade(groundColors[place] || [0.08, 0.08, 0.07, 1], 0.72));
       box(-6.25, 0.08, 84, 0.18, 0.05, 168, accent);
       box(6.25, 0.08, 84, 0.18, 0.05, 168, accent);
       for (let lane = -1; lane <= 1; lane += 1) {
@@ -235,6 +255,16 @@
         const z = wrapZ(i, 6.5, data.raceState.roadOffset, 0.13);
         const side = i % 2 ? -1 : 1;
         box(side * 8.4, 0.52, z, 0.12, 0.95, 0.28, i % 3 ? [0.78, 0.82, 0.78, 1] : accent);
+        box(side * 6.55, 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
+        box(side * 6.55, 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
+      }
+      if (place === "city" || place === "tokyo") {
+        for (let i = 0; i < 10; i += 1) {
+          const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
+          for (let stripe = -2; stripe <= 2; stripe += 1) {
+            box(stripe * 1.15, 0.09, z, 0.72, 0.05, 1.2, [0.85, 0.86, 0.82, 1]);
+          }
+        }
       }
     }
 
@@ -253,30 +283,38 @@
           taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
           box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
           if (i % 6 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
+          if (i % 8 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
         } else if (place === "farm") {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
           taperedBox(x, 1.95, z - 1.25, 2.45, 1.3, 0.6, 2.55, [0.44, 0.22, 0.12, 1]);
           box(side * 8.5, 0.35, z + 3, 0.12, 0.7, 4, [0.72, 0.56, 0.32, 1]);
           if (i % 5 === 0) box(x + side * 3.4, 0.65, z - 1, 2.2, 1.3, 1.8, [0.86, 0.72, 0.34, 1]);
+          if (i % 9 === 0) spectatorCluster(side * 9.4, z + 2, accent, accent2);
         } else if (place === "freight") {
           box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
           box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
           if (i % 4 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
+          if (i % 7 === 0) box(side * 9.4, 0.9, z - 2.4, 3.6, 1.8, 1.9, [0.52, 0.08, 0.06, 1]);
         } else if (place === "desert" || place === "canyon") {
           lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === "canyon" ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
+          if (i % 10 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
         } else if (place === "rainforest") {
           taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
           taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
+          if (i % 11 === 0) spectatorCluster(side * 8.7, z + 1.4, accent, accent2);
         } else if (place === "snow" || place === "alpine" || place === "europe") {
           lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
           if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
+          if (place === "europe" && i % 8 === 0) spectatorCluster(side * 8.8, z + 2.2, accent, accent2);
         } else if (place === "harbor" || place === "coast") {
           box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
           box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
           if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
+          if (i % 9 === 0) spectatorCluster(side * 9.1, z + 2.8, accent, accent2);
         } else if (place === "airfield") {
           box(x, 1.1, z, 4.4, 2.2, 3.4, [0.18, 0.18, 0.16, 1]);
           taperedBox(x, 2.35, z - 1.8, 4.8, 2.4, 0.6, 3.6, [0.24, 0.24, 0.22, 1]);
+          if (i % 6 === 0) box(side * 8.8, 0.35, z + 2, 1.8, 0.7, 2.6, accent);
         }
       }
     }

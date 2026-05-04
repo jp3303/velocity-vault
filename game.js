@@ -200,6 +200,8 @@ function showView(next) {
   view = next;
   $$(".view").forEach((el) => el.classList.remove("active"));
   $(`#${next}View`).classList.add("active");
+  document.body.classList.toggle("race-live", next === "race");
+  fitCanvas();
 }
 
 function showToast(message) {
@@ -999,6 +1001,16 @@ function updateRaceUi() {
   $("#gasBtn").classList.toggle("pressed", input.gas || input.gamepadGas);
   $("#brakeBtn").classList.toggle("pressed", input.brake || input.gamepadBrake);
   $("#boostBtn").classList.toggle("pressed", input.boost || input.gamepadBoost);
+  $$(".mobile-control").forEach((button) => {
+    const control = button.dataset.control;
+    const pressed = control === "left" ? input.left
+      : control === "right" ? input.right
+        : control === "gas" ? input.gas || input.gamepadGas
+          : control === "brake" ? input.brake || input.gamepadBrake
+            : control === "boost" ? input.boost || input.gamepadBoost
+              : false;
+    button.classList.toggle("pressed", pressed);
+  });
   updateHud();
 }
 
@@ -2978,6 +2990,7 @@ function bindEvents() {
   bindHold($("#gasBtn"), "gas");
   bindHold($("#brakeBtn"), "brake");
   bindHold($("#boostBtn"), "boost");
+  $$(".mobile-control").forEach((button) => bindHold(button, button.dataset.control));
   window.addEventListener("keydown", (event) => setKey(event, true));
   window.addEventListener("keyup", (event) => setKey(event, false));
   window.addEventListener("resize", fitCanvas);
