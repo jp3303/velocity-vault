@@ -23,6 +23,7 @@ Driver views:
 - `Full Car`: third-person chase camera with the full performance car visible.
 - `Half Car`: low hood-style view with the front of the car filling the lower screen.
 - `Windshield`: cockpit-style view looking out through the windshield with dashboard framing.
+- `WebGL 3D`: hardware-accelerated 3D racing pipeline with a classic 2D fallback button for older browsers.
 
 Real-world style visuals:
 
@@ -30,6 +31,7 @@ Real-world style visuals:
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, farmland, big-rig freight stops, neon towers, desert dunes, rainforest canopy, alpine villages, and pass-specific colors.
 - Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, semi truck racers, racing tractors, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
+- A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
 - Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.
@@ -45,7 +47,7 @@ Visual direction references:
 - Tokyo night-highway feel: neon signage, wet road reflections, tunnel/highway rhythm, and rival traffic tension.
 - Sim/cockpit cues: windshield framing, steering wheel, dashboard speed readout, heat alert, and road-focused forward camera.
 
-Graphics note: this is a practical standalone browser build using high-detail canvas rendering and 3D-style perspective. A true full 3D/console-level build would need a WebGL or game-engine asset pipeline, but this version is designed to load from GitHub Pages and install as a lightweight phone/computer app.
+Graphics note: this is a practical standalone browser build with both WebGL 3D rendering and high-detail canvas fallback. It is not using licensed console-game assets, but the rendering pipeline is now structured so deeper 3D models, tracks, lighting, and physics can be added over time.
 
 ## Install As An App
 
@@ -96,6 +98,7 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 - No third-party scripts, fonts, or assets.
 - Strict Content Security Policy in `index.html`.
 - Offline app caching uses `sw.js` and same-origin files only.
+- WebGL rendering is local-only and does not load shaders, models, scripts, or textures from the network.
 - Profiles and optional PIN hashes stay in `localStorage` on this device.
 - Controller support uses the browser Gamepad API only.
 - The PIN is only for casual local separation between players; it is not a replacement for operating-system account security.

@@ -5,6 +5,7 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 const canvas = $("#gameCanvas");
 const ctx = canvas.getContext("2d");
+const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
@@ -79,6 +80,8 @@ let tab = "races";
 let toastTimer = 0;
 let deferredInstallPrompt = null;
 let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "chase";
+let rendererMode = localStorage.getItem("velocityVaultRendererMode") || "webgl";
+let webglRenderer = null;
 let audioSystem = null;
 
 const input = {
@@ -680,6 +683,31 @@ function setCameraMode(mode, quiet = false) {
   }
 }
 
+function initWebGLRenderer() {
+  if (!glCanvas || webglRenderer) return;
+  try {
+    webglRenderer = window.VelocityWebGLPipeline ? window.VelocityWebGLPipeline(glCanvas) : null;
+  } catch {
+    webglRenderer = null;
+    rendererMode = "canvas";
+    localStorage.setItem("velocityVaultRendererMode", rendererMode);
+  }
+}
+
+function useWebGLRenderer() {
+  return rendererMode === "webgl" && webglRenderer && webglRenderer.ready;
+}
+
+function setRendererMode(mode, quiet = false) {
+  rendererMode = mode;
+  if (mode === "webgl") initWebGLRenderer();
+  if (mode === "webgl" && !webglRenderer) rendererMode = "canvas";
+  localStorage.setItem("velocityVaultRendererMode", rendererMode);
+  $$(".renderer-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.renderer === rendererMode));
+  $(".stage").classList.toggle("webgl", useWebGLRenderer());
+  if (!quiet) showToast(useWebGLRenderer() ? "WebGL 3D renderer enabled." : "Classic 2D renderer enabled.");
+}
+
 function registerOfflineApp() {
   if (!("serviceWorker" in navigator)) return;
   if (!location.protocol.startsWith("http")) return;
@@ -993,9 +1021,35 @@ function drawFrame() {
   const w = canvas.width;
   const h = canvas.height;
   const shake = raceState.cameraShake;
+  const theme = selectedRace ? selectedRace.theme : races[0].theme;
+  if (useWebGLRenderer()) {
+    $(".stage").classList.add("webgl");
+    ctx.clearRect(0, 0, w, h);
+    webglRenderer.resize(w, h);
+    webglRenderer.render({
+      width: w,
+      height: h,
+      raceState,
+      selectedRace: selectedRace || races[0],
+      selectedVehicle: selectedVehicle(),
+      vehicleDefs,
+      cameraMode
+    });
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
+    drawCameraOverlay(w, h, theme);
+    if (raceState.active) drawRaceStandings(w, h);
+    drawParticles();
+    drawCinematicGrade(w, h, theme);
+    if (!raceState.active) drawAttract(w, h);
+    if (input.paused && raceState.active) drawPause(w, h);
+    ctx.restore();
+    requestAnimationFrame(loop);
+    return;
+  }
+  $(".stage").classList.remove("webgl");
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
-  const theme = selectedRace ? selectedRace.theme : races[0].theme;
   const sky = ctx.createLinearGradient(0, 0, 0, h);
   sky.addColorStop(0, theme[0]);
   sky.addColorStop(0.6, "#08100f");
@@ -2775,8 +2829,15 @@ function drawPause(w, h) {
 
 function fitCanvas() {
   const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(640, Math.floor(rect.width));
-  canvas.height = Math.max(420, Math.floor(rect.height));
+  const width = Math.max(640, Math.floor(rect.width));
+  const height = Math.max(420, Math.floor(rect.height));
+  canvas.width = width;
+  canvas.height = height;
+  if (glCanvas) {
+    glCanvas.width = width;
+    glCanvas.height = height;
+  }
+  if (webglRenderer) webglRenderer.resize(width, height);
 }
 
 function bindEvents() {
@@ -2838,6 +2899,9 @@ function bindEvents() {
   });
   $$(".camera-btn").forEach((btn) => {
     btn.addEventListener("click", () => setCameraMode(btn.dataset.camera));
+  });
+  $$(".renderer-btn").forEach((btn) => {
+    btn.addEventListener("click", () => setRendererMode(btn.dataset.renderer));
   });
   bindHold($("#leftBtn"), "left");
   bindHold($("#rightBtn"), "right");
@@ -2937,5 +3001,7 @@ bindEvents();
 fitCanvas();
 updateHud();
 setCameraMode(cameraMode, true);
+initWebGLRenderer();
+setRendererMode(rendererMode, true);
 registerOfflineApp();
 drawFrame();

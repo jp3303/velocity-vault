@@ -18,6 +18,7 @@
 <body>
   <main class="shell">
     <section class="stage" aria-label="Velocity Vault race game">
+      <canvas id="glCanvas" width="1280" height="720" aria-label="WebGL 3D racing renderer"></canvas>
       <canvas id="gameCanvas" width="1280" height="720" aria-label="Racing game canvas"></canvas>
       <div class="scanline" aria-hidden="true"></div>
       <div id="hud" class="hud">
@@ -138,6 +139,10 @@
           <button class="camera-btn" data-camera="hood" type="button">Half Car</button>
           <button class="camera-btn" data-camera="cockpit" type="button">Windshield</button>
         </div>
+        <div class="renderer-grid" role="group" aria-label="Graphics renderer">
+          <button class="renderer-btn active" data-renderer="webgl" type="button">WebGL 3D</button>
+          <button class="renderer-btn" data-renderer="canvas" type="button">Classic 2D</button>
+        </div>
         <div class="controller-card">
           <strong id="controllerName">Bluetooth controller ready</strong>
           <span>Pair a controller with your device, press any controller button, then steer with the left stick or D-pad. RT / A accelerates, LT brakes or reverses, B boosts. Start pauses.</span>
@@ -161,6 +166,7 @@
       </div>
     </aside>
   </main>
+  <script src="webgl-pipeline.js" defer></script>
   <script src="game.js" defer></script>
 </body>
 </html>
