@@ -15,10 +15,10 @@ const ageBands = {
 };
 
 const races = [
-  { id: "neon", name: "Pacific Coast Highway Sprint", length: 3600, target: "Collect 18 coins", type: "coins", goal: 18, reward: 150, rep: 16, theme: ["#0c1a1b", "#46d9ff", "#bbf24a"], place: "coast", sign: "Pacific Coast" },
-  { id: "skyline", name: "Chicago Skyline Night Run", length: 4300, target: "Keep focus above 60", type: "focus", goal: 60, reward: 180, rep: 20, theme: ["#12151d", "#ffd166", "#46d9ff"], place: "city", sign: "Lakefront Loop" },
-  { id: "canyon", name: "Sedona Red Rock Clash", length: 5000, target: "Dodge 30 rivals", type: "dodges", goal: 30, reward: 220, rep: 28, theme: ["#15110c", "#ff5b6b", "#ffd166"], place: "canyon", sign: "Sedona Route" },
-  { id: "vault", name: "Rocky Mountain Grand Prix", length: 6200, target: "Score 5000 points", type: "score", goal: 5000, reward: 320, rep: 42, theme: ["#09100f", "#bbf24a", "#46d9ff"], place: "alpine", sign: "Mountain Pass" }
+  { id: "neon", name: "Pacific Coast Highway Sprint", length: 3600, target: "Collect 18 coins", type: "coins", goal: 18, reward: 150, rep: 16, theme: ["#0c1a1b", "#46d9ff", "#bbf24a"], place: "coast", sign: "Pacific Coast", mood: "golden coast" },
+  { id: "skyline", name: "Chicago Skyline Night Run", length: 4300, target: "Keep focus above 60", type: "focus", goal: 60, reward: 180, rep: 20, theme: ["#12151d", "#ffd166", "#46d9ff"], place: "city", sign: "Lakefront Loop", mood: "wet downtown" },
+  { id: "canyon", name: "Sedona Red Rock Clash", length: 5000, target: "Dodge 30 rivals", type: "dodges", goal: 30, reward: 220, rep: 28, theme: ["#15110c", "#ff5b6b", "#ffd166"], place: "canyon", sign: "Sedona Route", mood: "desert chase" },
+  { id: "vault", name: "Rocky Mountain Grand Prix", length: 6200, target: "Score 5000 points", type: "score", goal: 5000, reward: 320, rep: 42, theme: ["#09100f", "#bbf24a", "#46d9ff"], place: "alpine", sign: "Mountain Pass", mood: "storm pass" }
 ];
 
 const upgradeDefs = [
@@ -52,6 +52,7 @@ let tab = "races";
 let toastTimer = 0;
 let deferredInstallPrompt = null;
 let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "cockpit";
+let audioSystem = null;
 
 const input = {
   left: false,
@@ -84,9 +85,14 @@ const raceState = {
   spawnClock: 0,
   coinClock: 0,
   rivals: [],
+  police: [],
   coinsOnRoad: [],
   particles: [],
   elapsed: 0,
+  heat: 0,
+  heatClock: 0,
+  chaseActive: false,
+  cameraShake: 0,
   countdown: 0,
   finished: false,
   director: null
@@ -144,6 +150,63 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2300);
+}
+
+function startAudio() {
+  if (audioSystem || !window.AudioContext && !window.webkitAudioContext) return;
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  const ctxAudio = new AudioCtor();
+  const master = ctxAudio.createGain();
+  master.gain.value = 0.045;
+  master.connect(ctxAudio.destination);
+
+  const engine = ctxAudio.createOscillator();
+  const engineGain = ctxAudio.createGain();
+  engine.type = "sawtooth";
+  engine.frequency.value = 72;
+  engineGain.gain.value = 0.18;
+  engine.connect(engineGain);
+  engineGain.connect(master);
+  engine.start();
+
+  const siren = ctxAudio.createOscillator();
+  const sirenGain = ctxAudio.createGain();
+  siren.type = "triangle";
+  siren.frequency.value = 620;
+  sirenGain.gain.value = 0;
+  siren.connect(sirenGain);
+  sirenGain.connect(master);
+  siren.start();
+
+  audioSystem = { ctx: ctxAudio, master, engine, engineGain, siren, sirenGain };
+}
+
+function updateAudio() {
+  if (!audioSystem) return;
+  const now = audioSystem.ctx.currentTime;
+  const speed = raceState.active ? raceState.speed : 0;
+  const boostInput = input.boost || input.gamepadBoost;
+  audioSystem.engine.frequency.setTargetAtTime(64 + speed * 0.62 + (boostInput ? 70 : 0), now, 0.045);
+  audioSystem.engineGain.gain.setTargetAtTime(raceState.active ? 0.12 + Math.min(0.18, speed / 1200) : 0.035, now, 0.08);
+  const sirenLevel = raceState.active && raceState.chaseActive ? 0.14 : 0;
+  const sirenSweep = 620 + Math.sin(raceState.elapsed * 7.2) * 210;
+  audioSystem.siren.frequency.setTargetAtTime(sirenSweep, now, 0.03);
+  audioSystem.sirenGain.gain.setTargetAtTime(sirenLevel, now, 0.06);
+}
+
+function playHitSound(kind = "impact") {
+  if (!audioSystem) return;
+  const now = audioSystem.ctx.currentTime;
+  const osc = audioSystem.ctx.createOscillator();
+  const gain = audioSystem.ctx.createGain();
+  osc.type = kind === "coin" ? "sine" : "square";
+  osc.frequency.value = kind === "coin" ? 880 : kind === "police" ? 150 : 210;
+  gain.gain.setValueAtTime(kind === "coin" ? 0.07 : 0.11, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + (kind === "coin" ? 0.14 : 0.22));
+  osc.connect(gain);
+  gain.connect(audioSystem.master);
+  osc.start(now);
+  osc.stop(now + 0.24);
 }
 
 function profilePower(profile) {
@@ -306,6 +369,8 @@ function claimMission(mission) {
 }
 
 function launchRace() {
+  startAudio();
+  if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
   const age = ageBands[activeProfile.age];
   const director = getDirector(activeProfile);
   Object.assign(raceState, {
@@ -323,9 +388,14 @@ function launchRace() {
     spawnClock: 0,
     coinClock: 0,
     rivals: [],
+    police: [],
     coinsOnRoad: [],
     particles: [],
     elapsed: 0,
+    heat: 0,
+    heatClock: 1.7,
+    chaseActive: false,
+    cameraShake: 0,
     countdown: 0,
     finished: false,
     director
@@ -382,9 +452,11 @@ function missionProgress() {
 function updateHud() {
   $("#profileChip").textContent = activeProfile ? `${activeProfile.name} | ${ageBands[activeProfile.age].label}` : "No Driver";
   $("#coinStat").textContent = activeProfile ? activeProfile.coins : 0;
-  $("#repStat").textContent = activeProfile ? activeProfile.rep : 0;
+  $("#repLabel").textContent = raceState.active ? "Heat" : "Rep";
+  $("#repStat").textContent = raceState.active ? Math.round(raceState.heat) : activeProfile ? activeProfile.rep : 0;
   $("#speedStat").textContent = Math.max(0, Math.round(raceState.speed));
   $("#focusStat").textContent = Math.max(0, Math.round(raceState.focus));
+  if (raceState.active && raceState.chaseActive) $("#missionChip").textContent = `Police heat ${Math.round(raceState.heat)}% | Escape clean`;
 }
 
 function setCameraMode(mode, quiet = false) {
@@ -442,6 +514,19 @@ function spawnRival() {
   });
 }
 
+function spawnPoliceUnit() {
+  const lane = Math.floor(Math.random() * 5) - 2;
+  raceState.police.push({
+    lane,
+    y: -170,
+    w: 62,
+    h: 112,
+    speed: 260 + Math.random() * 95 + raceState.heat * 0.9,
+    passed: false,
+    hit: false
+  });
+}
+
 function spawnCoin() {
   const lane = Math.floor(Math.random() * 5) - 2;
   raceState.coinsOnRoad.push({ lane, y: -60, r: 13, pulse: Math.random() * 10 });
@@ -467,6 +552,9 @@ function tick(dt) {
   raceState.roadOffset += raceState.speed * dt;
   raceState.elapsed += dt;
   raceState.score += dt * raceState.speed * raceState.combo * 0.32;
+  raceState.heat = Math.min(100, raceState.heat + dt * (0.9 + raceState.speed / 185) + (boostInput ? dt * 2.4 : 0));
+  raceState.heatClock -= dt;
+  raceState.cameraShake = Math.max(0, raceState.cameraShake - dt * 18);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
   if (raceState.spawnClock <= 0) {
@@ -477,9 +565,16 @@ function tick(dt) {
     spawnCoin();
     raceState.coinClock = Math.max(0.3, (0.76 - upgrades.magnet * 0.035) / director.coinRate);
   }
+  if (raceState.heat > 18 && raceState.heatClock <= 0) {
+    raceState.chaseActive = true;
+    spawnPoliceUnit();
+    raceState.heatClock = Math.max(1.2, 4.5 - raceState.heat / 24 - activeProfile.upgrades.engine * 0.12);
+    showToast(raceState.heat > 65 ? "High heat pursuit. Watch for interceptors." : "Police chase started.");
+  }
   moveObjects(dt);
   if (raceState.focus <= 0 || raceState.distance >= selectedRace.length) endRace(false);
   updateRaceUi();
+  updateAudio();
 }
 
 function moveObjects(dt) {
@@ -498,8 +593,36 @@ function moveObjects(dt) {
       const shield = activeProfile.upgrades.shield;
       raceState.focus -= Math.max(8, 24 - shield * 3.4);
       raceState.combo = 1;
+      raceState.cameraShake = Math.max(raceState.cameraShake, 7);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, "#ff5b6b");
+      playHitSound("impact");
       showToast("Impact absorbed. Hold focus.");
+    }
+  });
+  raceState.police.forEach((unit) => {
+    const pursuitPull = Math.sign(carLane - unit.lane) * dt * (0.18 + raceState.heat / 260);
+    unit.lane = Math.max(-2.2, Math.min(2.2, unit.lane + pursuitPull));
+    unit.y += unit.speed * dt;
+    if (!unit.passed && unit.y > canvas.height * 0.72) {
+      unit.passed = true;
+      raceState.dodges += 1;
+      raceState.combo = Math.min(5, raceState.combo + 0.2);
+      raceState.score += 180;
+      raceState.heat = Math.max(10, raceState.heat - 4);
+    }
+    const laneHit = Math.abs(unit.lane - carLane) < 0.56;
+    const yHit = unit.y > canvas.height * 0.61 && unit.y < canvas.height * 0.9;
+    if (laneHit && yHit && !unit.hit) {
+      unit.hit = true;
+      const shield = activeProfile.upgrades.shield;
+      raceState.focus -= Math.max(12, 32 - shield * 3);
+      raceState.combo = 1;
+      raceState.cameraShake = Math.max(raceState.cameraShake, 12);
+      raceState.heat = Math.min(100, raceState.heat + 12);
+      burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
+      burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#ff3348");
+      playHitSound("police");
+      showToast("Police contact. Break away and rebuild focus.");
     }
   });
   const magnet = activeProfile.upgrades.magnet;
@@ -515,9 +638,12 @@ function moveObjects(dt) {
       raceState.score += 120 * raceState.combo;
       raceState.combo = Math.min(5, raceState.combo + 0.18);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, "#ffd166");
+      playHitSound("coin");
     }
   });
   raceState.rivals = raceState.rivals.filter((r) => r.y < canvas.height + 120 && !r.hit);
+  raceState.police = raceState.police.filter((p) => p.y < canvas.height + 150 && !p.hit);
+  if (!raceState.police.length && raceState.heat < 16) raceState.chaseActive = false;
   raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => c.y < canvas.height + 80 && !c.hit);
   raceState.particles.forEach((p) => {
     p.x += p.vx * dt;
@@ -564,6 +690,9 @@ function loop(now = performance.now()) {
 function drawFrame() {
   const w = canvas.width;
   const h = canvas.height;
+  const shake = raceState.cameraShake;
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
   const theme = selectedRace ? selectedRace.theme : races[0].theme;
   const sky = ctx.createLinearGradient(0, 0, 0, h);
   sky.addColorStop(0, theme[0]);
@@ -573,12 +702,15 @@ function drawFrame() {
   ctx.fillRect(0, 0, w, h);
   drawScenery(w, h, theme);
   drawRoad(w, h, theme);
+  if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
   drawCameraOverlay(w, h, theme);
   drawParticles();
+  drawCinematicGrade(w, h, theme);
   if (!raceState.active) drawAttract(w, h);
   if (input.paused && raceState.active) drawPause(w, h);
+  ctx.restore();
   requestAnimationFrame(loop);
 }
 
@@ -594,14 +726,30 @@ function drawScenery(w, h, theme) {
 }
 
 function drawMetroScenery(w, h, theme) {
-  for (let i = 0; i < 32; i += 1) {
+  const lake = ctx.createLinearGradient(0, h * 0.33, 0, h * 0.56);
+  lake.addColorStop(0, "rgba(38,84,96,0.38)");
+  lake.addColorStop(1, "rgba(5,8,7,0.16)");
+  ctx.fillStyle = lake;
+  ctx.fillRect(0, h * 0.34, w, h * 0.18);
+  ctx.strokeStyle = "rgba(244,251,248,0.12)";
+  for (let i = 0; i < 7; i += 1) {
+    const y = h * 0.39 + i * 18;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(w * 0.3, y - 8, w * 0.62, y + 10, w, y - 3);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 42; i += 1) {
     const x = ((i * 93 + raceState.roadOffset * 0.08) % (w + 180)) - 90;
-    const bh = 74 + ((i * 47) % 180);
-    ctx.fillStyle = i % 3 === 0 ? "rgba(70,217,255,0.14)" : "rgba(255,255,255,0.075)";
+    const bh = 92 + ((i * 47) % 230);
+    const tower = ctx.createLinearGradient(x, h * 0.34 - bh, x + 70, h * 0.34);
+    tower.addColorStop(0, i % 3 === 0 ? "rgba(70,217,255,0.26)" : "rgba(255,255,255,0.12)");
+    tower.addColorStop(1, "rgba(5,8,7,0.4)");
+    ctx.fillStyle = tower;
     ctx.fillRect(x, h * 0.34 - bh, 42 + (i % 5) * 11, bh);
     ctx.fillStyle = theme[i % 2 + 1];
-    ctx.globalAlpha = 0.5;
-    for (let y = 18; y < bh - 12; y += 24) ctx.fillRect(x + 9 + (y % 3) * 8, h * 0.34 - bh + y, 7, 8);
+    ctx.globalAlpha = 0.58;
+    for (let y = 18; y < bh - 12; y += 22) ctx.fillRect(x + 9 + (y % 3) * 8, h * 0.34 - bh + y, 7, 8);
     ctx.globalAlpha = 1;
   }
   ctx.strokeStyle = "rgba(255,255,255,0.14)";
@@ -613,6 +761,11 @@ function drawMetroScenery(w, h, theme) {
 }
 
 function drawCoastalScenery(w, h, theme) {
+  const sun = ctx.createRadialGradient(w * 0.16, h * 0.16, 8, w * 0.16, h * 0.16, 130);
+  sun.addColorStop(0, "rgba(255,209,102,0.58)");
+  sun.addColorStop(1, "rgba(255,209,102,0)");
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, w, h * 0.4);
   const water = ctx.createLinearGradient(0, h * 0.32, 0, h * 0.58);
   water.addColorStop(0, "rgba(70,217,255,0.2)");
   water.addColorStop(1, "rgba(5,8,7,0.1)");
@@ -646,8 +799,9 @@ function drawCoastalScenery(w, h, theme) {
 
 function drawCanyonScenery(w, h, theme) {
   const layers = [
-    { y: 0.35, color: "rgba(255,91,107,0.18)", scale: 1 },
-    { y: 0.42, color: "rgba(255,209,102,0.16)", scale: 0.74 }
+    { y: 0.35, color: "rgba(255,91,107,0.28)", scale: 1 },
+    { y: 0.42, color: "rgba(255,209,102,0.22)", scale: 0.74 },
+    { y: 0.49, color: "rgba(111,54,30,0.45)", scale: 0.55 }
   ];
   layers.forEach((layer, layerIndex) => {
     ctx.fillStyle = layer.color;
@@ -670,6 +824,11 @@ function drawCanyonScenery(w, h, theme) {
 }
 
 function drawAlpineScenery(w, h, theme) {
+  const fog = ctx.createLinearGradient(0, h * 0.16, 0, h * 0.56);
+  fog.addColorStop(0, "rgba(185,216,224,0.16)");
+  fog.addColorStop(1, "rgba(185,216,224,0)");
+  ctx.fillStyle = fog;
+  ctx.fillRect(0, h * 0.14, w, h * 0.44);
   ctx.fillStyle = "rgba(244,251,248,0.16)";
   ctx.beginPath();
   ctx.moveTo(0, h * 0.38);
@@ -721,6 +880,11 @@ function drawRoad(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.36;
   const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.18;
   const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 0.82;
+  const glare = ctx.createRadialGradient(w * 0.5, h * 0.62, w * 0.08, w * 0.5, h * 0.74, w * 0.75);
+  glare.addColorStop(0, "rgba(244,251,248,0.08)");
+  glare.addColorStop(1, "rgba(244,251,248,0)");
+  ctx.fillStyle = glare;
+  ctx.fillRect(0, horizon, w, h - horizon);
   ctx.fillStyle = "rgba(0,0,0,0.34)";
   ctx.beginPath();
   ctx.moveTo(w / 2 - roadTop, horizon);
@@ -730,6 +894,11 @@ function drawRoad(w, h, theme) {
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = "#222826";
+  const asphalt = ctx.createLinearGradient(0, horizon, 0, h);
+  asphalt.addColorStop(0, "#2e3330");
+  asphalt.addColorStop(0.45, "#1f2422");
+  asphalt.addColorStop(1, "#111615");
+  ctx.fillStyle = asphalt;
   ctx.beginPath();
   ctx.moveTo(w / 2 - roadTop * 0.86, horizon);
   ctx.lineTo(w / 2 + roadTop * 0.86, horizon);
@@ -737,6 +906,17 @@ function drawRoad(w, h, theme) {
   ctx.lineTo(w / 2 - roadBottom * 0.7, h);
   ctx.closePath();
   ctx.fill();
+  ctx.save();
+  ctx.globalAlpha = 0.17;
+  for (let i = 0; i < 130; i += 1) {
+    const y = ((i * 23 + raceState.roadOffset * 0.9) % (h + 40)) - 20;
+    if (y < horizon) continue;
+    const t = (y - horizon) / (h - horizon);
+    const x = w * 0.5 + (Math.sin(i * 13.7) * roadBottom * 0.55 * t);
+    ctx.fillStyle = i % 3 ? "#f4fbf8" : theme[1];
+    ctx.fillRect(x, y, 1 + t * 3, 1 + t * 5);
+  }
+  ctx.restore();
   ctx.globalAlpha = 0.16;
   ctx.strokeStyle = "#f4fbf8";
   ctx.lineWidth = 1;
@@ -772,6 +952,7 @@ function drawRoad(w, h, theme) {
   ctx.stroke();
   ctx.globalAlpha = 1;
   drawRoadsideDetails(w, h, theme, horizon, roadBottom);
+  drawHeadlightBeams(w, h, theme, horizon);
 }
 
 function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
@@ -816,6 +997,35 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
   }
 }
 
+function drawHeadlightBeams(w, h, theme, horizon) {
+  const boostInput = input.boost || input.gamepadBoost;
+  const alpha = cameraMode === "cockpit" ? 0.18 : 0.11;
+  const beam = ctx.createLinearGradient(0, horizon, 0, h);
+  beam.addColorStop(0, "rgba(255,255,255,0)");
+  beam.addColorStop(0.62, `rgba(255,248,214,${alpha})`);
+  beam.addColorStop(1, `rgba(70,217,255,${boostInput ? 0.22 : 0.08})`);
+  ctx.fillStyle = beam;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.43, h * 0.7);
+  ctx.lineTo(w * 0.17, h);
+  ctx.lineTo(w * 0.83, h);
+  ctx.lineTo(w * 0.57, h * 0.7);
+  ctx.closePath();
+  ctx.fill();
+  if (!boostInput) return;
+  ctx.strokeStyle = theme[1];
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.45;
+  for (let i = 0; i < 8; i += 1) {
+    const x = w * (0.18 + i * 0.09);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.52);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 function objectPos(lane, y) {
   const h = canvas.height;
   const t = Math.max(0, y / h);
@@ -843,6 +1053,30 @@ function drawObjects() {
     const p = objectPos(rival.lane, rival.y);
     drawVehicle(p.x, p.y, rival.w * p.scale, rival.h * p.scale, rival.color, false);
   });
+  raceState.police.forEach((unit) => {
+    const p = objectPos(unit.lane, unit.y);
+    drawVehicle(p.x, p.y, unit.w * p.scale, unit.h * p.scale, "#f4fbf8", false, true);
+  });
+}
+
+function drawDemoPursuitTraffic(w, h) {
+  const t = performance.now() / 1000;
+  const demo = [
+    { lane: -1.15 + Math.sin(t * 0.7) * 0.15, y: h * 0.43, color: "#ff5b6b", police: false, s: 0.58 },
+    { lane: 1.05 + Math.sin(t * 0.9) * 0.12, y: h * 0.5, color: "#f4fbf8", police: true, s: 0.68 },
+    { lane: 0.08 + Math.sin(t * 1.1) * 0.18, y: h * 0.61, color: "#46d9ff", police: false, s: 0.86 }
+  ];
+  demo.forEach((car) => {
+    const p = objectPos(car.lane, car.y);
+    drawVehicle(p.x, p.y, 62 * car.s * p.scale, 112 * car.s * p.scale, car.color, false, car.police);
+  });
+  ctx.save();
+  ctx.globalAlpha = 0.24 + Math.sin(t * 12) * 0.08;
+  ctx.fillStyle = "#ff3348";
+  ctx.fillRect(0, 0, w * 0.5, h);
+  ctx.fillStyle = "#46d9ff";
+  ctx.fillRect(w * 0.5, 0, w * 0.5, h);
+  ctx.restore();
 }
 
 function drawCar(w, h) {
@@ -887,9 +1121,14 @@ function drawCameraOverlay(w, h, theme) {
   }
   if (cameraMode !== "cockpit") return;
   ctx.save();
-  ctx.fillStyle = "rgba(2,5,5,0.72)";
+  ctx.fillStyle = "rgba(2,5,5,0.64)";
   ctx.fillRect(0, 0, w, h * 0.1);
-  ctx.fillRect(0, h * 0.78, w, h * 0.22);
+  const dash = ctx.createLinearGradient(0, h * 0.74, 0, h);
+  dash.addColorStop(0, "rgba(6,10,10,0.52)");
+  dash.addColorStop(0.42, "#0a0f0e");
+  dash.addColorStop(1, "#020403");
+  ctx.fillStyle = dash;
+  ctx.fillRect(0, h * 0.75, w, h * 0.25);
   ctx.fillStyle = "#080d0c";
   ctx.beginPath();
   ctx.moveTo(0, h);
@@ -901,6 +1140,12 @@ function drawCameraOverlay(w, h, theme) {
   ctx.strokeStyle = "rgba(244,251,248,0.28)";
   ctx.lineWidth = 10;
   roundRect(w * 0.08, h * 0.12, w * 0.84, h * 0.58, 18);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(244,251,248,0.16)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.08, h * 0.68);
+  ctx.quadraticCurveTo(w * 0.5, h * 0.76, w * 0.92, h * 0.68);
   ctx.stroke();
   ctx.strokeStyle = theme[1];
   ctx.lineWidth = 3;
@@ -923,10 +1168,61 @@ function drawCameraOverlay(w, h, theme) {
   ctx.font = "900 18px system-ui";
   ctx.textAlign = "center";
   ctx.fillText(`${Math.round(raceState.speed)} MPH`, w * 0.5, h * 0.9);
+  ctx.fillStyle = "rgba(5,8,7,0.74)";
+  roundRect(w * 0.11, h * 0.8, w * 0.22, h * 0.1, 8);
+  ctx.fill();
+  ctx.fillStyle = raceState.chaseActive ? "#ff5b6b" : "#a9bbb5";
+  ctx.font = "900 14px system-ui";
+  ctx.textAlign = "left";
+  ctx.fillText(raceState.chaseActive ? "PURSUIT ACTIVE" : "STREET CLEAR", w * 0.13, h * 0.835);
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = "800 12px system-ui";
+  ctx.fillText(`HEAT ${Math.round(raceState.heat)}%`, w * 0.13, h * 0.865);
+  ctx.fillStyle = "rgba(5,8,7,0.74)";
+  roundRect(w * 0.67, h * 0.8, w * 0.22, h * 0.1, 8);
+  ctx.fill();
+  ctx.fillStyle = theme[1];
+  ctx.font = "900 14px system-ui";
+  ctx.textAlign = "right";
+  ctx.fillText(selectedRace ? selectedRace.mood.toUpperCase() : "STREET RACE", w * 0.87, h * 0.835);
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = "800 12px system-ui";
+  ctx.fillText(`${Math.round((raceState.distance / (selectedRace ? selectedRace.length : 1)) * 100)}% ROUTE`, w * 0.87, h * 0.865);
+  if (raceState.chaseActive) {
+    ctx.globalAlpha = 0.18 + Math.max(0, Math.sin(raceState.elapsed * 16)) * 0.14;
+    ctx.fillStyle = "#ff3348";
+    ctx.fillRect(0, 0, w * 0.5, h);
+    ctx.fillStyle = "#46d9ff";
+    ctx.fillRect(w * 0.5, 0, w * 0.5, h);
+    ctx.globalAlpha = 1;
+  }
   ctx.restore();
 }
 
-function drawVehicle(x, y, width, height, color, player) {
+function drawCinematicGrade(w, h, theme) {
+  const speedLines = Math.max(0, (raceState.speed - 190) / 150);
+  if (speedLines > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.32, speedLines * 0.26);
+    ctx.strokeStyle = theme[1];
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 22; i += 1) {
+      const x = (i * 73 + raceState.roadOffset * 0.35) % w;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.42);
+      ctx.lineTo(x - 90, h);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const vignette = ctx.createRadialGradient(w * 0.5, h * 0.52, h * 0.22, w * 0.5, h * 0.52, h * 0.9);
+  vignette.addColorStop(0, "rgba(0,0,0,0)");
+  vignette.addColorStop(1, "rgba(0,0,0,0.58)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function drawVehicle(x, y, width, height, color, player, police = false) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = "rgba(0,0,0,0.34)";
@@ -954,6 +1250,14 @@ function drawVehicle(x, y, width, height, color, player) {
   ctx.quadraticCurveTo(-width * 0.5, -height * 0.42, -width * 0.32, -height * 0.5);
   ctx.closePath();
   ctx.fill();
+  if (police) {
+    ctx.fillStyle = "#111817";
+    ctx.fillRect(-width * 0.32, -height * 0.18, width * 0.64, height * 0.1);
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = `${Math.max(8, width * 0.14)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText("POLICE", 0, height * 0.25);
+  }
   ctx.fillStyle = player ? "rgba(244,251,248,0.45)" : "rgba(190,210,210,0.36)";
   roundRect(-width * 0.29, -height * 0.36, width * 0.58, height * 0.18, 7);
   ctx.fill();
@@ -988,6 +1292,18 @@ function drawVehicle(x, y, width, height, color, player) {
   ctx.fillStyle = "#ff3348";
   ctx.fillRect(-width * 0.3, height * 0.42, width * 0.16, height * 0.06);
   ctx.fillRect(width * 0.14, height * 0.42, width * 0.16, height * 0.06);
+  if (police) {
+    const flash = Math.sin(raceState.elapsed * 18) > 0;
+    ctx.fillStyle = flash ? "#ff3348" : "#46d9ff";
+    roundRect(-width * 0.21, -height * 0.25, width * 0.42, height * 0.055, 3);
+    ctx.fill();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = flash ? "#ff3348" : "#46d9ff";
+    ctx.beginPath();
+    ctx.arc(0, -height * 0.25, width * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
   ctx.strokeStyle = "rgba(5,8,7,0.42)";
   ctx.lineWidth = Math.max(2, width * 0.025);
   ctx.beginPath();
@@ -1029,15 +1345,15 @@ function drawParticles() {
 function drawAttract(w, h) {
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(5,8,7,0.58)";
-  roundRect(w / 2 - 270, h * 0.47 - 70, 540, 140, 8);
+  ctx.fillStyle = "rgba(5,8,7,0.46)";
+  roundRect(w / 2 - 300, h * 0.42 - 62, 600, 124, 8);
   ctx.fill();
   ctx.fillStyle = "#f4fbf8";
   ctx.font = "900 38px system-ui";
-  ctx.fillText("Build. Boost. Beat the Vault.", w / 2, h * 0.47);
+  ctx.fillText("Real Streets. Police Heat. Vault Runs.", w / 2, h * 0.42);
   ctx.fillStyle = "#a9bbb5";
   ctx.font = "700 16px system-ui";
-  ctx.fillText("Pick a driver, tune your car, and chase missions.", w / 2, h * 0.47 + 34);
+  ctx.fillText("Pick a driver, tune your car, and launch the pursuit screen.", w / 2, h * 0.42 + 34);
   ctx.restore();
 }
 

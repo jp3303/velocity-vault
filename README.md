@@ -23,8 +23,17 @@ Driver views:
 Real-world style visuals:
 
 - Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, and a Rocky Mountain pass.
-- Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, roadside route signs, and pass-specific colors.
+- Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, and pass-specific colors.
 - Cars include more realistic body panels, wheels, headlights, tail lights, windows, and visible driver helmets.
+- Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
+- Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
+
+Visual direction references:
+
+- Need for Speed-style street-racing energy: heat, police pressure, risk/reward pursuit decisions, expressive speed effects.
+- Forza Horizon-style scenic variety: coast roads, city streets, canyon routes, and mountain passes.
+- Tokyo night-highway feel: neon signage, wet road reflections, tunnel/highway rhythm, and rival traffic tension.
+- Sim/cockpit cues: windshield framing, steering wheel, dashboard speed readout, heat alert, and road-focused forward camera.
 
 ## Install As An App
 
