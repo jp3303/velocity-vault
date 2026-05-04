@@ -11,10 +11,12 @@ Use `Quick Play` to launch straight into a race, or `Enter Garage` to review upg
 Controls:
 
 - `Left/Right` or `A/D`: steer
-- `Space`, `Up`, or `W`: boost
+- `Up` or `W`: accelerate
+- `Down` or `S`: brake, then reverse when stopped
+- `Space`: boost while accelerating
 - `P`: pause
 - On touch screens, use the on-screen buttons
-- Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, A / RT / LT to boost, and Start / Select to pause
+- Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, and Start / Select to pause
 
 Driver views:
 
@@ -28,6 +30,7 @@ Real-world style visuals:
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, and pass-specific colors.
 - Cars are original generic performance models with wider stances, shaded paint, wheels, headlights, tail lights, windows, panel seams, police markings, and light-bar glow. No real automaker trademarks or licensed car models are used.
 - Traffic now uses rear-view performance-car silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
+- Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
 - Phone landscape racing moves touch controls to slim transparent edge buttons so steering, boost, pause, save, and view switching stay usable without covering the driving screen.

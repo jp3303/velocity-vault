@@ -423,7 +423,7 @@ input:focus {
 
 .control-grid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin: 18px 0;
 }
@@ -462,6 +462,21 @@ input:focus {
 #boostBtn {
   background: linear-gradient(135deg, rgba(255, 209, 102, 0.96), rgba(255, 91, 107, 0.88));
   color: #160a05;
+}
+
+#gasBtn {
+  background: linear-gradient(135deg, rgba(187, 242, 74, 0.92), rgba(70, 217, 255, 0.74));
+  color: #06100e;
+}
+
+#brakeBtn {
+  background: linear-gradient(135deg, rgba(244, 251, 248, 0.14), rgba(255, 91, 107, 0.28));
+}
+
+.control-grid button.pressed {
+  transform: translateY(1px);
+  filter: brightness(1.18);
+  box-shadow: inset 0 0 0 2px rgba(244, 251, 248, 0.22);
 }
 
 .progress-card {
@@ -761,8 +776,21 @@ input:focus {
   .panel:has(#raceView.active) #boostBtn {
     right: 10px;
     bottom: 12px;
-    width: 104px;
+    width: 78px;
     background: linear-gradient(135deg, rgba(255, 209, 102, 0.74), rgba(255, 91, 107, 0.72));
+  }
+
+  .panel:has(#raceView.active) #gasBtn {
+    right: 96px;
+    bottom: 12px;
+    width: 78px;
+  }
+
+  .panel:has(#raceView.active) #brakeBtn {
+    right: 182px;
+    bottom: 12px;
+    width: 92px;
+    font-size: 11px;
   }
 
   .panel:has(#raceView.active) .camera-grid {

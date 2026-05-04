@@ -58,9 +58,13 @@ let audioSystem = null;
 const input = {
   left: false,
   right: false,
+  gas: false,
+  brake: false,
   boost: false,
   paused: false,
   gamepadSteer: 0,
+  gamepadGas: false,
+  gamepadBrake: false,
   gamepadBoost: false,
   gamepadPauseHeld: false
 };
@@ -586,6 +590,7 @@ function updateHud() {
   $("#speedStat").textContent = Math.max(0, Math.round(raceState.speed));
   $("#focusStat").textContent = Math.max(0, Math.round(raceState.focus));
   if (raceState.active && raceState.chaseActive) $("#missionChip").textContent = `Police heat ${Math.round(raceState.heat)}% | Escape clean`;
+  if (raceState.active && !raceState.chaseActive && raceState.speed < 8) $("#missionChip").textContent = "Hold Gas to accelerate | Brake to stop/reverse";
 }
 
 function setCameraMode(mode, quiet = false) {
@@ -667,34 +672,39 @@ function tick(dt) {
   const age = ageBands[activeProfile.age];
   const director = raceState.director || getDirector(activeProfile);
   const steerPower = 2.15 + upgrades.tires * 0.22;
+  const gasInput = input.gas || input.gamepadGas;
+  const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
-  const boostPower = boostInput && raceState.focus > 2 ? 72 + upgrades.boost * 16 : 0;
-  const topSpeed = (245 + upgrades.engine * 26) * age.speed + boostPower;
-  raceState.speed += (topSpeed - raceState.speed) * Math.min(1, dt * 1.8);
-  if (boostInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
+  const maxSpeed = (245 + upgrades.engine * 26) * age.speed;
+  const boostPower = boostInput && gasInput && raceState.focus > 2 ? 72 + upgrades.boost * 16 : 0;
+  const targetSpeed = gasInput ? maxSpeed + boostPower : brakeInput ? (raceState.speed > 10 ? 0 : -36) : 0;
+  const response = gasInput ? 1.95 : brakeInput ? 3.2 : 0.88;
+  raceState.speed += (targetSpeed - raceState.speed) * Math.min(1, dt * response);
+  if (boostInput && gasInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
   const keySteer = Number(input.right) - Number(input.left);
   const steerInput = Math.abs(input.gamepadSteer) > Math.abs(keySteer) ? input.gamepadSteer : keySteer;
-  raceState.lane += steerInput * steerPower * dt;
+  const steeringSpeedFactor = Math.max(0.28, Math.min(1.05, Math.abs(raceState.speed) / 110));
+  raceState.lane += steerInput * steerPower * steeringSpeedFactor * dt * (raceState.speed < -1 ? -0.65 : 1);
   raceState.lane += (0 - raceState.lane) * dt * 0.18;
   raceState.lane = Math.max(-2.18, Math.min(2.18, raceState.lane));
-  raceState.distance += raceState.speed * dt;
+  raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
   raceState.roadOffset += raceState.speed * dt;
   raceState.elapsed += dt;
-  raceState.score += dt * raceState.speed * raceState.combo * 0.32;
-  raceState.heat = Math.min(100, raceState.heat + dt * (0.9 + raceState.speed / 185) + (boostInput ? dt * 2.4 : 0));
+  raceState.score += dt * Math.max(0, raceState.speed) * raceState.combo * 0.32;
+  raceState.heat = Math.min(100, raceState.heat + dt * (gasInput ? 0.8 + Math.max(0, raceState.speed) / 185 : 0.1) + (boostInput && gasInput ? dt * 2.4 : 0));
   raceState.heatClock -= dt;
   raceState.cameraShake = Math.max(0, raceState.cameraShake - dt * 18);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
-  if (raceState.spawnClock <= 0) {
+  if (raceState.spawnClock <= 0 && raceState.speed > 35) {
     spawnRival();
     raceState.spawnClock = Math.max(0.48, 1.14 - age.traffic * director.traffic * 0.16 - raceState.elapsed * 0.004);
   }
-  if (raceState.coinClock <= 0) {
+  if (raceState.coinClock <= 0 && raceState.speed > 30) {
     spawnCoin();
     raceState.coinClock = Math.max(0.3, (0.76 - upgrades.magnet * 0.035) / director.coinRate);
   }
-  if (raceState.heat > 18 && raceState.heatClock <= 0) {
+  if (raceState.heat > 18 && raceState.heatClock <= 0 && raceState.speed > 45) {
     raceState.chaseActive = true;
     spawnPoliceUnit();
     raceState.heatClock = Math.max(1.2, 4.5 - raceState.heat / 24 - activeProfile.upgrades.engine * 0.12);
@@ -709,7 +719,7 @@ function tick(dt) {
 function moveObjects(dt) {
   const carLane = raceState.lane;
   raceState.rivals.forEach((rival) => {
-    rival.y += rival.speed * dt;
+    rival.y += (rival.speed + Math.max(0, raceState.speed) * 0.18) * dt;
     if (!rival.passed && rival.y > canvas.height * 0.72) {
       rival.passed = true;
       raceState.dodges += 1;
@@ -731,7 +741,7 @@ function moveObjects(dt) {
   raceState.police.forEach((unit) => {
     const pursuitPull = Math.sign(carLane - unit.lane) * dt * (0.18 + raceState.heat / 260);
     unit.lane = Math.max(-2.2, Math.min(2.2, unit.lane + pursuitPull));
-    unit.y += unit.speed * dt;
+    unit.y += (unit.speed + Math.max(0, raceState.speed) * 0.12) * dt;
     if (!unit.passed && unit.y > canvas.height * 0.72) {
       unit.passed = true;
       raceState.dodges += 1;
@@ -756,7 +766,7 @@ function moveObjects(dt) {
   });
   const magnet = activeProfile.upgrades.magnet;
   raceState.coinsOnRoad.forEach((coin) => {
-    coin.y += (240 + raceState.speed * 0.2) * dt;
+    coin.y += (180 + Math.max(0, raceState.speed) * 0.34) * dt;
     coin.pulse += dt * 8;
     const catchRange = 0.38 + magnet * 0.1;
     const laneHit = Math.abs(coin.lane - carLane) < catchRange;
@@ -798,6 +808,9 @@ function burst(x, y, color) {
 function updateRaceUi() {
   $("#distanceBar").style.width = `${Math.min(100, (raceState.distance / selectedRace.length) * 100)}%`;
   $("#missionBar").style.width = `${Math.min(100, missionProgress() * 100)}%`;
+  $("#gasBtn").classList.toggle("pressed", input.gas || input.gamepadGas);
+  $("#brakeBtn").classList.toggle("pressed", input.brake || input.gamepadBrake);
+  $("#boostBtn").classList.toggle("pressed", input.boost || input.gamepadBoost);
   updateHud();
 }
 
@@ -1960,6 +1973,8 @@ function bindEvents() {
   });
   bindHold($("#leftBtn"), "left");
   bindHold($("#rightBtn"), "right");
+  bindHold($("#gasBtn"), "gas");
+  bindHold($("#brakeBtn"), "brake");
   bindHold($("#boostBtn"), "boost");
   window.addEventListener("keydown", (event) => setKey(event, true));
   window.addEventListener("keyup", (event) => setKey(event, false));
@@ -2005,6 +2020,8 @@ function clearController() {
   controllerState.name = "";
   controllerState.index = null;
   input.gamepadSteer = 0;
+  input.gamepadGas = false;
+  input.gamepadBrake = false;
   input.gamepadBoost = false;
   input.gamepadPauseHeld = false;
   $("#controllerChip").textContent = "Controller: Off";
@@ -2025,11 +2042,9 @@ function pollGamepad() {
   const dpadLeft = pad.buttons[14] && pad.buttons[14].pressed;
   const dpadRight = pad.buttons[15] && pad.buttons[15].pressed;
   input.gamepadSteer = dpadLeft ? -1 : dpadRight ? 1 : stick;
-  input.gamepadBoost = Boolean(
-    (pad.buttons[0] && pad.buttons[0].pressed) ||
-    (pad.buttons[7] && pad.buttons[7].value > 0.35) ||
-    (pad.buttons[6] && pad.buttons[6].value > 0.35)
-  );
+  input.gamepadGas = Boolean((pad.buttons[7] && pad.buttons[7].value > 0.18) || (pad.buttons[0] && pad.buttons[0].pressed));
+  input.gamepadBrake = Boolean((pad.buttons[6] && pad.buttons[6].value > 0.18) || (pad.buttons[2] && pad.buttons[2].pressed));
+  input.gamepadBoost = Boolean((pad.buttons[1] && pad.buttons[1].pressed) || (pad.buttons[5] && pad.buttons[5].pressed));
   const pausePressed = Boolean((pad.buttons[9] && pad.buttons[9].pressed) || (pad.buttons[8] && pad.buttons[8].pressed));
   if (pausePressed && !input.gamepadPauseHeld) {
     input.paused = !input.paused;
@@ -2041,7 +2056,9 @@ function pollGamepad() {
 function setKey(event, down) {
   if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") input.left = down;
   if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") input.right = down;
-  if (event.key === " " || event.key === "ArrowUp" || event.key.toLowerCase() === "w") input.boost = down;
+  if (event.key === "ArrowUp" || event.key.toLowerCase() === "w") input.gas = down;
+  if (event.key === "ArrowDown" || event.key.toLowerCase() === "s") input.brake = down;
+  if (event.key === " ") input.boost = down;
   if (event.key.toLowerCase() === "p" && down) {
     input.paused = !input.paused;
     $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
