@@ -16,15 +16,15 @@ Controls:
 
 Driver views:
 
-- `Full Car`: arcade chase camera with the whole race car visible.
-- `Half Car`: hood-style view with the front of the car filling the lower screen.
+- `Full Car`: third-person chase camera with the full performance car visible.
+- `Half Car`: low hood-style view with the front of the car filling the lower screen.
 - `Windshield`: cockpit-style view looking out through the windshield with dashboard framing.
 
 Real-world style visuals:
 
 - Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, and a Rocky Mountain pass.
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, and pass-specific colors.
-- Cars include more realistic body panels, wheels, headlights, tail lights, windows, and visible driver helmets.
+- Cars are original generic performance models with wider stances, shaded paint, wheels, headlights, tail lights, windows, panel seams, police markings, and light-bar glow. No real automaker trademarks or licensed car models are used.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
 - Phone landscape racing moves touch controls to slim transparent edge buttons so steering, boost, pause, save, and view switching stay usable without covering the driving screen.

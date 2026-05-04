@@ -52,7 +52,7 @@ let view = "login";
 let tab = "races";
 let toastTimer = 0;
 let deferredInstallPrompt = null;
-let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "cockpit";
+let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "chase";
 let audioSystem = null;
 
 const input = {
@@ -573,7 +573,7 @@ function setCameraMode(mode, quiet = false) {
   localStorage.setItem("velocityVaultCameraMode", mode);
   $$(".camera-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.camera === mode));
   if (!quiet) {
-    const labels = { chase: "Full car chase view", hood: "Half-car hood view", cockpit: "Windshield driver view" };
+    const labels = { chase: "Third-person chase camera", hood: "Low hood camera", cockpit: "Windshield driver view" };
     showToast(labels[mode]);
   }
 }
@@ -830,8 +830,61 @@ function drawScenery(w, h, theme) {
   if (place === "city") drawMetroScenery(w, h, theme);
   if (place === "canyon") drawCanyonScenery(w, h, theme);
   if (place === "alpine") drawAlpineScenery(w, h, theme);
+  drawAtmosphericDepth(w, h, theme);
   drawRoadSigns(w, h, theme);
   ctx.restore();
+}
+
+function drawAtmosphericDepth(w, h, theme) {
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const haze = ctx.createLinearGradient(0, h * 0.16, 0, h * 0.55);
+  haze.addColorStop(0, "rgba(244,251,248,0.06)");
+  haze.addColorStop(0.65, "rgba(70,217,255,0.05)");
+  haze.addColorStop(1, "rgba(5,8,7,0)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, h * 0.12, w, h * 0.44);
+
+  if (place === "coast") {
+    for (let i = 0; i < 10; i += 1) {
+      const x = ((i * 131 + raceState.roadOffset * 0.03) % (w + 120)) - 60;
+      ctx.strokeStyle = "rgba(244,251,248,0.22)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.31);
+      ctx.lineTo(x - 20, h * 0.42);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(187,242,74,0.18)";
+      ctx.beginPath();
+      ctx.ellipse(x - 24, h * 0.28, 22, 7, -0.35, 0, Math.PI * 2);
+      ctx.ellipse(x + 3, h * 0.27, 20, 6, 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (place === "city") {
+    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    ctx.lineWidth = 4;
+    for (let i = 0; i < 5; i += 1) {
+      const x = w * (0.12 + i * 0.19);
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.34);
+      ctx.lineTo(x + Math.sin(i) * 36, h * 0.2);
+      ctx.stroke();
+    }
+  }
+
+  if (place === "alpine") {
+    ctx.fillStyle = "rgba(244,251,248,0.22)";
+    for (let i = 0; i < 8; i += 1) {
+      const x = ((i * 151 + raceState.roadOffset * 0.02) % (w + 160)) - 80;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.31);
+      ctx.lineTo(x + 38, h * 0.18);
+      ctx.lineTo(x + 76, h * 0.31);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
 }
 
 function drawMetroScenery(w, h, theme) {
@@ -986,9 +1039,9 @@ function drawRoadSigns(w, h, theme) {
 }
 
 function drawRoad(w, h, theme) {
-  const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.36;
-  const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.18;
-  const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 0.82;
+  const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
   const glare = ctx.createRadialGradient(w * 0.5, h * 0.62, w * 0.08, w * 0.5, h * 0.74, w * 0.75);
   glare.addColorStop(0, "rgba(244,251,248,0.08)");
   glare.addColorStop(1, "rgba(244,251,248,0)");
@@ -1050,9 +1103,18 @@ function drawRoad(w, h, theme) {
       ctx.fillRect(x - width / 2, y, width, len);
     }
   }
+  ctx.strokeStyle = "rgba(244,251,248,0.72)";
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.42;
+  for (let lane = -2.5; lane <= 2.5; lane += 1) {
+    ctx.beginPath();
+    ctx.moveTo(w / 2 + lane * laneWidth() * 0.28, horizon);
+    ctx.lineTo(w / 2 + lane * laneWidth() * 1.28, h);
+    ctx.stroke();
+  }
   ctx.strokeStyle = theme[2];
-  ctx.lineWidth = 5;
-  ctx.globalAlpha = 0.72;
+  ctx.lineWidth = 6;
+  ctx.globalAlpha = 0.84;
   ctx.beginPath();
   ctx.moveTo(w / 2 - roadTop * 0.9, horizon);
   ctx.lineTo(w / 2 - roadBottom * 0.7, h);
@@ -1061,20 +1123,52 @@ function drawRoad(w, h, theme) {
   ctx.stroke();
   ctx.globalAlpha = 1;
   drawRoadsideDetails(w, h, theme, horizon, roadBottom);
+  drawGuardrails(w, h, theme, horizon, roadTop, roadBottom);
   drawHeadlightBeams(w, h, theme, horizon);
+}
+
+function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
+  ctx.save();
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.strokeStyle = "rgba(205,218,214,0.38)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 + side * roadTop * 1.08, horizon + 12);
+    ctx.lineTo(w / 2 + side * roadBottom * 0.82, h);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(5,8,7,0.78)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 + side * roadTop * 1.04, horizon + 26);
+    ctx.lineTo(w / 2 + side * roadBottom * 0.78, h);
+    ctx.stroke();
+    for (let i = 0; i < 18; i += 1) {
+      const y = ((i * 74 + raceState.roadOffset * 1.2) % (h + 120)) - 60;
+      if (y < horizon) continue;
+      const t = (y - horizon) / (h - horizon);
+      const x = w / 2 + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
+      ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.42)" : theme[1];
+      roundRect(x - side * 4, y, side * 10, 22 + t * 34, 3);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
 }
 
 function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
   const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
-  for (let i = 0; i < 15; i += 1) {
+  for (let i = 0; i < 22; i += 1) {
     const y = ((i * 92 + raceState.roadOffset * 1.08) % (h + 160)) - 80;
     if (y < horizon) continue;
     const t = (y - horizon) / (h - horizon);
     const side = i % 2 === 0 ? -1 : 1;
-    const x = w / 2 + side * roadBottom * (0.22 + t * 0.58);
+    const x = w / 2 + side * roadBottom * (0.28 + t * 0.64);
     const size = 10 + t * 28;
     if (place === "canyon") {
-      ctx.fillStyle = "rgba(255,150,83,0.34)";
+      const rock = ctx.createLinearGradient(x - size, y - size, x + size, y + size);
+      rock.addColorStop(0, "rgba(255,150,83,0.46)");
+      rock.addColorStop(1, "rgba(82,42,27,0.56)");
+      ctx.fillStyle = rock;
       ctx.beginPath();
       ctx.moveTo(x, y - size);
       ctx.lineTo(x - size * 0.7, y + size);
@@ -1082,13 +1176,18 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
       ctx.closePath();
       ctx.fill();
     } else if (place === "alpine") {
-      ctx.fillStyle = "rgba(187,242,74,0.18)";
+      ctx.fillStyle = "rgba(23,45,35,0.72)";
       ctx.beginPath();
       ctx.moveTo(x, y - size * 1.2);
       ctx.lineTo(x - size * 0.7, y + size);
       ctx.lineTo(x + size * 0.7, y + size);
       ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.2)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 0.9);
+      ctx.lineTo(x, y + size * 0.8);
+      ctx.stroke();
     } else {
       ctx.strokeStyle = "rgba(244,251,248,0.28)";
       ctx.lineWidth = Math.max(2, size * 0.08);
@@ -1102,6 +1201,20 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
       ctx.arc(x, y - size, size * 0.22, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalAlpha = 1;
+      if (place === "city" && i % 5 === 0) {
+        const signW = size * 2.1;
+        const signX = side < 0 ? x - signW : x;
+        ctx.fillStyle = "rgba(5,8,7,0.82)";
+        roundRect(signX, y - size * 1.2, signW, size * 0.78, 4);
+        ctx.fill();
+        ctx.strokeStyle = theme[1];
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "#f4fbf8";
+        ctx.font = `900 ${Math.max(8, size * 0.22)}px system-ui`;
+        ctx.textAlign = "center";
+        ctx.fillText("DOWNTOWN", signX + signW / 2, y - size * 0.73);
+      }
     }
   }
 }
@@ -1191,22 +1304,41 @@ function drawDemoPursuitTraffic(w, h) {
 function drawCar(w, h) {
   if (cameraMode === "cockpit") return;
   const x = w / 2 + raceState.lane * laneWidth();
-  const y = cameraMode === "hood" ? h * 0.97 : h * 0.78;
-  const carWidth = cameraMode === "hood" ? 190 : 76;
-  const carHeight = cameraMode === "hood" ? 170 : 118;
-  drawVehicle(x, y, carWidth, carHeight, "#46d9ff", true);
+  const y = cameraMode === "hood" ? h * 0.99 : h * 0.82;
+  const carWidth = cameraMode === "hood" ? 220 : 118;
+  const carHeight = cameraMode === "hood" ? 190 : 178;
+  drawVehicle(x, y, carWidth, carHeight, "#1bb7e8", true);
   if ((input.boost || input.gamepadBoost) && raceState.active) {
     ctx.fillStyle = "rgba(255,209,102,0.82)";
     ctx.beginPath();
-    ctx.moveTo(x - 22, y + carHeight * 0.5);
-    ctx.lineTo(x, y + carHeight * 0.9 + Math.random() * 26);
-    ctx.lineTo(x + 22, y + carHeight * 0.5);
+    ctx.moveTo(x - carWidth * 0.22, y + carHeight * 0.45);
+    ctx.lineTo(x, y + carHeight * 0.82 + Math.random() * 30);
+    ctx.lineTo(x + carWidth * 0.22, y + carHeight * 0.45);
     ctx.closePath();
     ctx.fill();
   }
 }
 
 function drawCameraOverlay(w, h, theme) {
+  if (cameraMode === "chase") {
+    ctx.save();
+    const mirror = ctx.createLinearGradient(0, 0, 0, h * 0.18);
+    mirror.addColorStop(0, "rgba(3,6,6,0.78)");
+    mirror.addColorStop(1, "rgba(3,6,6,0)");
+    ctx.fillStyle = mirror;
+    ctx.fillRect(0, 0, w, h * 0.18);
+    ctx.fillStyle = "rgba(5,8,7,0.58)";
+    roundRect(w * 0.39, h * 0.055, w * 0.22, h * 0.055, 6);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.18)";
+    ctx.stroke();
+    ctx.fillStyle = theme[1];
+    ctx.font = "900 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(raceState.chaseActive ? "PURSUIT CAMERA" : "CHASE CAMERA", w * 0.5, h * 0.09);
+    ctx.restore();
+    return;
+  }
   if (cameraMode === "hood") {
     const hood = ctx.createLinearGradient(0, h * 0.72, 0, h);
     hood.addColorStop(0, "rgba(70,217,255,0.05)");
@@ -1334,46 +1466,74 @@ function drawCinematicGrade(w, h, theme) {
 function drawVehicle(x, y, width, height, color, player, police = false) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = "rgba(0,0,0,0.34)";
+  ctx.fillStyle = "rgba(0,0,0,0.46)";
   ctx.beginPath();
-  ctx.ellipse(0, height * 0.38, width * 0.58, height * 0.15, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, height * 0.42, width * 0.68, height * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  const tireW = width * 0.17;
+  const tireH = height * 0.3;
   ctx.fillStyle = "#050807";
-  roundRect(-width * 0.53, -height * 0.3, width * 0.16, height * 0.34, 4);
+  roundRect(-width * 0.56, -height * 0.29, tireW, tireH, 5);
   ctx.fill();
-  roundRect(width * 0.37, -height * 0.3, width * 0.16, height * 0.34, 4);
+  roundRect(width * 0.39, -height * 0.29, tireW, tireH, 5);
   ctx.fill();
-  roundRect(-width * 0.53, height * 0.12, width * 0.16, height * 0.34, 4);
+  roundRect(-width * 0.56, height * 0.14, tireW, tireH, 5);
   ctx.fill();
-  roundRect(width * 0.37, height * 0.12, width * 0.16, height * 0.34, 4);
+  roundRect(width * 0.39, height * 0.14, tireW, tireH, 5);
   ctx.fill();
-  ctx.fillStyle = color;
+
+  const body = ctx.createLinearGradient(-width * 0.48, -height * 0.52, width * 0.48, height * 0.52);
+  body.addColorStop(0, shade(color, 42));
+  body.addColorStop(0.2, color);
+  body.addColorStop(0.54, shade(color, -18));
+  body.addColorStop(1, shade(color, -42));
+  ctx.fillStyle = police ? "#f0f2f0" : body;
   ctx.beginPath();
-  ctx.moveTo(-width * 0.32, -height * 0.5);
-  ctx.lineTo(width * 0.32, -height * 0.5);
-  ctx.quadraticCurveTo(width * 0.5, -height * 0.42, width * 0.47, -height * 0.18);
-  ctx.lineTo(width * 0.42, height * 0.42);
-  ctx.quadraticCurveTo(width * 0.2, height * 0.54, -width * 0.2, height * 0.54);
-  ctx.lineTo(-width * 0.42, height * 0.42);
-  ctx.lineTo(-width * 0.47, -height * 0.18);
-  ctx.quadraticCurveTo(-width * 0.5, -height * 0.42, -width * 0.32, -height * 0.5);
+  ctx.moveTo(-width * 0.26, -height * 0.54);
+  ctx.lineTo(width * 0.26, -height * 0.54);
+  ctx.quadraticCurveTo(width * 0.51, -height * 0.48, width * 0.5, -height * 0.2);
+  ctx.lineTo(width * 0.45, height * 0.38);
+  ctx.quadraticCurveTo(width * 0.28, height * 0.57, 0, height * 0.58);
+  ctx.quadraticCurveTo(-width * 0.28, height * 0.57, -width * 0.45, height * 0.38);
+  ctx.lineTo(-width * 0.5, -height * 0.2);
+  ctx.quadraticCurveTo(-width * 0.51, -height * 0.48, -width * 0.26, -height * 0.54);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.28)";
+  ctx.lineWidth = Math.max(1, width * 0.018);
+  ctx.stroke();
+
+  ctx.fillStyle = police ? "#111817" : shade(color, -36);
+  ctx.globalAlpha = 0.64;
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.38, -height * 0.24);
+  ctx.lineTo(-width * 0.22, -height * 0.48);
+  ctx.lineTo(width * 0.22, -height * 0.48);
+  ctx.lineTo(width * 0.38, -height * 0.24);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
   if (police) {
     ctx.fillStyle = "#111817";
-    ctx.fillRect(-width * 0.32, -height * 0.18, width * 0.64, height * 0.1);
+    ctx.fillRect(-width * 0.34, -height * 0.16, width * 0.68, height * 0.11);
     ctx.fillStyle = "#f4fbf8";
     ctx.font = `${Math.max(8, width * 0.14)}px system-ui`;
     ctx.textAlign = "center";
-    ctx.fillText("POLICE", 0, height * 0.25);
+    ctx.fillText("POLICE", 0, height * 0.24);
   }
-  ctx.fillStyle = player ? "rgba(244,251,248,0.45)" : "rgba(190,210,210,0.36)";
-  roundRect(-width * 0.29, -height * 0.36, width * 0.58, height * 0.18, 7);
+
+  const glass = ctx.createLinearGradient(0, -height * 0.42, 0, height * 0.24);
+  glass.addColorStop(0, "rgba(220,244,255,0.58)");
+  glass.addColorStop(0.45, "rgba(43,66,70,0.84)");
+  glass.addColorStop(1, "rgba(7,11,12,0.92)");
+  ctx.fillStyle = glass;
+  roundRect(-width * 0.31, -height * 0.39, width * 0.62, height * 0.21, 8);
   ctx.fill();
-  ctx.fillStyle = player ? "rgba(11,17,16,0.86)" : "rgba(20,25,24,0.86)";
-  roundRect(-width * 0.28, -height * 0.13, width * 0.56, height * 0.31, 9);
+  roundRect(-width * 0.29, -height * 0.11, width * 0.58, height * 0.32, 10);
   ctx.fill();
-  ctx.strokeStyle = "rgba(244,251,248,0.2)";
+  ctx.strokeStyle = "rgba(244,251,248,0.28)";
   ctx.lineWidth = Math.max(1, width * 0.015);
   ctx.stroke();
   ctx.fillStyle = player ? "#dce8ef" : "#e6d69b";
@@ -1387,20 +1547,31 @@ function drawVehicle(x, y, width, height, color, player, police = false) {
   ctx.beginPath();
   ctx.arc(0, -height * 0.02, width * 0.12, Math.PI * 1.04, Math.PI * 1.96);
   ctx.stroke();
-  ctx.fillStyle = "#fff8d6";
+
+  ctx.fillStyle = "rgba(255,248,214,0.94)";
   ctx.beginPath();
-  ctx.moveTo(-width * 0.32, -height * 0.48);
-  ctx.lineTo(-width * 0.12, -height * 0.45);
-  ctx.lineTo(-width * 0.22, -height * 0.38);
+  ctx.moveTo(-width * 0.36, -height * 0.49);
+  ctx.lineTo(-width * 0.11, -height * 0.45);
+  ctx.lineTo(-width * 0.24, -height * 0.36);
   ctx.closePath();
-  ctx.moveTo(width * 0.32, -height * 0.48);
-  ctx.lineTo(width * 0.12, -height * 0.45);
-  ctx.lineTo(width * 0.22, -height * 0.38);
+  ctx.moveTo(width * 0.36, -height * 0.49);
+  ctx.lineTo(width * 0.11, -height * 0.45);
+  ctx.lineTo(width * 0.24, -height * 0.36);
   ctx.closePath();
   ctx.fill();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "#fff8d6";
+  ctx.beginPath();
+  ctx.ellipse(-width * 0.25, -height * 0.42, width * 0.28, height * 0.1, -0.28, 0, Math.PI * 2);
+  ctx.ellipse(width * 0.25, -height * 0.42, width * 0.28, height * 0.1, 0.28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
   ctx.fillStyle = "#ff3348";
-  ctx.fillRect(-width * 0.3, height * 0.42, width * 0.16, height * 0.06);
-  ctx.fillRect(width * 0.14, height * 0.42, width * 0.16, height * 0.06);
+  roundRect(-width * 0.32, height * 0.42, width * 0.17, height * 0.055, 3);
+  ctx.fill();
+  roundRect(width * 0.15, height * 0.42, width * 0.17, height * 0.055, 3);
+  ctx.fill();
   if (police) {
     const flash = Math.sin(raceState.elapsed * 18) > 0;
     ctx.fillStyle = flash ? "#ff3348" : "#46d9ff";
@@ -1413,17 +1584,37 @@ function drawVehicle(x, y, width, height, color, player, police = false) {
     ctx.fill();
     ctx.globalAlpha = 1;
   }
-  ctx.strokeStyle = "rgba(5,8,7,0.42)";
-  ctx.lineWidth = Math.max(2, width * 0.025);
+  ctx.strokeStyle = "rgba(5,8,7,0.5)";
+  ctx.lineWidth = Math.max(1.5, width * 0.02);
   ctx.beginPath();
-  ctx.moveTo(0, -height * 0.48);
-  ctx.lineTo(0, height * 0.48);
-  ctx.moveTo(-width * 0.42, -height * 0.12);
-  ctx.lineTo(width * 0.42, -height * 0.12);
+  ctx.moveTo(0, -height * 0.51);
+  ctx.lineTo(0, height * 0.5);
+  ctx.moveTo(-width * 0.41, -height * 0.16);
+  ctx.lineTo(width * 0.41, -height * 0.16);
+  ctx.moveTo(-width * 0.37, height * 0.28);
+  ctx.lineTo(width * 0.37, height * 0.28);
   ctx.stroke();
-  ctx.fillStyle = "rgba(244,251,248,0.16)";
-  ctx.fillRect(-width * 0.34, height * 0.2, width * 0.68, height * 0.035);
+  ctx.fillStyle = "rgba(244,251,248,0.22)";
+  ctx.fillRect(-width * 0.34, height * 0.19, width * 0.68, height * 0.026);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = Math.max(1, width * 0.012);
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.43, -height * 0.13);
+  ctx.quadraticCurveTo(-width * 0.56, height * 0.02, -width * 0.42, height * 0.33);
+  ctx.moveTo(width * 0.43, -height * 0.13);
+  ctx.quadraticCurveTo(width * 0.56, height * 0.02, width * 0.42, height * 0.33);
+  ctx.stroke();
   ctx.restore();
+}
+
+function shade(hex, amount) {
+  const raw = hex.replace("#", "");
+  const num = parseInt(raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw, 16);
+  const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+  const g = Math.max(0, Math.min(255, ((num >> 8) & 255) + amount));
+  const b = Math.max(0, Math.min(255, (num & 255) + amount));
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 function roundRect(x, y, width, height, radius) {
@@ -1454,15 +1645,15 @@ function drawParticles() {
 function drawAttract(w, h) {
   ctx.save();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(5,8,7,0.46)";
-  roundRect(w / 2 - 300, h * 0.42 - 62, 600, 124, 8);
+  ctx.fillStyle = "rgba(5,8,7,0.38)";
+  roundRect(w / 2 - 330, h * 0.36 - 54, 660, 118, 8);
   ctx.fill();
   ctx.fillStyle = "#f4fbf8";
-  ctx.font = "900 38px system-ui";
-  ctx.fillText("Real Streets. Police Heat. Vault Runs.", w / 2, h * 0.42);
+  ctx.font = "900 34px system-ui";
+  ctx.fillText("Highway Pursuits. Real-World Routes.", w / 2, h * 0.36);
   ctx.fillStyle = "#a9bbb5";
   ctx.font = "700 16px system-ui";
-  ctx.fillText("Pick a driver, tune your car, and launch the pursuit screen.", w / 2, h * 0.42 + 34);
+  ctx.fillText("Generic performance cars, police heat, and cinematic street racing.", w / 2, h * 0.36 + 34);
   ctx.restore();
 }
 
