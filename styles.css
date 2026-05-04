@@ -423,7 +423,8 @@ input:focus {
   margin: 18px 0;
 }
 
-.control-grid button {
+.control-grid button,
+.camera-grid button {
   min-height: 72px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -432,6 +433,25 @@ input:focus {
   font-weight: 900;
   touch-action: manipulation;
   user-select: none;
+}
+
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.camera-grid button {
+  min-height: 46px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.camera-grid button.active {
+  border-color: var(--cyan);
+  color: var(--text);
+  background: linear-gradient(135deg, rgba(70, 217, 255, 0.18), rgba(187, 242, 74, 0.1));
 }
 
 #boostBtn {

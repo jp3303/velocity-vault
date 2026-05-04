@@ -14,6 +14,18 @@ Controls:
 - On touch screens, use the on-screen buttons
 - Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, A / RT / LT to boost, and Start / Select to pause
 
+Driver views:
+
+- `Full Car`: arcade chase camera with the whole race car visible.
+- `Half Car`: hood-style view with the front of the car filling the lower screen.
+- `Windshield`: cockpit-style view looking out through the windshield with dashboard framing.
+
+Real-world style visuals:
+
+- Race routes use fictional places inspired by recognizable real-world driving environments: coastal bridge, metro downtown, red-rock canyon, and alpine mountain pass.
+- Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, roadside route signs, and pass-specific colors.
+- Cars include more realistic body panels, wheels, headlights, tail lights, windows, and visible driver helmets.
+
 ## Install As An App
 
 Velocity Vault is now a Progressive Web App. To play it everywhere without this computer being on, put this folder on an HTTPS web host, open the hosted link once on the phone or computer, then install it:
