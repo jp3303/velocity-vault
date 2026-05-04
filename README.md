@@ -26,9 +26,10 @@ Driver views:
 
 Real-world style visuals:
 
-- Race routes use real-world inspired locations: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, Rocky Mountain pass, Miami harbor, Aspen snowfields, and a Nevada airfield.
-- Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, and pass-specific colors.
-- Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
+- Race routes use real-world inspired locations across the country and world: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, Rocky Mountain pass, Miami harbor, Aspen snowfields, Nevada airfield, Texas freight interstate, Iowa farm roads, Tokyo expressway, Sahara desert, Amazon rainforest, and Swiss Alps.
+- Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, farmland, big-rig freight stops, neon towers, desert dunes, rainforest canopy, alpine villages, and pass-specific colors.
+- Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, semi truck racers, racing tractors, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
+- Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
 - Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.

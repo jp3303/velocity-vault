@@ -22,7 +22,13 @@ const races = [
   { id: "vault", name: "Rocky Mountain Grand Prix", length: 6200, target: "Score 5000 points", type: "score", goal: 5000, reward: 320, rep: 42, theme: ["#09100f", "#bbf24a", "#46d9ff"], place: "alpine", sign: "Mountain Pass", mood: "storm pass" },
   { id: "harbor", name: "Miami Harbor Boat Rush", length: 4200, target: "Score 3500 points", type: "score", goal: 3500, reward: 240, rep: 30, theme: ["#07161b", "#46d9ff", "#ffd166"], place: "harbor", sign: "Harbor Run", mood: "water sprint" },
   { id: "snowfield", name: "Aspen Snowmobile Dash", length: 3900, target: "Keep focus above 55", type: "focus", goal: 55, reward: 210, rep: 26, theme: ["#0b1519", "#f4fbf8", "#46d9ff"], place: "snow", sign: "Snow Pass", mood: "ice grip" },
-  { id: "airstrip", name: "Nevada Airfield Scramble", length: 5200, target: "Dodge 28 rivals", type: "dodges", goal: 28, reward: 280, rep: 36, theme: ["#11131a", "#ffd166", "#ff5b6b"], place: "airfield", sign: "Runway 4", mood: "air chase" }
+  { id: "airstrip", name: "Nevada Airfield Scramble", length: 5200, target: "Dodge 28 rivals", type: "dodges", goal: 28, reward: 280, rep: 36, theme: ["#11131a", "#ffd166", "#ff5b6b"], place: "airfield", sign: "Runway 4", mood: "air chase" },
+  { id: "freight", name: "Texas Big Rig Freight Run", length: 5600, target: "Score 4200 points", type: "score", goal: 4200, reward: 270, rep: 34, theme: ["#10140f", "#ffd166", "#46d9ff"], place: "freight", sign: "Texas Freightway", mood: "big rig draft", unlock: 0 },
+  { id: "farmrally", name: "Iowa Tractor Rally", length: 3300, target: "Collect 16 route markers", type: "coins", goal: 16, reward: 190, rep: 22, theme: ["#10180e", "#bbf24a", "#ffd166"], place: "farm", sign: "Iowa Backroads", mood: "field sprint", unlock: 0 },
+  { id: "tokyo", name: "Tokyo Neon Expressway", length: 5700, target: "Keep focus above 62", type: "focus", goal: 62, reward: 310, rep: 40, theme: ["#100d1c", "#ff4fd8", "#46d9ff"], place: "tokyo", sign: "Tokyo Express", mood: "neon tunnel", unlock: 44 },
+  { id: "sahara", name: "Sahara Desert Rally", length: 6100, target: "Dodge 34 rivals", type: "dodges", goal: 34, reward: 330, rep: 44, theme: ["#160f0a", "#ffb74a", "#f4fbf8"], place: "desert", sign: "Sahara Rally", mood: "sand storm", unlock: 66 },
+  { id: "rainforest", name: "Amazon Rainforest Rush", length: 5400, target: "Score 4600 points", type: "score", goal: 4600, reward: 320, rep: 42, theme: ["#07130d", "#36d98a", "#ffd166"], place: "rainforest", sign: "Amazon Route", mood: "jungle rain", unlock: 88 },
+  { id: "eurotour", name: "Swiss Alps Grand Tour", length: 6400, target: "Score 5600 points", type: "score", goal: 5600, reward: 360, rep: 48, theme: ["#091119", "#dce8ef", "#46d9ff"], place: "europe", sign: "Swiss Alps", mood: "euro pass", unlock: 110 }
 ];
 
 const vehicleDefs = [
@@ -30,6 +36,8 @@ const vehicleDefs = [
   { id: "f1", name: "F1 Open-Wheel", type: "f1", desc: "Sharp steering and high top speed.", speed: 1.18, handling: 1.18, mass: 0.72, color: "#ff3348" },
   { id: "grandprix", name: "Grand Prix Prototype", type: "prototype", desc: "Stable, fast, low race body.", speed: 1.12, handling: 1.08, mass: 0.82, color: "#f4fbf8" },
   { id: "truck", name: "Performance Truck", type: "truck", desc: "Heavier, stable, strong contact resistance.", speed: 0.88, handling: 0.82, mass: 1.35, color: "#ffd166" },
+  { id: "semi", name: "Semi Truck Racer", type: "semi", desc: "Huge highway pull, heavy drafting, upgrade into a freight rocket.", speed: 0.72, handling: 0.58, mass: 2.1, color: "#dce8ef" },
+  { id: "tractor", name: "Racing Tractor", type: "tractor", desc: "Farm rally machine with tough grip and upgradeable agility.", speed: 0.62, handling: 0.7, mass: 1.65, color: "#36d98a" },
   { id: "monster", name: "Monster Truck", type: "monster", desc: "Huge stance, slower but tough.", speed: 0.76, handling: 0.7, mass: 1.75, color: "#bbf24a" },
   { id: "tank", name: "Armored Tank", type: "tank", desc: "Slow, heavy, almost unstoppable.", speed: 0.56, handling: 0.52, mass: 2.35, color: "#6d7667" },
   { id: "snowmobile", name: "Snowmobile", type: "snowmobile", desc: "Light and quick on snow routes.", speed: 0.94, handling: 1.15, mass: 0.58, color: "#f4fbf8" },
@@ -365,13 +373,14 @@ function renderRaces() {
   list.innerHTML = "";
   const director = getDirector(activeProfile);
   races.forEach((race, index) => {
-    const locked = activeProfile.rep < index * 22;
+    const requiredRep = race.unlock ?? index * 22;
+    const locked = activeProfile.rep < requiredRep;
     const card = document.createElement("button");
     card.type = "button";
     card.className = `race-card ${selectedRace.id === race.id ? "selected" : ""}`;
     card.disabled = locked;
     card.innerHTML = `
-      <div class="card-top"><strong>${race.name}</strong><span class="badge">${locked ? `${index * 22} rep` : `${Math.round(race.reward * director.reward)} coins`}</span></div>
+      <div class="card-top"><strong>${race.name}</strong><span class="badge">${locked ? `${requiredRep} rep` : `${Math.round(race.reward * director.reward)} coins`}</span></div>
       <div class="tiny">${race.target} | ${Math.round(race.length / 100)} sectors | ${director.event.name}</div>
     `;
     card.addEventListener("click", () => {
@@ -727,10 +736,7 @@ function updateOpponents(dt, maxSpeed) {
   raceState.opponents.forEach((opponent, index) => {
     if (opponent.finished) return;
     const vehicle = vehicleById(opponent.vehicleId);
-    const routePush = selectedRace.place === "snow" && vehicle.type === "snowmobile" ? 1.12
-      : selectedRace.place === "harbor" && vehicle.type === "boat" ? 1.14
-        : selectedRace.place === "airfield" && (vehicle.type === "airplane" || vehicle.type === "helicopter") ? 1.12
-          : 1;
+    const routePush = routeVehicleBoost(selectedRace.place, vehicle.type, true);
     const racePressure = Math.max(-0.12, Math.min(0.16, (raceState.distance - opponent.distance) / selectedRace.length));
     const target = maxSpeed * vehicle.speed * opponent.targetBias * routePush * (0.88 + opponent.aiTune * 0.07 + racePressure);
     opponent.speed += (target - opponent.speed) * Math.min(1, dt * (0.85 + vehicle.handling * 0.35));
@@ -741,6 +747,19 @@ function updateOpponents(dt, maxSpeed) {
     opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
     if (opponent.distance >= selectedRace.length) opponent.finished = true;
   });
+}
+
+function routeVehicleBoost(place, vehicleType, rival = false) {
+  if (place === "snow" && vehicleType === "snowmobile") return rival ? 1.12 : 1.1;
+  if (place === "harbor" && vehicleType === "boat") return rival ? 1.14 : 1.12;
+  if (place === "airfield" && (vehicleType === "airplane" || vehicleType === "helicopter")) return rival ? 1.12 : 1.1;
+  if (place === "freight" && (vehicleType === "semi" || vehicleType === "truck")) return rival ? 1.16 : 1.14;
+  if (place === "farm" && vehicleType === "tractor") return rival ? 1.18 : 1.16;
+  if (place === "tokyo" && (vehicleType === "car" || vehicleType === "f1" || vehicleType === "prototype")) return rival ? 1.1 : 1.08;
+  if (place === "desert" && (vehicleType === "monster" || vehicleType === "truck")) return rival ? 1.12 : 1.1;
+  if (place === "rainforest" && (vehicleType === "truck" || vehicleType === "monster" || vehicleType === "tractor")) return rival ? 1.1 : 1.08;
+  if (place === "europe" && (vehicleType === "f1" || vehicleType === "prototype" || vehicleType === "car")) return rival ? 1.1 : 1.08;
+  return 1;
 }
 
 function raceRankings() {
@@ -765,13 +784,18 @@ function spawnRival() {
   const routeTypes = selectedRace.place === "harbor" ? ["boat", "car", "truck"]
     : selectedRace.place === "snow" ? ["snowmobile", "truck", "car"]
       : selectedRace.place === "airfield" ? ["airplane", "helicopter", "car", "truck"]
-        : ["car", "f1", "prototype", "truck", "monster"];
+        : selectedRace.place === "freight" ? ["semi", "semi", "truck", "monster"]
+          : selectedRace.place === "farm" ? ["tractor", "tractor", "truck", "monster"]
+            : selectedRace.place === "tokyo" ? ["car", "f1", "prototype", "semi"]
+              : selectedRace.place === "desert" ? ["monster", "truck", "semi", "car"]
+                : selectedRace.place === "rainforest" ? ["truck", "monster", "tractor", "car"]
+                  : ["car", "f1", "prototype", "truck", "monster"];
   const type = routeTypes[Math.floor(Math.random() * routeTypes.length)];
   const def = vehicleDefs.find((vehicle) => vehicle.type === type) || vehicleDefs[0];
   raceState.rivals.push({
     lane,
     y: -120,
-    w: type === "monster" || type === "truck" ? 68 : 54,
+    w: type === "semi" ? 82 : type === "tractor" ? 64 : type === "monster" || type === "truck" ? 68 : 54,
     h: type === "airplane" || type === "helicopter" ? 104 : 92,
     speed: 210 + Math.random() * 130 * age.traffic * director.traffic,
     color: Math.random() > 0.45 ? def.color : (Math.random() > 0.5 ? "#ff5b6b" : "#ffd166"),
@@ -808,10 +832,7 @@ function tick(dt) {
   const gasInput = input.gas || input.gamepadGas;
   const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
-  const surfaceBoost = selectedRace.place === "snow" && vehicle.type === "snowmobile" ? 1.1
-    : selectedRace.place === "harbor" && vehicle.type === "boat" ? 1.12
-      : selectedRace.place === "airfield" && (vehicle.type === "airplane" || vehicle.type === "helicopter") ? 1.1
-        : 1;
+  const surfaceBoost = routeVehicleBoost(selectedRace.place, vehicle.type);
   const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost;
   const boostPower = boostInput && gasInput && raceState.focus > 2 ? 72 + upgrades.boost * 16 : 0;
   const targetSpeed = gasInput ? maxSpeed + boostPower : brakeInput ? (raceState.speed > 10 ? 0 : -36) : 0;
@@ -1006,6 +1027,12 @@ function drawScenery(w, h, theme) {
   if (place === "harbor") drawHarborScenery(w, h, theme);
   if (place === "snow") drawSnowScenery(w, h, theme);
   if (place === "airfield") drawAirfieldScenery(w, h, theme);
+  if (place === "freight") drawFreightScenery(w, h, theme);
+  if (place === "farm") drawFarmScenery(w, h, theme);
+  if (place === "tokyo") drawTokyoScenery(w, h, theme);
+  if (place === "desert") drawWorldDesertScenery(w, h, theme);
+  if (place === "rainforest") drawRainforestScenery(w, h, theme);
+  if (place === "europe") drawEuropeanScenery(w, h, theme);
   drawAtmosphericDepth(w, h, theme);
   drawRoadSigns(w, h, theme);
   ctx.restore();
@@ -1092,6 +1119,41 @@ function drawAtmosphericDepth(w, h, theme) {
       ctx.moveTo(x, h * 0.36);
       ctx.lineTo(x + 34, h * 0.36);
       ctx.stroke();
+    }
+  }
+
+  if (place === "tokyo") {
+    ctx.strokeStyle = "rgba(255,79,216,0.22)";
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 12; i += 1) {
+      const x = ((i * 91 + raceState.roadOffset * 0.11) % (w + 120)) - 60;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.19);
+      ctx.lineTo(x + 18, h * 0.43);
+      ctx.stroke();
+    }
+  }
+
+  if (place === "farm" || place === "freight") {
+    ctx.strokeStyle = "rgba(255,209,102,0.16)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 16; i += 1) {
+      const y = h * 0.38 + i * 12;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y + Math.sin(i) * 10);
+      ctx.stroke();
+    }
+  }
+
+  if (place === "rainforest") {
+    ctx.fillStyle = "rgba(54,217,138,0.16)";
+    for (let i = 0; i < 70; i += 1) {
+      const x = ((i * 47 + raceState.roadOffset * 0.05) % (w + 80)) - 40;
+      const y = h * 0.18 + (i % 18) * 16;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 16 + (i % 5) * 3, 6, Math.sin(i), 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
@@ -1319,6 +1381,181 @@ function drawAirfieldScenery(w, h, theme) {
   }
 }
 
+function drawFreightScenery(w, h, theme) {
+  const plains = ctx.createLinearGradient(0, h * 0.34, 0, h * 0.58);
+  plains.addColorStop(0, "rgba(255,209,102,0.22)");
+  plains.addColorStop(1, "rgba(57,66,31,0.28)");
+  ctx.fillStyle = plains;
+  ctx.fillRect(0, h * 0.34, w, h * 0.24);
+  ctx.strokeStyle = "rgba(244,251,248,0.18)";
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 10; i += 1) {
+    const x = ((i * 146 + raceState.roadOffset * 0.08) % (w + 180)) - 90;
+    ctx.beginPath();
+    ctx.moveTo(x, h * 0.3);
+    ctx.lineTo(x + 32, h * 0.46);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const x = ((i * 181 + raceState.roadOffset * 0.045) % (w + 220)) - 110;
+    ctx.fillStyle = "rgba(5,8,7,0.48)";
+    roundRect(x, h * 0.28, 120, 34, 4);
+    ctx.fill();
+    ctx.fillStyle = theme[1];
+    ctx.globalAlpha = 0.45;
+    ctx.fillRect(x + 14, h * 0.3, 28, 6);
+    ctx.fillRect(x + 58, h * 0.3, 42, 6);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawFarmScenery(w, h, theme) {
+  const fields = ctx.createLinearGradient(0, h * 0.32, 0, h * 0.6);
+  fields.addColorStop(0, "rgba(187,242,74,0.2)");
+  fields.addColorStop(1, "rgba(56,88,31,0.42)");
+  ctx.fillStyle = fields;
+  ctx.fillRect(0, h * 0.32, w, h * 0.28);
+  ctx.strokeStyle = "rgba(255,209,102,0.22)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 20; i += 1) {
+    const y = h * 0.36 + i * 13;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(w * 0.25, y + 8, w * 0.62, y - 7, w, y + 4);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 9; i += 1) {
+    const x = ((i * 173 + raceState.roadOffset * 0.045) % (w + 200)) - 100;
+    const y = h * 0.32 + (i % 3) * 26;
+    ctx.fillStyle = i % 2 ? "rgba(160,40,31,0.5)" : "rgba(244,251,248,0.38)";
+    ctx.fillRect(x, y, 58, 38);
+    ctx.fillStyle = "rgba(117,86,47,0.72)";
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y);
+    ctx.lineTo(x + 29, y - 24);
+    ctx.lineTo(x + 63, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawTokyoScenery(w, h, theme) {
+  const glow = ctx.createLinearGradient(0, h * 0.08, 0, h * 0.56);
+  glow.addColorStop(0, "rgba(255,79,216,0.12)");
+  glow.addColorStop(0.56, "rgba(70,217,255,0.1)");
+  glow.addColorStop(1, "rgba(5,8,7,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, h * 0.08, w, h * 0.5);
+  for (let i = 0; i < 44; i += 1) {
+    const x = ((i * 83 + raceState.roadOffset * 0.12) % (w + 180)) - 90;
+    const bh = 100 + ((i * 41) % 260);
+    ctx.fillStyle = i % 2 ? "rgba(7,12,24,0.74)" : "rgba(16,10,28,0.78)";
+    ctx.fillRect(x, h * 0.36 - bh, 36 + (i % 4) * 16, bh);
+    ctx.fillStyle = i % 3 ? theme[1] : theme[2];
+    ctx.globalAlpha = 0.6;
+    for (let y = 18; y < bh - 12; y += 24) ctx.fillRect(x + 8, h * 0.36 - bh + y, 10 + (i % 3) * 7, 7);
+    ctx.globalAlpha = 1;
+  }
+  ctx.strokeStyle = "rgba(244,251,248,0.22)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.37);
+  ctx.quadraticCurveTo(w * 0.5, h * 0.28, w, h * 0.37);
+  ctx.stroke();
+}
+
+function drawWorldDesertScenery(w, h, theme) {
+  const sand = ctx.createLinearGradient(0, h * 0.3, 0, h * 0.6);
+  sand.addColorStop(0, "rgba(255,183,74,0.24)");
+  sand.addColorStop(1, "rgba(92,55,27,0.42)");
+  ctx.fillStyle = sand;
+  ctx.fillRect(0, h * 0.3, w, h * 0.3);
+  for (let layer = 0; layer < 3; layer += 1) {
+    ctx.fillStyle = `rgba(255,183,74,${0.12 + layer * 0.08})`;
+    ctx.beginPath();
+    ctx.moveTo(0, h * (0.42 + layer * 0.04));
+    for (let i = 0; i <= 8; i += 1) {
+      const x = i * w * 0.125;
+      const y = h * (0.42 + layer * 0.04) - Math.sin(i * 0.8 + layer + raceState.roadOffset * 0.001) * 34;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h * 0.62);
+    ctx.lineTo(0, h * 0.62);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = "rgba(244,251,248,0.18)";
+  ctx.beginPath();
+  ctx.arc(w * 0.78, h * 0.16, 48, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRainforestScenery(w, h, theme) {
+  const canopy = ctx.createLinearGradient(0, h * 0.2, 0, h * 0.6);
+  canopy.addColorStop(0, "rgba(54,217,138,0.16)");
+  canopy.addColorStop(1, "rgba(10,54,35,0.5)");
+  ctx.fillStyle = canopy;
+  ctx.fillRect(0, h * 0.24, w, h * 0.36);
+  ctx.strokeStyle = "rgba(54,217,138,0.22)";
+  ctx.lineWidth = 5;
+  for (let i = 0; i < 36; i += 1) {
+    const x = ((i * 71 + raceState.roadOffset * 0.04) % (w + 100)) - 50;
+    const y = h * 0.34 + (i % 5) * 24;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 50);
+    ctx.lineTo(x + Math.sin(i) * 16, y - 45);
+    ctx.stroke();
+    ctx.fillStyle = i % 2 ? "rgba(54,217,138,0.32)" : "rgba(187,242,74,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(x - 12, y - 34, 30, 10, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(x + 16, y - 28, 28, 9, 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = "rgba(244,251,248,0.14)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 18; i += 1) {
+    const x = (i * 53 + raceState.elapsed * 40) % w;
+    ctx.beginPath();
+    ctx.moveTo(x, h * 0.16);
+    ctx.lineTo(x - 18, h * 0.58);
+    ctx.stroke();
+  }
+}
+
+function drawEuropeanScenery(w, h, theme) {
+  const valley = ctx.createLinearGradient(0, h * 0.3, 0, h * 0.58);
+  valley.addColorStop(0, "rgba(220,232,239,0.18)");
+  valley.addColorStop(1, "rgba(24,58,52,0.32)");
+  ctx.fillStyle = valley;
+  ctx.fillRect(0, h * 0.3, w, h * 0.28);
+  ctx.fillStyle = "rgba(220,232,239,0.36)";
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.4);
+  ctx.lineTo(w * 0.12, h * 0.13);
+  ctx.lineTo(w * 0.28, h * 0.4);
+  ctx.lineTo(w * 0.48, h * 0.1);
+  ctx.lineTo(w * 0.72, h * 0.4);
+  ctx.lineTo(w * 0.9, h * 0.18);
+  ctx.lineTo(w, h * 0.4);
+  ctx.lineTo(w, h * 0.56);
+  ctx.lineTo(0, h * 0.56);
+  ctx.closePath();
+  ctx.fill();
+  for (let i = 0; i < 12; i += 1) {
+    const x = ((i * 137 + raceState.roadOffset * 0.035) % (w + 160)) - 80;
+    const y = h * 0.33 + (i % 3) * 28;
+    ctx.fillStyle = "rgba(244,251,248,0.44)";
+    ctx.fillRect(x, y, 44, 30);
+    ctx.fillStyle = "rgba(160,40,31,0.58)";
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y);
+    ctx.lineTo(x + 22, y - 18);
+    ctx.lineTo(x + 48, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 function drawRoadSigns(w, h, theme) {
   const signText = selectedRace && selectedRace.sign ? selectedRace.sign : "Race Route";
   const x = w * 0.75;
@@ -1373,6 +1610,30 @@ function drawRoad(w, h, theme) {
     asphalt.addColorStop(0, "#3d3f3b");
     asphalt.addColorStop(0.45, "#282a27");
     asphalt.addColorStop(1, "#151613");
+  } else if (place === "freight") {
+    asphalt.addColorStop(0, "#393c34");
+    asphalt.addColorStop(0.45, "#252820");
+    asphalt.addColorStop(1, "#131610");
+  } else if (place === "farm") {
+    asphalt.addColorStop(0, "#5d5542");
+    asphalt.addColorStop(0.45, "#3d3526");
+    asphalt.addColorStop(1, "#211b13");
+  } else if (place === "tokyo") {
+    asphalt.addColorStop(0, "#252335");
+    asphalt.addColorStop(0.45, "#171722");
+    asphalt.addColorStop(1, "#0b0a12");
+  } else if (place === "desert") {
+    asphalt.addColorStop(0, "#6b5234");
+    asphalt.addColorStop(0.45, "#473622");
+    asphalt.addColorStop(1, "#21170e");
+  } else if (place === "rainforest") {
+    asphalt.addColorStop(0, "#314037");
+    asphalt.addColorStop(0.45, "#1e2b24");
+    asphalt.addColorStop(1, "#101812");
+  } else if (place === "europe") {
+    asphalt.addColorStop(0, "#3d4648");
+    asphalt.addColorStop(0.45, "#283234");
+    asphalt.addColorStop(1, "#141c1d");
   } else {
     asphalt.addColorStop(0, "#2e3330");
     asphalt.addColorStop(0.45, "#1f2422");
@@ -1543,6 +1804,61 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
       ctx.moveTo(x, y);
       ctx.lineTo(x, y + size * 1.4);
       ctx.stroke();
+    } else if (place === "freight") {
+      ctx.fillStyle = "rgba(244,251,248,0.24)";
+      roundRect(x - size * 0.7, y - size * 0.45, size * 1.4, size * 0.54, 4);
+      ctx.fill();
+      ctx.fillStyle = "rgba(5,8,7,0.76)";
+      ctx.fillRect(x - size * 0.52, y - size * 0.3, size * 0.32, size * 0.12);
+      ctx.fillRect(x + size * 0.16, y - size * 0.3, size * 0.28, size * 0.12);
+    } else if (place === "farm") {
+      ctx.fillStyle = i % 3 === 0 ? "rgba(187,242,74,0.58)" : "rgba(255,209,102,0.46)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 0.85);
+      ctx.lineTo(x - size * 0.36, y + size * 0.2);
+      ctx.lineTo(x + size * 0.36, y + size * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(117,86,47,0.62)";
+      ctx.lineWidth = Math.max(2, size * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(x, y + size * 0.2);
+      ctx.lineTo(x, y + size);
+      ctx.stroke();
+    } else if (place === "tokyo") {
+      ctx.fillStyle = i % 2 ? "rgba(255,79,216,0.66)" : "rgba(70,217,255,0.58)";
+      roundRect(x - size * 0.26, y - size * 1.2, size * 0.52, size * 1.5, 4);
+      ctx.fill();
+      ctx.fillStyle = "rgba(5,8,7,0.82)";
+      ctx.fillRect(x - size * 0.13, y - size * 1.05, size * 0.26, size * 0.96);
+    } else if (place === "desert") {
+      ctx.fillStyle = "rgba(255,183,74,0.52)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 0.15);
+      ctx.lineTo(x - size, y + size * 0.68);
+      ctx.lineTo(x + size, y + size * 0.68);
+      ctx.closePath();
+      ctx.fill();
+    } else if (place === "rainforest") {
+      ctx.strokeStyle = "rgba(38,78,46,0.82)";
+      ctx.lineWidth = Math.max(3, size * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 0.4);
+      ctx.lineTo(x, y + size * 1.3);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(54,217,138,0.58)";
+      ctx.beginPath();
+      ctx.ellipse(x - size * 0.32, y - size * 0.46, size * 0.74, size * 0.24, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(x + size * 0.32, y - size * 0.36, size * 0.7, size * 0.22, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (place === "europe") {
+      ctx.fillStyle = "rgba(244,251,248,0.68)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x - size * 0.7, y + size * 0.7);
+      ctx.lineTo(x + size * 0.7, y + size * 0.7);
+      ctx.closePath();
+      ctx.fill();
     } else {
       ctx.strokeStyle = "rgba(244,251,248,0.28)";
       ctx.lineWidth = Math.max(2, size * 0.08);
@@ -1811,6 +2127,53 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.fillStyle = shade(color, -35);
     roundRect(-w * 0.48, h * 0.36, w * 0.96, h * 0.08, 3);
     ctx.fill();
+  } else if (vehicleType === "semi") {
+    ctx.fillStyle = "#050807";
+    roundRect(-w * 0.72, -h * 0.02, w * 0.18, h * 0.5, 7);
+    ctx.fill();
+    roundRect(w * 0.54, -h * 0.02, w * 0.18, h * 0.5, 7);
+    ctx.fill();
+    roundRect(-w * 0.72, -h * 0.42, w * 0.16, h * 0.22, 6);
+    ctx.fill();
+    roundRect(w * 0.56, -h * 0.42, w * 0.16, h * 0.22, 6);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    roundRect(-w * 0.42, -h * 0.58, w * 0.84, h * 0.38, 6);
+    ctx.fill();
+    ctx.fillStyle = shade(color, -28);
+    roundRect(-w * 0.5, -h * 0.16, w * 1.0, h * 0.68, 4);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.27, -h * 0.5, w * 0.54, h * 0.18, 4);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.48)";
+    ctx.fillRect(-w * 0.34, -h * 0.1, w * 0.68, h * 0.08);
+    ctx.fillRect(-w * 0.34, h * 0.08, w * 0.68, h * 0.08);
+  } else if (vehicleType === "tractor") {
+    ctx.fillStyle = "#050807";
+    roundRect(-w * 0.64, h * 0.12, w * 0.26, h * 0.36, 9);
+    ctx.fill();
+    roundRect(w * 0.38, h * 0.12, w * 0.26, h * 0.36, 9);
+    ctx.fill();
+    roundRect(-w * 0.48, -h * 0.42, w * 0.14, h * 0.2, 5);
+    ctx.fill();
+    roundRect(w * 0.34, -h * 0.42, w * 0.14, h * 0.2, 5);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    roundRect(-w * 0.3, -h * 0.48, w * 0.6, h * 0.36, 8);
+    ctx.fill();
+    ctx.fillStyle = shade(color, -28);
+    roundRect(-w * 0.42, -h * 0.06, w * 0.84, h * 0.38, 8);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.2, -h * 0.38, w * 0.4, h * 0.16, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,209,102,0.6)";
+    ctx.lineWidth = Math.max(2, w * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.44, h * 0.38);
+    ctx.lineTo(w * 0.44, h * 0.38);
+    ctx.stroke();
   } else if (vehicleType === "truck" || vehicleType === "monster" || vehicleType === "tank") {
     const tire = vehicleType === "monster" ? 0.24 : 0.17;
     ctx.fillStyle = "#050807";
@@ -1927,7 +2290,7 @@ function drawCar(w, h) {
   const vehicle = selectedVehicle();
   const x = w / 2 + raceState.lane * laneWidth();
   const y = cameraMode === "hood" ? h * 0.99 : h * 0.82;
-  const sizeBoost = vehicle.type === "monster" || vehicle.type === "tank" ? 1.18 : vehicle.type === "f1" || vehicle.type === "snowmobile" ? 0.9 : 1;
+  const sizeBoost = vehicle.type === "semi" ? 1.28 : vehicle.type === "monster" || vehicle.type === "tank" ? 1.18 : vehicle.type === "tractor" ? 1.08 : vehicle.type === "f1" || vehicle.type === "snowmobile" ? 0.9 : 1;
   const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost;
   const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost;
   if (cameraMode === "chase") {

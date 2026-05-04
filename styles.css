@@ -432,11 +432,33 @@ input:focus {
 }
 
 .vehicle-preview[data-type="truck"]::before,
+.vehicle-preview[data-type="semi"]::before,
+.vehicle-preview[data-type="tractor"]::before,
 .vehicle-preview[data-type="monster"]::before,
 .vehicle-preview[data-type="tank"]::before {
   left: 11px;
   right: 11px;
   border-radius: 5px;
+}
+
+.vehicle-preview[data-type="semi"]::before {
+  left: 7px;
+  right: 7px;
+  top: 9px;
+  bottom: 8px;
+}
+
+.vehicle-preview[data-type="tractor"]::before {
+  left: 18px;
+  right: 18px;
+  top: 8px;
+  bottom: 14px;
+}
+
+.vehicle-preview[data-type="tractor"]::after {
+  left: 12px;
+  right: 12px;
+  height: 14px;
 }
 
 .vehicle-preview[data-type="monster"]::after {
