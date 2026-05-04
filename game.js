@@ -737,6 +737,18 @@ function drawRoad(w, h, theme) {
   ctx.lineTo(w / 2 - roadBottom * 0.7, h);
   ctx.closePath();
   ctx.fill();
+  ctx.globalAlpha = 0.16;
+  ctx.strokeStyle = "#f4fbf8";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 26; i += 1) {
+    const y = ((i * 42 + raceState.roadOffset * 0.6) % (h + 80)) - 40;
+    const t = Math.max(0, (y - horizon) / (h - horizon));
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - roadBottom * 0.65 * t, y);
+    ctx.lineTo(w / 2 + roadBottom * 0.65 * t, y + 4);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
   const stripeCount = 18;
   for (let i = 0; i < stripeCount; i += 1) {
     const y = ((i * 80 + raceState.roadOffset * 1.35) % (h + 160)) - 80;
@@ -759,6 +771,49 @@ function drawRoad(w, h, theme) {
   ctx.lineTo(w / 2 + roadBottom * 0.7, h);
   ctx.stroke();
   ctx.globalAlpha = 1;
+  drawRoadsideDetails(w, h, theme, horizon, roadBottom);
+}
+
+function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  for (let i = 0; i < 15; i += 1) {
+    const y = ((i * 92 + raceState.roadOffset * 1.08) % (h + 160)) - 80;
+    if (y < horizon) continue;
+    const t = (y - horizon) / (h - horizon);
+    const side = i % 2 === 0 ? -1 : 1;
+    const x = w / 2 + side * roadBottom * (0.22 + t * 0.58);
+    const size = 10 + t * 28;
+    if (place === "canyon") {
+      ctx.fillStyle = "rgba(255,150,83,0.34)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x - size * 0.7, y + size);
+      ctx.lineTo(x + size * 0.8, y + size * 0.7);
+      ctx.closePath();
+      ctx.fill();
+    } else if (place === "alpine") {
+      ctx.fillStyle = "rgba(187,242,74,0.18)";
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 1.2);
+      ctx.lineTo(x - size * 0.7, y + size);
+      ctx.lineTo(x + size * 0.7, y + size);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "rgba(244,251,248,0.28)";
+      ctx.lineWidth = Math.max(2, size * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x, y + size * 1.5);
+      ctx.stroke();
+      ctx.fillStyle = theme[1];
+      ctx.globalAlpha = 0.65;
+      ctx.beginPath();
+      ctx.arc(x, y - size, size * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
 }
 
 function objectPos(lane, y) {
@@ -879,30 +934,57 @@ function drawVehicle(x, y, width, height, color, player) {
   ctx.ellipse(0, height * 0.38, width * 0.58, height * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#050807";
-  ctx.fillRect(-width * 0.48, -height * 0.27, width * 0.14, height * 0.3);
-  ctx.fillRect(width * 0.34, -height * 0.27, width * 0.14, height * 0.3);
-  ctx.fillRect(-width * 0.48, height * 0.12, width * 0.14, height * 0.3);
-  ctx.fillRect(width * 0.34, height * 0.12, width * 0.14, height * 0.3);
+  roundRect(-width * 0.53, -height * 0.3, width * 0.16, height * 0.34, 4);
+  ctx.fill();
+  roundRect(width * 0.37, -height * 0.3, width * 0.16, height * 0.34, 4);
+  ctx.fill();
+  roundRect(-width * 0.53, height * 0.12, width * 0.16, height * 0.34, 4);
+  ctx.fill();
+  roundRect(width * 0.37, height * 0.12, width * 0.16, height * 0.34, 4);
+  ctx.fill();
   ctx.fillStyle = color;
-  roundRect(-width / 2, -height / 2, width, height, 12);
-  ctx.fill();
-  ctx.fillStyle = "rgba(244,251,248,0.18)";
-  roundRect(-width * 0.36, -height * 0.42, width * 0.72, height * 0.18, 8);
-  ctx.fill();
-  ctx.fillStyle = player ? "#bbf24a" : "#111817";
-  roundRect(-width * 0.32, -height * 0.24, width * 0.64, height * 0.33, 8);
-  ctx.fill();
-  ctx.fillStyle = player ? "#f4fbf8" : "#ffd166";
   ctx.beginPath();
-  ctx.arc(-width * 0.13, -height * 0.07, width * 0.095, 0, Math.PI * 2);
-  ctx.arc(width * 0.13, -height * 0.07, width * 0.095, 0, Math.PI * 2);
+  ctx.moveTo(-width * 0.32, -height * 0.5);
+  ctx.lineTo(width * 0.32, -height * 0.5);
+  ctx.quadraticCurveTo(width * 0.5, -height * 0.42, width * 0.47, -height * 0.18);
+  ctx.lineTo(width * 0.42, height * 0.42);
+  ctx.quadraticCurveTo(width * 0.2, height * 0.54, -width * 0.2, height * 0.54);
+  ctx.lineTo(-width * 0.42, height * 0.42);
+  ctx.lineTo(-width * 0.47, -height * 0.18);
+  ctx.quadraticCurveTo(-width * 0.5, -height * 0.42, -width * 0.32, -height * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = player ? "rgba(244,251,248,0.45)" : "rgba(190,210,210,0.36)";
+  roundRect(-width * 0.29, -height * 0.36, width * 0.58, height * 0.18, 7);
+  ctx.fill();
+  ctx.fillStyle = player ? "rgba(11,17,16,0.86)" : "rgba(20,25,24,0.86)";
+  roundRect(-width * 0.28, -height * 0.13, width * 0.56, height * 0.31, 9);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.2)";
+  ctx.lineWidth = Math.max(1, width * 0.015);
+  ctx.stroke();
+  ctx.fillStyle = player ? "#dce8ef" : "#e6d69b";
+  ctx.beginPath();
+  ctx.arc(0, -height * 0.02, width * 0.12, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#050807";
-  ctx.fillRect(-width * 0.18, -height * 0.08, width * 0.1, height * 0.025);
-  ctx.fillRect(width * 0.08, -height * 0.08, width * 0.1, height * 0.025);
+  roundRect(-width * 0.09, -height * 0.04, width * 0.18, height * 0.045, 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.beginPath();
+  ctx.arc(0, -height * 0.02, width * 0.12, Math.PI * 1.04, Math.PI * 1.96);
+  ctx.stroke();
   ctx.fillStyle = "#fff8d6";
-  ctx.fillRect(-width * 0.28, -height * 0.48, width * 0.18, height * 0.08);
-  ctx.fillRect(width * 0.1, -height * 0.48, width * 0.18, height * 0.08);
+  ctx.beginPath();
+  ctx.moveTo(-width * 0.32, -height * 0.48);
+  ctx.lineTo(-width * 0.12, -height * 0.45);
+  ctx.lineTo(-width * 0.22, -height * 0.38);
+  ctx.closePath();
+  ctx.moveTo(width * 0.32, -height * 0.48);
+  ctx.lineTo(width * 0.12, -height * 0.45);
+  ctx.lineTo(width * 0.22, -height * 0.38);
+  ctx.closePath();
+  ctx.fill();
   ctx.fillStyle = "#ff3348";
   ctx.fillRect(-width * 0.3, height * 0.42, width * 0.16, height * 0.06);
   ctx.fillRect(width * 0.14, height * 0.42, width * 0.16, height * 0.06);
@@ -914,6 +996,8 @@ function drawVehicle(x, y, width, height, color, player) {
   ctx.moveTo(-width * 0.42, -height * 0.12);
   ctx.lineTo(width * 0.42, -height * 0.12);
   ctx.stroke();
+  ctx.fillStyle = "rgba(244,251,248,0.16)";
+  ctx.fillRect(-width * 0.34, height * 0.2, width * 0.68, height * 0.035);
   ctx.restore();
 }
 

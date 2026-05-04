@@ -30,9 +30,9 @@ Real-world style visuals:
 
 Velocity Vault is now a Progressive Web App. To play it everywhere without this computer being on, put this folder on an HTTPS web host, open the hosted link once on the phone or computer, then install it:
 
-- Android / Chrome / Edge: tap `Install App` or use the browser menu and choose install.
+- Android / Chrome / Edge: tap `Install / Add to Phone` or use the browser menu and choose install.
 - iPhone / iPad Safari: tap Share, then `Add to Home Screen`.
-- Windows / Edge / Chrome: click `Install App` or use the browser install icon.
+- Windows / Edge / Chrome: click `Install / Add to Phone` or use the browser install icon.
 
 After installation, the service worker caches the game files for offline play. The app can then launch from the phone or computer home screen without your PC being awake.
 
