@@ -15,7 +15,7 @@ Controls:
 - `Down` or `S`: brake, then reverse when stopped
 - `Space`: boost while accelerating
 - `P`: pause
-- On touch screens, use the on-screen buttons
+- On touch screens, use the on-screen buttons. Phone landscape mode has a dedicated driver pad with left, center, right, gas, brake/reverse, boost, and a Hold/Toggle control mode switch.
 - Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, and Start / Select to pause
 
 Driver views:
@@ -32,16 +32,17 @@ Real-world style visuals:
 - Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, semi truck racers, racing tractors, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
-- The WebGL route pass now uses smoother world landmarks, neon signs, mounds, hangars, barns, freight stops, weather overlays, speed streaks, and tapered vehicle bodies instead of the first sharp spike scenery and plain box vehicles.
-- Roads now include shoulders, rumble strips, center paint, city crosswalk-style stripes, signs, spectator groups, guardrail details, and route-specific landmarks so each place reads more like a real location.
+- The WebGL route pass now uses smoother world landmarks, neon signs, mounds, hangars, barns, freight stops, streetlights, trees, barriers, spectators, weather overlays, speed streaks, and detailed vehicle bodies instead of the first sharp spike scenery and plain box vehicles.
+- Roads now include darker asphalt patches, reflective studs, shoulders, rumble strips, center paint, city crosswalk-style stripes, signs, spectator groups, guardrail details, and route-specific landmarks so each place reads more like a real location.
+- Vehicles now have extra WebGL body details such as glass, headlights, grilles, side panels, rear wings on fast cars, larger stance cues for trucks, and route-appropriate traffic types.
 - Race opponents now line up against the player, change pace during the route, show names on the track, and affect finish position, rewards, and wins.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups.
 - Driving now uses real throttle behavior: gas to accelerate, brake to slow, and reverse after stopping instead of automatic forward motion.
 - Police pursuit mode adds heat, sirens, flashing light bars, interceptor units, contact penalties, escape scoring, and cockpit pursuit alerts.
 - Sound is generated locally with Web Audio: engine tone, boost feel, pickup chimes, collision hits, and police siren sweeps. No external audio files or network calls are used.
-- Phone landscape racing moves touch controls to slim transparent edge buttons so steering, boost, pause, save, and view switching stay usable without covering the driving screen.
+- Phone landscape racing moves touch controls to a transparent driver-pad overlay so steering, center, gas, brake/reverse, boost, pause, and touch mode switching stay usable without covering the driving screen.
 - Touch controls use pointer capture so gas, brake, boost, and steering stay active until finger-up/cancel even if a thumb slides slightly while racing.
-- Phone landscape mode has a separate in-game control dock fixed inside the racing stage, so steering, gas, brake, and boost stay visible even when the side panel layout changes.
+- Phone landscape mode has a separate in-game control dock inside the racing stage, so steering, gas, brake, boost, and the Hold/Toggle switch stay visible even when the side panel layout changes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 
 Visual direction references:

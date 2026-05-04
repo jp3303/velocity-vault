@@ -81,6 +81,7 @@ let toastTimer = 0;
 let deferredInstallPrompt = null;
 let cameraMode = localStorage.getItem("velocityVaultCameraMode") || "chase";
 let rendererMode = localStorage.getItem("velocityVaultRendererMode") || "webgl";
+let touchDriveMode = localStorage.getItem("velocityVaultTouchDriveMode") === "toggle" ? "toggle" : "hold";
 let webglRenderer = null;
 let audioSystem = null;
 
@@ -201,6 +202,8 @@ function showView(next) {
   $$(".view").forEach((el) => el.classList.remove("active"));
   $(`#${next}View`).classList.add("active");
   document.body.classList.toggle("race-live", next === "race");
+  if (next !== "race") clearTouchDriveInputs();
+  setTouchDriveMode(touchDriveMode, true);
   fitCanvas();
 }
 
@@ -710,6 +713,66 @@ function setRendererMode(mode, quiet = false) {
   if (!quiet) showToast(useWebGLRenderer() ? "WebGL 3D renderer enabled." : "Classic 2D renderer enabled.");
 }
 
+function clearTouchDriveInputs() {
+  input.left = false;
+  input.right = false;
+  input.gas = false;
+  input.brake = false;
+  input.boost = false;
+}
+
+function setTouchDriveMode(mode, quiet = false) {
+  touchDriveMode = mode === "toggle" ? "toggle" : "hold";
+  localStorage.setItem("velocityVaultTouchDriveMode", touchDriveMode);
+  document.body.classList.toggle("touch-toggle", touchDriveMode === "toggle");
+  const label = $("#touchModeLabel");
+  const modeButton = $(".control-mode");
+  if (label) label.textContent = touchDriveMode === "toggle" ? "Toggle" : "Hold";
+  if (modeButton) modeButton.setAttribute("aria-pressed", touchDriveMode === "toggle" ? "true" : "false");
+  if (!quiet) {
+    clearTouchDriveInputs();
+    updateRaceUi();
+    showToast(touchDriveMode === "toggle" ? "Touch controls set to toggle. Tap Gas or Brake to hold it on." : "Touch controls set to hold. Press and hold to drive.");
+  }
+}
+
+function setDriveInput(control, pressed) {
+  if (control === "left") {
+    input.left = pressed;
+    if (pressed) input.right = false;
+  } else if (control === "right") {
+    input.right = pressed;
+    if (pressed) input.left = false;
+  } else if (control === "neutral") {
+    input.left = false;
+    input.right = false;
+  } else if (control === "gas") {
+    input.gas = pressed;
+    if (pressed) input.brake = false;
+  } else if (control === "brake") {
+    input.brake = pressed;
+    if (pressed) input.gas = false;
+  } else if (control === "boost") {
+    input.boost = pressed;
+  }
+}
+
+function toggleDriveInput(control) {
+  if (control === "left") {
+    setDriveInput("left", !input.left);
+  } else if (control === "right") {
+    setDriveInput("right", !input.right);
+  } else if (control === "neutral") {
+    setDriveInput("neutral", true);
+  } else if (control === "gas") {
+    setDriveInput("gas", !input.gas);
+  } else if (control === "brake") {
+    setDriveInput("brake", !input.brake);
+  } else if (control === "boost") {
+    setDriveInput("boost", !input.boost);
+  }
+}
+
 function registerOfflineApp() {
   if (!("serviceWorker" in navigator)) return;
   if (!location.protocol.startsWith("http")) return;
@@ -1005,12 +1068,16 @@ function updateRaceUi() {
     const control = button.dataset.control;
     const pressed = control === "left" ? input.left
       : control === "right" ? input.right
-        : control === "gas" ? input.gas || input.gamepadGas
-          : control === "brake" ? input.brake || input.gamepadBrake
-            : control === "boost" ? input.boost || input.gamepadBoost
-              : false;
+        : control === "neutral" ? !input.left && !input.right
+          : control === "gas" ? input.gas || input.gamepadGas
+            : control === "brake" ? input.brake || input.gamepadBrake
+              : control === "boost" ? input.boost || input.gamepadBoost
+                : control === "mode" ? touchDriveMode === "toggle"
+                  : false;
     button.classList.toggle("pressed", pressed);
   });
+  const touchLabel = $("#touchModeLabel");
+  if (touchLabel) touchLabel.textContent = touchDriveMode === "toggle" ? "Toggle" : "Hold";
   updateHud();
 }
 
@@ -2990,7 +3057,7 @@ function bindEvents() {
   bindHold($("#gasBtn"), "gas");
   bindHold($("#brakeBtn"), "brake");
   bindHold($("#boostBtn"), "boost");
-  $$(".mobile-control").forEach((button) => bindHold(button, button.dataset.control));
+  $$(".mobile-control").forEach((button) => bindMobileControl(button));
   window.addEventListener("keydown", (event) => setKey(event, true));
   window.addEventListener("keyup", (event) => setKey(event, false));
   window.addEventListener("resize", fitCanvas);
@@ -3022,6 +3089,51 @@ function bindHold(button, key) {
   const stop = (event) => {
     if (event) event.preventDefault();
     input[key] = false;
+    if (button.releasePointerCapture && event && event.pointerId !== undefined) {
+      try {
+        button.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already be released by the browser.
+      }
+    }
+  };
+  button.addEventListener("pointerdown", start);
+  button.addEventListener("pointerup", stop);
+  button.addEventListener("pointercancel", stop);
+  button.addEventListener("lostpointercapture", stop);
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
+}
+
+function bindMobileControl(button) {
+  const control = button.dataset.control;
+  const start = (event) => {
+    event.preventDefault();
+    startAudio();
+    if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+    if (control === "mode") {
+      setTouchDriveMode(touchDriveMode === "toggle" ? "hold" : "toggle");
+      return;
+    }
+    if (touchDriveMode === "toggle") {
+      toggleDriveInput(control);
+      updateRaceUi();
+      return;
+    }
+    setDriveInput(control, true);
+    updateRaceUi();
+    if (button.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        button.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture after synthetic pointer events.
+      }
+    }
+  };
+  const stop = (event) => {
+    if (event) event.preventDefault();
+    if (touchDriveMode === "toggle" || control === "mode") return;
+    setDriveInput(control, false);
+    updateRaceUi();
     if (button.releasePointerCapture && event && event.pointerId !== undefined) {
       try {
         button.releasePointerCapture(event.pointerId);
@@ -3100,6 +3212,7 @@ bindEvents();
 fitCanvas();
 updateHud();
 setCameraMode(cameraMode, true);
+setTouchDriveMode(touchDriveMode, true);
 initWebGLRenderer();
 setRendererMode(rendererMode, true);
 registerOfflineApp();

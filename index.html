@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#09100f">
@@ -40,11 +40,20 @@
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <div class="mobile-drive-controls" aria-label="Mobile driving controls">
-        <button class="mobile-control steer-left" data-control="left" type="button" aria-label="Steer left">&larr;</button>
-        <button class="mobile-control steer-right" data-control="right" type="button" aria-label="Steer right">&rarr;</button>
-        <button class="mobile-control brake" data-control="brake" type="button" aria-label="Brake or reverse">Brake</button>
-        <button class="mobile-control gas" data-control="gas" type="button" aria-label="Accelerate">Gas</button>
-        <button class="mobile-control boost" data-control="boost" type="button" aria-label="Boost">Boost</button>
+        <button class="mobile-control control-mode" data-control="mode" type="button" aria-label="Switch touch control mode" aria-pressed="false">
+          <span>Controls</span>
+          <strong id="touchModeLabel">Hold</strong>
+        </button>
+        <div class="direction-pad" aria-label="Directional steering pad">
+          <button class="mobile-control steer-left" data-control="left" type="button" aria-label="Steer left">&larr;</button>
+          <button class="mobile-control steer-neutral" data-control="neutral" type="button" aria-label="Center steering">Center</button>
+          <button class="mobile-control steer-right" data-control="right" type="button" aria-label="Steer right">&rarr;</button>
+        </div>
+        <div class="pedal-pad" aria-label="Throttle and brake controls">
+          <button class="mobile-control brake" data-control="brake" type="button" aria-label="Brake or reverse">Brake</button>
+          <button class="mobile-control gas" data-control="gas" type="button" aria-label="Accelerate">Gas</button>
+          <button class="mobile-control boost" data-control="boost" type="button" aria-label="Boost">Boost</button>
+        </div>
       </div>
     </section>
 

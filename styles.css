@@ -198,6 +198,11 @@ button {
   user-select: none;
 }
 
+.direction-pad,
+.pedal-pad {
+  display: none;
+}
+
 .panel {
   overflow: hidden auto;
   border: 1px solid var(--line);
@@ -764,7 +769,7 @@ input:focus {
   }
 }
 
-@media (orientation: landscape) and (max-height: 720px) {
+@media (orientation: landscape) and (max-height: 760px), (orientation: landscape) and (pointer: coarse) {
   body {
     overflow: hidden;
   }
@@ -900,21 +905,46 @@ input:focus {
   }
 
   body.race-live .mobile-drive-controls {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 8;
     display: block;
     pointer-events: none;
   }
 
+  body.race-live .direction-pad,
+  body.race-live .pedal-pad {
+    position: absolute;
+    z-index: 9;
+    display: grid;
+    pointer-events: auto;
+  }
+
+  body.race-live .direction-pad {
+    left: max(10px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(3, clamp(52px, 12dvh, 74px));
+    gap: 8px;
+  }
+
+  body.race-live .pedal-pad {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    grid-template-columns: clamp(68px, 15dvh, 96px) clamp(76px, 17dvh, 112px);
+    grid-template-rows: clamp(48px, 10dvh, 64px) clamp(56px, 12dvh, 76px);
+    gap: 8px;
+  }
+
   body.race-live .mobile-control {
-    position: fixed;
-    min-height: 88px;
+    min-width: 0;
+    min-height: 0;
     border: 1px solid rgba(244, 251, 248, 0.26);
-    border-radius: 12px;
-    background: rgba(5, 8, 7, 0.48);
+    border-radius: 14px;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,0.12), rgba(5,8,7,0.34)),
+      rgba(5, 8, 7, 0.54);
     color: #f4fbf8;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 900;
     opacity: 0.92;
     box-shadow: 0 10px 30px rgba(0,0,0,0.24);
@@ -925,39 +955,64 @@ input:focus {
     box-shadow: inset 0 0 0 2px rgba(244, 251, 248, 0.28), 0 10px 30px rgba(0,0,0,0.24);
   }
 
-  body.race-live .mobile-control.steer-left {
-    left: max(12px, env(safe-area-inset-left));
-    bottom: max(18px, env(safe-area-inset-bottom));
-    width: 96px;
-  }
-
+  body.race-live .mobile-control.steer-left,
+  body.race-live .mobile-control.steer-neutral,
   body.race-live .mobile-control.steer-right {
-    left: calc(max(12px, env(safe-area-inset-left)) + 106px);
-    bottom: max(18px, env(safe-area-inset-bottom));
-    width: 96px;
+    width: 100%;
+    height: clamp(52px, 12dvh, 74px);
   }
 
   body.race-live .mobile-control.gas {
-    right: max(14px, env(safe-area-inset-right));
-    bottom: max(18px, env(safe-area-inset-bottom));
-    width: 104px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
     background: linear-gradient(135deg, rgba(187, 242, 74, 0.72), rgba(70, 217, 255, 0.58));
     color: #06100e;
   }
 
   body.race-live .mobile-control.brake {
-    right: calc(max(14px, env(safe-area-inset-right)) + 116px);
-    bottom: max(18px, env(safe-area-inset-bottom));
-    width: 112px;
+    grid-column: 1;
+    grid-row: 2;
   }
 
   body.race-live .mobile-control.boost {
-    right: max(14px, env(safe-area-inset-right));
-    bottom: calc(max(18px, env(safe-area-inset-bottom)) + 102px);
-    width: 104px;
-    min-height: 58px;
+    grid-column: 1;
+    grid-row: 1;
     background: linear-gradient(135deg, rgba(255, 209, 102, 0.78), rgba(255, 91, 107, 0.72));
     color: #160a05;
+  }
+
+  body.race-live .mobile-control.control-mode {
+    position: absolute;
+    left: 50%;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    z-index: 9;
+    width: clamp(78px, 18dvh, 116px);
+    height: clamp(36px, 8dvh, 48px);
+    transform: translateX(-50%);
+    pointer-events: auto;
+    background: rgba(5, 8, 7, 0.58);
+  }
+
+  body.race-live .mobile-control.control-mode span,
+  body.race-live .mobile-control.control-mode strong {
+    display: block;
+    line-height: 1.05;
+  }
+
+  body.race-live .mobile-control.control-mode span {
+    color: rgba(244, 251, 248, 0.72);
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+
+  body.race-live .mobile-control.control-mode strong {
+    font-size: 12px;
+  }
+
+  body.race-live.touch-toggle .mobile-control.control-mode {
+    border-color: rgba(187, 242, 74, 0.72);
+    background: linear-gradient(135deg, rgba(187, 242, 74, 0.72), rgba(70, 217, 255, 0.5));
+    color: #06100e;
   }
 
   body.race-live .camera-grid {
@@ -1009,31 +1064,22 @@ input:focus {
   }
 
   body.race-live .progress-card {
-    position: fixed;
-    left: 50%;
-    z-index: 4;
-    width: min(300px, 38vw);
-    transform: translateX(-50%);
-    margin: 0;
-    padding: 7px;
-    background: rgba(5, 8, 7, 0.44);
-    pointer-events: none;
+    display: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 430px) {
+  body.race-live .hud-stats {
+    grid-template-columns: repeat(4, 48px);
   }
 
-  body.race-live .distance-progress {
-    top: 8px;
+  body.race-live #saveRace,
+  body.race-live #endRace {
+    display: none;
   }
 
-  body.race-live .mission-progress {
-    top: 48px;
-  }
-
-  body.race-live .progress-card span {
-    margin-bottom: 4px;
-    font-size: 10px;
-  }
-
-  body.race-live .progress-card .bar {
-    height: 6px;
+  body.race-live .camera-grid,
+  body.race-live .renderer-grid {
+    display: none;
   }
 }
