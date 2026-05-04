@@ -1,10 +1,11 @@
 "use strict";
 
-const cacheName = "velocity-vault-v21";
+const cacheName = "velocity-vault-v22";
 const appShell = [
   "./",
   "./index.html",
   "./styles.css",
+  "./phone-asset-pipeline.js",
   "./webgl-pipeline.js",
   "./game.js",
   "./manifest.webmanifest",

@@ -1557,6 +1557,7 @@ function drawFrame() {
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
+    drawPhoneAssetTexturePass(w, h, theme);
     if (raceState.active) {
       drawObjects();
       drawCar(w, h);
@@ -1585,10 +1586,11 @@ function drawFrame() {
   ctx.fillRect(0, 0, w, h);
   drawScenery(w, h, theme);
   drawRoad(w, h, theme);
+  drawRealisticDrivingPass(w, h, theme);
+  drawPhoneAssetTexturePass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
-  drawRealisticDrivingPass(w, h, theme);
   drawCameraOverlay(w, h, theme);
   drawDamageOverlay(w, h, theme);
   if (raceState.active) drawRaceStandings(w, h);
@@ -2659,6 +2661,57 @@ function drawRaceStandings(w, h) {
   ctx.restore();
 }
 
+function drawTrafficLabel(w, h, label) {
+  if (!label) return;
+  ctx.fillStyle = "rgba(5,8,7,0.72)";
+  roundRect(-w * 0.36, -h * 0.76, w * 0.72, h * 0.16, 4);
+  ctx.fill();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `${Math.max(7, w * 0.12)}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.fillText(label, 0, -h * 0.64);
+}
+
+function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = false, damage = 0) {
+  const assets = window.VelocityPhoneAssets;
+  if (!assets || !assets.ready || typeof assets.getVehicleSprite !== "function") return false;
+  const type = police ? "car" : vehicleType;
+  const sprite = assets.getVehicleSprite(type, color, { police, damage });
+  if (!sprite) return false;
+  const wide = ["semi", "truck", "monster", "tank", "tractor"].includes(type);
+  const air = ["boat", "snowmobile", "airplane", "helicopter"].includes(type);
+  const spriteW = w * (type === "semi" ? 1.72 : wide ? 1.58 : 1.5);
+  const spriteH = h * (type === "semi" ? 1.66 : air ? 1.48 : 1.56);
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.56, spriteW, spriteH);
+  ctx.restore();
+  return true;
+}
+
+function drawPhoneAssetTexturePass(w, h, theme) {
+  const assets = window.VelocityPhoneAssets;
+  if (!assets || !assets.ready || typeof assets.getRoadTexture !== "function") return;
+  const texture = assets.getRoadTexture(selectedRace ? selectedRace.place : "city", theme);
+  const pattern = ctx.createPattern(texture, "repeat");
+  if (!pattern) return;
+  ctx.save();
+  ctx.globalAlpha = assets.isPhoneViewport && assets.isPhoneViewport() ? 0.16 : 0.11;
+  ctx.translate(-((raceState.roadOffset * 0.28) % 256), -((raceState.roadOffset * 0.08) % 256));
+  ctx.fillStyle = pattern;
+  ctx.fillRect(-256, h * 0.3, w + 512, h * 0.78 + 256);
+  ctx.restore();
+
+  ctx.save();
+  const bloom = ctx.createRadialGradient(w * 0.5, h * 0.72, w * 0.05, w * 0.5, h * 0.78, w * 0.58);
+  bloom.addColorStop(0, `${theme[1]}18`);
+  bloom.addColorStop(0.52, "rgba(244,251,248,0.035)");
+  bloom.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, h * 0.34, w, h * 0.66);
+  ctx.restore();
+}
+
 function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleType = "car", label = "", damage = 0, wrecked = false, spin = 0) {
   ctx.save();
   ctx.translate(x, y);
@@ -2672,19 +2725,18 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.ellipse(0, h * 0.34, w * 0.62, h * 0.16, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  if (drawPhoneAssetVehicleSprite(w, h, color, vehicleType, police, damage)) {
+    drawTrafficLabel(w, h, label);
+    drawTrafficDamageBadge(w, h, damage, wrecked);
+    ctx.restore();
+    return;
+  }
+
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(w, h, color, vehicleType, false);
     drawVehicleDamageMarks(w, h, damage);
     drawTrafficDamageBadge(w, h, damage, wrecked);
-    if (label) {
-      ctx.fillStyle = "rgba(5,8,7,0.72)";
-      roundRect(-w * 0.36, -h * 0.76, w * 0.72, h * 0.16, 4);
-      ctx.fill();
-      ctx.fillStyle = "#f4fbf8";
-      ctx.font = `${Math.max(7, w * 0.12)}px system-ui`;
-      ctx.textAlign = "center";
-      ctx.fillText(label, 0, -h * 0.64);
-    }
+    drawTrafficLabel(w, h, label);
     ctx.restore();
     return;
   }
@@ -2749,15 +2801,7 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
     ctx.fill();
   }
 
-  if (label) {
-    ctx.fillStyle = "rgba(5,8,7,0.72)";
-    roundRect(-w * 0.36, -h * 0.76, w * 0.72, h * 0.16, 4);
-    ctx.fill();
-    ctx.fillStyle = "#f4fbf8";
-    ctx.font = `${Math.max(7, w * 0.12)}px system-ui`;
-    ctx.textAlign = "center";
-    ctx.fillText(label, 0, -h * 0.64);
-  }
+  drawTrafficLabel(w, h, label);
 
   ctx.fillStyle = "#ff3348";
   roundRect(-w * 0.35, h * 0.3, w * 0.18, h * 0.06, 3);
@@ -3136,6 +3180,11 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   ctx.beginPath();
   ctx.ellipse(0, height * 0.42, width * 0.74, height * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, false, raceState.damage || 0)) {
+    ctx.restore();
+    return;
+  }
 
   if (vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, true);
@@ -3603,6 +3652,11 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.beginPath();
   ctx.ellipse(0, height * 0.42, width * 0.68, height * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
+
+  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, police, player ? raceState.damage || 0 : 0)) {
+    ctx.restore();
+    return;
+  }
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, player);

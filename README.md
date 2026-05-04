@@ -34,11 +34,13 @@ Real-world style visuals:
 - Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, semi truck racers, racing tractors, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
+- A phone-focused local asset pipeline (`phone-asset-pipeline.js`) now generates cached high-resolution vehicle sprites, road texture maps, paint grain, glass, rim detail, light clusters, damage marks, and bloom overlays directly on the device. This gives the installed phone app richer assets without downloading licensed models or relying on remote servers.
 - The WebGL route pass now uses smoother world landmarks, neon signs, mounds, hangars, barns, freight stops, streetlights, trees, barriers, spectators, weather overlays, speed streaks, and detailed vehicle bodies instead of the first sharp spike scenery and plain box vehicles.
 - The WebGL route pass also adds overhead highway gantries, neon vertical signs, harbor cranes, extra wet-road reflection strips, bridge-style structures, route curve camera targets, and route-specific foreground details so the world feels less empty and more like a real drive.
 - Roads now include darker asphalt patches, reflective studs, shoulders, rumble strips, center paint, city crosswalk-style stripes, signs, spectator groups, guardrail details, and route-specific landmarks so each place reads more like a real location.
 - Vehicles now have extra WebGL body details such as glass, headlights, grilles, side panels, mirrors, plates, rim highlights, rear wings on fast cars, larger stance cues for trucks, visible damage panels, and route-appropriate traffic types.
 - WebGL mode now layers the high-detail canvas vehicle renderer over the 3D road, so player cars, opponents, police, and traffic keep readable wheels, glass, mirrors, trim, labels, brake lights, and damage marks instead of looking like simple boxes.
+- Phone WebGL mode now prefers the generated asset sprites over the older simple procedural silhouettes, giving the app a more model-like vehicle read while staying light enough for mobile browsers.
 - Race opponents now line up against the player, change pace during the route, show names on the track, show visible damage bars, take collision damage, limp when wrecked, and affect finish position, rewards, and wins.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
@@ -112,6 +114,7 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 - Strict Content Security Policy in `index.html`.
 - Offline app caching uses `sw.js` and same-origin files only.
 - WebGL rendering is local-only and does not load shaders, models, scripts, or textures from the network.
+- Phone graphics assets are generated locally at runtime and cached in memory; no third-party model, texture, or image files are fetched.
 - Profiles and optional PIN hashes stay in `localStorage` on this device.
 - Controller support uses the browser Gamepad API only.
 - The PIN is only for casual local separation between players; it is not a replacement for operating-system account security.
