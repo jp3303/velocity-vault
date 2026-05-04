@@ -421,10 +421,10 @@ function installApp() {
     return;
   }
   if (!location.protocol.startsWith("http")) {
-    showToast("To install on a phone, host this folder on HTTPS, then add it to the home screen.");
+    showToast("Install needs the secure GitHub Pages link. Then use Share > Add to Home Screen on iPhone, or Install on Android.");
     return;
   }
-  showToast("Use your browser menu to install or add Velocity Vault to the home screen.");
+  showToast("iPhone: Safari Share > Add to Home Screen. Android/desktop: browser menu > Install / Add to Phone.");
 }
 
 function spawnRival() {

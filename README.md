@@ -44,7 +44,7 @@ You can use Velocity Vault on this computer in three ways:
 
 - Open `index.html` directly from this folder.
 - Use the `Velocity Vault` desktop shortcut if one has been created.
-- After publishing to GitHub Pages, open the secure hosted link in Edge or Chrome and click `Install App`. That creates a real app-style launcher in Windows.
+- After publishing to GitHub Pages, open the secure hosted link in Edge or Chrome and click `Install / Add to Phone`. That creates a real app-style launcher in Windows.
 
 The installed browser app is the cleanest computer version because it opens in its own window and caches files for offline play.
 
@@ -57,7 +57,7 @@ The best way to send the game to kids' phones is to publish the `publish` folder
 They can open the link on their phone and install it:
 
 - iPhone / iPad: open in Safari, tap Share, tap `Add to Home Screen`.
-- Android: open in Chrome or Edge, tap `Install App` or `Add to Home screen`.
+- Android: open in Chrome or Edge, tap `Install / Add to Phone` or `Add to Home screen`.
 
 Once installed, the game appears like an app icon and can play offline after the first load. Each phone keeps its own local driver profiles and PINs; profiles do not sync between devices.
 
