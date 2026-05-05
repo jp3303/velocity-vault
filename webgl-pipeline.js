@@ -351,12 +351,14 @@
       };
       const roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
       const groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
+      const roadMark = [0.78, 0.82, 0.78, 1];
+      const roadMarkDim = [0.48, 0.52, 0.5, 1];
       quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColor);
       quad([-5.8, 0, 0], [5.8, 0, 0], [7.4, 0, 170], [-7.4, 0, 170], roadColor);
       quad([-8.7, -0.02, 0], [-5.9, -0.02, 0], [-7.7, -0.02, 170], [-10.2, -0.02, 170], shade(groundColor, 0.72));
       quad([5.9, -0.02, 0], [8.7, -0.02, 0], [10.2, -0.02, 170], [7.7, -0.02, 170], shade(groundColor, 0.72));
-      box(-6.25, 0.08, 84, 0.18, 0.05, 168, accent);
-      box(6.25, 0.08, 84, 0.18, 0.05, 168, accent);
+      box(-6.25, 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
+      box(6.25, 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
       for (let i = 0; i < 42; i += 1) {
         const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
         const x = ((i * 1.37) % 10.6) - 5.3;
@@ -365,8 +367,8 @@
       }
       for (let i = 0; i < 34; i += 1) {
         const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
-        box(-5.45, 0.04, z, 0.16, 0.022, 0.28, [0.94, 0.72, 0.34, 1]);
-        box(5.45, 0.04, z, 0.16, 0.022, 0.28, [0.94, 0.72, 0.34, 1]);
+        box(-5.45, 0.04, z, 0.14, 0.018, 0.24, roadMark);
+        box(5.45, 0.04, z, 0.14, 0.018, 0.24, roadMark);
       }
       for (let lane = -1; lane <= 1; lane += 1) {
         for (let i = 0; i < 24; i += 1) {
@@ -377,7 +379,7 @@
       for (let i = 0; i < 28; i += 1) {
         const z = wrapZ(i, 6.5, data.raceState.roadOffset, 0.13);
         const side = i % 2 ? -1 : 1;
-        barrierRun(side * 8.4, z, i % 3 ? [0.78, 0.82, 0.78, 1] : accent);
+        barrierRun(side * 8.4, z, i % 3 ? roadMark : roadMarkDim);
         box(side * 6.55, 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
         box(side * 6.55, 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
       }
@@ -392,7 +394,7 @@
       if (["city", "tokyo", "coast", "harbor", "rainforest"].includes(place)) {
         for (let i = 0; i < 22; i += 1) {
           const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
-          box(Math.sin(i * 1.7) * 1.6, 0.032, z, 1.15 + (i % 4) * 0.55, 0.014, 0.18, shade(accent, i % 2 ? 0.76 : 1.12));
+          box(Math.sin(i * 1.7) * 1.6, 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
         }
       }
       if (["city", "tokyo", "europe", "freight"].includes(place)) {

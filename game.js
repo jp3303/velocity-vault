@@ -1884,20 +1884,20 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
   ctx.fillRect(0, 0, w, h * 0.62);
 
   const glow = ctx.createRadialGradient(w * 0.5, h * 0.42, w * 0.06, w * 0.5, h * 0.55, w * 0.62);
-  glow.addColorStop(0, `${theme[1]}24`);
+  glow.addColorStop(0, "rgba(244,251,248,0.08)");
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, w, h);
 
   if (place === "tokyo" || place === "city") {
-    ctx.globalAlpha = place === "tokyo" ? 0.4 : 0.24;
-    ctx.strokeStyle = place === "tokyo" ? "#ff4fd8" : theme[1];
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 18; i += 1) {
+    ctx.globalAlpha = place === "tokyo" ? 0.22 : 0.1;
+    ctx.strokeStyle = place === "tokyo" ? "rgba(255,79,216,0.42)" : "rgba(244,251,248,0.16)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 9; i += 1) {
       const x = (i * 97 + raceState.roadOffset * 0.18) % (w + 120) - 60;
       ctx.beginPath();
       ctx.moveTo(x, h * 0.16);
-      ctx.lineTo(x + 42, h * 0.78);
+      ctx.lineTo(x + 28, h * 0.58);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -1929,7 +1929,7 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
     ctx.globalAlpha = Math.min(0.18, raceState.speed / 1400);
     const pavementRush = ctx.createLinearGradient(0, h * 0.58, 0, h);
     pavementRush.addColorStop(0, "rgba(255,255,255,0)");
-    pavementRush.addColorStop(0.72, `${theme[1]}33`);
+    pavementRush.addColorStop(0.72, "rgba(244,251,248,0.14)");
     pavementRush.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = pavementRush;
     ctx.fillRect(0, h * 0.55, w, h * 0.45);
@@ -1939,7 +1939,7 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
 }
 
 function drawWebGLFlatPavementPass(w, h, theme) {
-  const floorY = cameraMode === "cockpit" ? h * 0.46 : cameraMode === "hood" ? h * 0.48 : h * 0.5;
+  const floorY = cameraMode === "cockpit" ? h * 0.54 : cameraMode === "hood" ? h * 0.58 : h * 0.6;
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(-w * 0.08, h);
@@ -1963,7 +1963,7 @@ function drawWebGLFlatPavementPass(w, h, theme) {
     if (y < floorY || y > h) continue;
     const t = (y - floorY) / Math.max(1, h - floorY);
     ctx.globalAlpha = 0.16 + t * 0.34;
-    ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.22)" : `${theme[1]}30`;
+    ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.16)" : "rgba(180,192,188,0.12)";
     ctx.lineWidth = 1 + t * 5;
     ctx.beginPath();
     ctx.moveTo(w * (0.3 - t * 0.34), y);
@@ -1988,8 +1988,8 @@ function drawWebGLFlatPavementPass(w, h, theme) {
     );
     ctx.stroke();
   }
-  ctx.globalAlpha = 0.78;
-  ctx.strokeStyle = "rgba(255,209,102,0.42)";
+  ctx.globalAlpha = 0.28;
+  ctx.strokeStyle = "rgba(244,251,248,0.18)";
   ctx.lineWidth = Math.max(2, w * 0.005);
   for (let side = -1; side <= 1; side += 2) {
     ctx.beginPath();
@@ -2637,7 +2637,7 @@ function drawRoad(w, h, theme) {
     if (y < horizon) continue;
     const t = (y - horizon) / (h - horizon);
     const x = w * 0.5 + (Math.sin(i * 13.7) * roadBottom * 0.55 * t);
-    ctx.fillStyle = i % 3 ? "#f4fbf8" : theme[1];
+    ctx.fillStyle = i % 3 ? "#f4fbf8" : "rgba(180,192,188,0.72)";
     ctx.fillRect(x, y, 1 + t * 3, 1 + t * 5);
   }
   ctx.restore();
@@ -2730,7 +2730,7 @@ function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
       if (y < horizon) continue;
       const t = (y - horizon) / (h - horizon);
       const x = w / 2 + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
-      ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.42)" : theme[1];
+      ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.34)" : "rgba(180,192,188,0.34)";
       roundRect(x - side * 4, y, side * 10, 22 + t * 34, 3);
       ctx.fill();
     }
@@ -3319,9 +3319,10 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   const sprite = assets.getVehicleSprite(type, color, { police, damage });
   if (!sprite) return false;
   const wide = ["semi", "truck", "monster", "tank", "tractor"].includes(type);
-  const air = ["boat", "snowmobile", "airplane", "helicopter"].includes(type);
-  const spriteW = w * (type === "semi" ? 1.72 : wide ? 1.58 : 1.5);
-  const spriteH = h * (type === "semi" ? 1.66 : air ? 1.48 : 1.56);
+  const floating = ["boat", "airplane", "helicopter"].includes(type);
+  const snow = type === "snowmobile";
+  const spriteW = w * (contactAnchored ? (type === "semi" ? 1.86 : wide ? 1.78 : snow ? 1.68 : 1.72) : (type === "semi" ? 1.72 : wide ? 1.58 : 1.5));
+  const spriteH = h * (contactAnchored ? (type === "semi" ? 1.18 : wide ? 1.12 : snow ? 1.0 : 1.06) : (type === "semi" ? 1.66 : floating || snow ? 1.48 : 1.56));
   const contactRatio = spriteContactRatio(type);
   const speedFactor = Math.abs(raceState.speed || 0) / 220;
   ctx.save();
@@ -3356,7 +3357,7 @@ function drawPhoneAssetTexturePass(w, h, theme) {
 
   ctx.save();
   const bloom = ctx.createRadialGradient(w * 0.5, h * 0.72, w * 0.05, w * 0.5, h * 0.78, w * 0.58);
-  bloom.addColorStop(0, `${theme[1]}18`);
+  bloom.addColorStop(0, "rgba(244,251,248,0.07)");
   bloom.addColorStop(0.52, "rgba(244,251,248,0.035)");
   bloom.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = bloom;
@@ -3443,7 +3444,7 @@ function drawRoadMotionPass(w, h, theme) {
     const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
     const roadHalf = roadTop * 0.62 + (roadBottom * 0.63 - roadTop * 0.62) * t;
     ctx.globalAlpha = bandAlpha * (0.3 + t * 0.9);
-    ctx.strokeStyle = i % 2 ? "rgba(0,0,0,0.78)" : `${theme[1]}55`;
+    ctx.strokeStyle = i % 2 ? "rgba(0,0,0,0.78)" : "rgba(244,251,248,0.18)";
     ctx.lineWidth = 1 + t * 7;
     ctx.beginPath();
     ctx.moveTo(w * 0.5 - roadHalf, y);
@@ -3539,7 +3540,7 @@ function drawPhoneUltraGraphicsPass(w, h, theme) {
     const x = w * 0.5 + Math.sin(i * 2.11) * w * 0.08 * t;
     const reflection = ctx.createLinearGradient(x - spread, y, x + spread, y);
     reflection.addColorStop(0, "rgba(255,255,255,0)");
-    reflection.addColorStop(0.46, `${theme[1]}66`);
+    reflection.addColorStop(0.46, "rgba(244,251,248,0.22)");
     reflection.addColorStop(0.52, "rgba(255,255,255,0.22)");
     reflection.addColorStop(1, "rgba(255,255,255,0)");
     ctx.strokeStyle = reflection;
@@ -3600,7 +3601,7 @@ function drawPhoneFilmicPost(w, h, theme) {
   ctx.globalCompositeOperation = "screen";
   const bloom = ctx.createRadialGradient(w * 0.5, h * 0.54, w * 0.05, w * 0.5, h * 0.58, w * 0.7);
   bloom.addColorStop(0, "rgba(255,255,255,0.06)");
-  bloom.addColorStop(0.42, `${theme[1]}16`);
+  bloom.addColorStop(0.42, "rgba(244,251,248,0.06)");
   bloom.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = bloom;
   ctx.fillRect(0, 0, w, h);
@@ -4418,7 +4419,7 @@ function drawCinematicGrade(w, h, theme) {
     ctx.globalAlpha = Math.min(0.16, speedLines * 0.14);
     const edgeRush = ctx.createLinearGradient(0, h * 0.42, 0, h);
     edgeRush.addColorStop(0, "rgba(255,255,255,0)");
-    edgeRush.addColorStop(0.7, `${theme[1]}33`);
+    edgeRush.addColorStop(0.7, "rgba(244,251,248,0.13)");
     edgeRush.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = edgeRush;
     ctx.fillRect(0, h * 0.5, w, h * 0.5);
@@ -4449,7 +4450,7 @@ function drawRealisticDrivingPass(w, h, theme) {
 
   const depthFog = ctx.createLinearGradient(0, horizon - h * 0.08, 0, horizon + h * 0.18);
   depthFog.addColorStop(0, "rgba(244,251,248,0.02)");
-  depthFog.addColorStop(0.52, place === "desert" || place === "canyon" ? "rgba(255,209,102,0.12)" : "rgba(210,230,235,0.08)");
+  depthFog.addColorStop(0.52, place === "desert" || place === "canyon" ? "rgba(205,178,142,0.08)" : "rgba(210,230,235,0.08)");
   depthFog.addColorStop(1, "rgba(5,8,7,0)");
   ctx.fillStyle = depthFog;
   ctx.fillRect(0, Math.max(0, horizon - h * 0.12), w, h * 0.36);
@@ -4464,7 +4465,7 @@ function drawRealisticDrivingPass(w, h, theme) {
       const x = w * 0.5 + Math.sin(i * 1.7 + raceState.elapsed) * w * 0.04;
       const shine = ctx.createLinearGradient(x - ribbonW, y, x + ribbonW, y);
       shine.addColorStop(0, "rgba(244,251,248,0)");
-      shine.addColorStop(0.5, `${theme[1]}55`);
+      shine.addColorStop(0.5, "rgba(244,251,248,0.26)");
       shine.addColorStop(1, "rgba(244,251,248,0)");
       ctx.strokeStyle = shine;
       ctx.lineWidth = 1 + t * 5;
