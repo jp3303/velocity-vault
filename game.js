@@ -111,6 +111,7 @@ const controllerState = {
 const mobileTouchState = {
   active: new Map(),
   usingTouchEvents: false,
+  driveStickActive: false,
   modeToggleAt: 0
 };
 
@@ -871,6 +872,7 @@ function clearTouchDriveInputs() {
   input.brake = false;
   input.boost = false;
   mobileTouchState.active.clear();
+  mobileTouchState.driveStickActive = false;
 }
 
 function setTouchDriveMode(mode, quiet = false) {
@@ -892,10 +894,6 @@ function setTouchControlSize(size, quiet = false) {
   touchControlSize = size === "full" ? "full" : "mini";
   localStorage.setItem("velocityVaultTouchControlSize", touchControlSize);
   document.body.classList.toggle("control-mini", touchControlSize === "mini");
-  if (touchControlSize === "mini" && touchDriveMode === "toggle") {
-    setTouchDriveMode("hold", true);
-    clearTouchDriveInputs();
-  }
   const label = $("#touchSizeLabel");
   const sizeButton = $(".control-size");
   if (label) label.textContent = touchControlSize === "mini" ? "Full" : "Mini";
@@ -904,6 +902,7 @@ function setTouchControlSize(size, quiet = false) {
     sizeButton.setAttribute("aria-label", touchControlSize === "mini" ? "Switch to full controls" : "Switch to mini controls");
   }
   if (!quiet) {
+    clearTouchDriveInputs();
     updateRaceUi();
     showToast(touchControlSize === "mini" ? "Mini one-thumb drive stick on. Drag diagonally to steer while accelerating." : "Full controls on. Tap Mini for more screen space.");
   }
@@ -985,9 +984,15 @@ function mobileControlAt(clientX, clientY) {
 }
 
 function applyMobileTouchSnapshot() {
-  if (touchDriveMode === "toggle") return;
+  const hadDriveStick = mobileTouchState.driveStickActive;
   const controls = new Set();
-  mobileTouchState.active.forEach((control) => addTouchControls(control, controls));
+  let hasDriveStick = false;
+  mobileTouchState.active.forEach((control) => {
+    if (isDriveStickControl(control)) hasDriveStick = true;
+    addTouchControls(control, controls);
+  });
+  if (touchDriveMode === "toggle" && !hasDriveStick && !hadDriveStick) return;
+  mobileTouchState.driveStickActive = hasDriveStick;
   const neutral = controls.has("neutral");
   const left = controls.has("left");
   const right = controls.has("right");
@@ -1021,9 +1026,13 @@ function handleMobileTouchStart(event) {
       }
       return;
     }
-    if (touchDriveMode === "toggle" && !isDriveStickControl(control)) {
-      toggleDriveInput(control);
-      updateRaceUi();
+    if (touchDriveMode === "toggle") {
+      if (isDriveStickControl(control)) {
+        mobileTouchState.active.set(touch.identifier, control);
+      } else {
+        toggleDriveInput(control);
+        updateRaceUi();
+      }
       return;
     }
     mobileTouchState.active.set(touch.identifier, control);
@@ -1032,10 +1041,18 @@ function handleMobileTouchStart(event) {
 }
 
 function handleMobileTouchMove(event) {
-  if (touchDriveMode === "toggle") return;
   event.preventDefault();
   Array.from(event.changedTouches).forEach((touch) => {
+    const previous = mobileTouchState.active.get(touch.identifier);
     const control = mobileControlAt(touch.clientX, touch.clientY);
+    if (touchDriveMode === "toggle") {
+      if (isDriveStickControl(control)) {
+        mobileTouchState.active.set(touch.identifier, control);
+      } else if (isDriveStickControl(previous)) {
+        mobileTouchState.active.delete(touch.identifier);
+      }
+      return;
+    }
     if (control && control !== "mode" && control !== "size") {
       mobileTouchState.active.set(touch.identifier, control);
     } else {
@@ -1046,7 +1063,6 @@ function handleMobileTouchMove(event) {
 }
 
 function handleMobileTouchEnd(event) {
-  if (touchDriveMode === "toggle") return;
   event.preventDefault();
   Array.from(event.changedTouches).forEach((touch) => mobileTouchState.active.delete(touch.identifier));
   applyMobileTouchSnapshot();
