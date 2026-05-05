@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 50;
+const starterGarageVersion = 51;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -1276,11 +1276,11 @@ function installApp() {
 function makeOpponents(playerVehicle, age, director) {
   const pool = vehicleDefs.filter((vehicle) => vehicle.id !== playerVehicle.id);
   const grid = [
-    { gap: 300, lane: -1.85, bias: 0.55, speed: 24 },
-    { gap: 760, lane: 0.45, bias: 0.64, speed: 30 },
-    { gap: 1340, lane: 1.85, bias: 0.73, speed: 38 },
-    { gap: -720, lane: 1.15, bias: 0.72, speed: 28 },
-    { gap: -1520, lane: -0.95, bias: 0.82, speed: 34 }
+    { gap: 360, lane: -1.95, bias: 0.56, speed: 24 },
+    { gap: 920, lane: 0.25, bias: 0.64, speed: 30 },
+    { gap: 1540, lane: 1.9, bias: 0.73, speed: 38 },
+    { gap: -760, lane: 1.15, bias: 0.72, speed: 28 },
+    { gap: -1760, lane: -1.15, bias: 0.82, speed: 34 }
   ];
   return opponentNames.map((name, index) => {
     const vehicle = pool[(index * 2 + selectedRace.id.length) % pool.length];
@@ -1338,8 +1338,8 @@ function updateOpponents(dt, maxSpeed) {
     raceState.opponents.forEach((other) => {
       if (other === opponent || other.finished) return;
       const otherGap = other.distance - opponent.distance;
-      const minGap = phoneGraphicsActive() ? 190 : 110;
-      if (Math.abs(otherGap) < minGap) spreadPressure += otherGap >= 0 ? -0.055 : 0.055;
+      const minGap = phoneGraphicsActive() ? 340 : 130;
+      if (Math.abs(otherGap) < minGap) spreadPressure += otherGap >= 0 ? -0.075 : 0.075;
     });
     const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
     const vehiclePace = fieldSpeed * (0.78 + vehicle.speed * 0.24);
@@ -1399,6 +1399,33 @@ function updateOpponents(dt, maxSpeed) {
     if (gapAfter > 3) opponent.wasAhead = true;
     if (gapAfter < -2) opponent.wasAhead = false;
     if (opponent.distance >= length) opponent.finished = true;
+  });
+  enforceOpponentSpacing(length, dt);
+}
+
+function enforceOpponentSpacing(length, dt) {
+  const active = raceState.opponents
+    .filter((opponent) => opponent && !opponent.finished)
+    .sort((a, b) => a.distance - b.distance);
+  const phoneMode = phoneGraphicsActive();
+  const minGap = phoneMode ? 340 : 150;
+  const laneSlots = [-1.95, -0.75, 0.75, 1.95, 0.1];
+  active.forEach((opponent, index) => {
+    if (index > 0) {
+      const previous = active[index - 1];
+      const gap = opponent.distance - previous.distance;
+      if (gap < minGap) {
+        opponent.distance = Math.min(length + 80, previous.distance + minGap);
+        opponent.speed = Math.max(opponent.speed, previous.speed * 0.98);
+      }
+    }
+    const playerGap = opponent.distance - raceState.distance;
+    if (phoneMode && playerGap > -260 && playerGap < 1750 && !opponent.wrecked) {
+      const laneTarget = laneSlots[index % laneSlots.length];
+      opponent.homeLane = laneTarget;
+      opponent.lane += (laneTarget - opponent.lane) * Math.min(1, dt * 0.92);
+      opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
+    }
   });
 }
 
@@ -2044,6 +2071,7 @@ function drawPhoneCanvasFrame(w, h, theme, shake) {
   drawPhoneConsoleChasePass(w, h, theme);
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
+  drawPhoneRoadContrastPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
@@ -2171,6 +2199,29 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   ctx.fillStyle = asphalt;
   ctx.fillRect(0, horizon, w, h - horizon);
 
+  const edgeAlpha = 0.92;
+  for (let side = -1; side <= 1; side += 2) {
+    const shoulder = ctx.createLinearGradient(0, horizon, 0, h);
+    shoulder.addColorStop(0, "rgba(244,251,248,0.36)");
+    shoulder.addColorStop(0.42, "rgba(244,251,248,0.2)");
+    shoulder.addColorStop(1, "rgba(244,251,248,0.1)");
+    ctx.globalAlpha = edgeAlpha;
+    ctx.strokeStyle = shoulder;
+    ctx.lineWidth = Math.max(3, w * 0.005);
+    ctx.beginPath();
+    ctx.moveTo(roadCenter(0) + side * roadTop * 0.96, horizon + 1);
+    ctx.lineTo(roadCenter(1) + side * roadBottom * 0.62, h + 8);
+    ctx.stroke();
+    ctx.strokeStyle = side < 0 ? "rgba(255,91,107,0.5)" : "rgba(70,217,255,0.46)";
+    ctx.lineWidth = Math.max(5, w * 0.008);
+    ctx.globalAlpha = 0.46;
+    ctx.beginPath();
+    ctx.moveTo(roadCenter(0) + side * roadTop * 0.76, horizon + 8);
+    ctx.lineTo(roadCenter(1) + side * roadBottom * 0.48, h + 8);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   if (wet) {
     ctx.globalCompositeOperation = "screen";
     for (let i = 0; i < 12; i += 1) {
@@ -2212,11 +2263,11 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   };
 
   const motion = raceState.roadOffset * (0.96 + Math.min(1.8, speed / 130));
-  for (let i = 0; i < 13; i += 1) {
+  for (let i = 0; i < 17; i += 1) {
     const y = horizon + (((i * 78 + motion) % (h - horizon + 120)) - 52);
     const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
-    paint(-0.5, y, 12 + t * 34, 1.1 + t * 4.2, 0.14 + t * 0.28);
-    paint(0.5, y + 12, 12 + t * 30, 1.1 + t * 4.2, 0.1 + t * 0.24);
+    paint(-0.5, y, 14 + t * 42, 1.5 + t * 5.2, 0.24 + t * 0.34);
+    paint(0.5, y + 12, 14 + t * 38, 1.5 + t * 5.2, 0.2 + t * 0.3);
   }
   ctx.globalAlpha = 1;
 
@@ -2283,6 +2334,57 @@ function drawPhoneConsoleChasePass(w, h, theme) {
         ctx.stroke();
       }
     }
+  }
+  ctx.restore();
+}
+
+function drawPhoneRoadContrastPass(w, h, theme) {
+  if (!phoneGraphicsActive()) return;
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const roadCenter = (t) => {
+    const clamped = Math.max(0, Math.min(1.08, t));
+    const farPull = (1 - clamped) * (1 - clamped);
+    return w * 0.5 + turn * farPull * w * 0.26;
+  };
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(roadCenter(0) - roadTop, horizon);
+  ctx.lineTo(roadCenter(0) + roadTop, horizon);
+  ctx.lineTo(roadCenter(1) + roadBottom * 0.62, h + 8);
+  ctx.lineTo(roadCenter(1) - roadBottom * 0.62, h + 8);
+  ctx.closePath();
+  ctx.clip();
+  const shade = ctx.createLinearGradient(0, horizon, 0, h);
+  shade.addColorStop(0, "rgba(0,0,0,0.16)");
+  shade.addColorStop(0.48, "rgba(0,0,0,0.28)");
+  shade.addColorStop(1, "rgba(0,0,0,0.48)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  const motion = raceState.roadOffset * (1.08 + Math.min(1.8, Math.max(0, raceState.speed || 0) / 130));
+  const laneX = (lane, t) => roadCenter(t) + lane * laneWidth() * (0.34 + t * 1.08);
+  for (let lane = -1.5; lane <= 1.5; lane += 1) {
+    for (let i = 0; i < 9; i += 1) {
+      const y = horizon + (((i * 118 + motion) % (h - horizon + 160)) - 60);
+      if (y < horizon || y > h + 50) continue;
+      const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+      const x = laneX(lane, t);
+      ctx.globalAlpha = 0.38 + t * 0.28;
+      ctx.fillStyle = "rgba(244,251,248,0.88)";
+      roundRect(x - (2 + t * 4), y, 4 + t * 8, 16 + t * 36, 2 + t * 3);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.strokeStyle = side < 0 ? "rgba(255,91,107,0.72)" : "rgba(70,217,255,0.68)";
+    ctx.lineWidth = Math.max(4, w * 0.006);
+    ctx.beginPath();
+    ctx.moveTo(roadCenter(0) + side * roadTop * 0.82, horizon + 4);
+    ctx.lineTo(roadCenter(1) + side * roadBottom * 0.5, h + 8);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -3424,6 +3526,36 @@ function objectPos(lane, y) {
   };
 }
 
+function phoneRoadObjectPos(lane, distance) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const gap = Number(distance) - raceState.distance;
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const nearY = cameraMode === "cockpit" ? h * 0.83 : cameraMode === "hood" ? h * 0.9 : h * 0.87;
+  const farGap = 1680;
+  let depth;
+  if (gap >= 0) {
+    const raw = 1 - Math.max(0, Math.min(1, gap / farGap));
+    depth = 0.12 + Math.pow(raw, 0.62) * 0.86;
+  } else {
+    depth = 1 + Math.min(0.32, Math.abs(gap) / 520);
+  }
+  const clampedDepth = Math.max(0.09, Math.min(1.22, depth));
+  const y = gap >= 0
+    ? horizon + (nearY - horizon) * clampedDepth
+    : nearY + Math.min(h * 0.16, Math.abs(gap) * 0.16);
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const farPull = (1 - Math.min(1, clampedDepth)) * (1 - Math.min(1, clampedDepth));
+  const curveShift = turn * farPull * w * 0.28;
+  const laneSpread = laneWidth() * (0.54 + Math.min(1.08, clampedDepth) * 1.02);
+  return {
+    x: w / 2 + curveShift + lane * laneSpread,
+    y,
+    scale: Math.max(0.34, Math.min(1.26, 0.32 + clampedDepth * 0.84)),
+    depth: clampedDepth
+  };
+}
+
 function roadSpawnDistance(minRatio = 0.34, maxRatio = 0.44) {
   const h = Math.max(1, canvas.height || window.innerHeight || 720);
   const ratio = minRatio + Math.random() * Math.max(0.01, maxRatio - minRatio);
@@ -3455,6 +3587,7 @@ function roadObjectY(object) {
 }
 
 function roadObjectPos(lane, distance) {
+  if (phoneGraphicsActive()) return phoneRoadObjectPos(lane, distance);
   if (useWebGLRenderer()) return visibleRoadObjectPos(lane, distance);
   return objectPos(lane, screenYFromRoadDistance(distance));
 }
@@ -3513,8 +3646,8 @@ function drawObjects() {
   const phoneMode = phoneGraphicsActive();
   raceState.opponents.forEach((opponent) => {
     const gap = opponent.distance - raceState.distance;
-    if (gap < -55) return;
-    if (phoneMode && gap > 1180) return;
+    if (gap < (phoneMode ? -180 : -55)) return;
+    if (phoneMode && gap > 1250) return;
     const p = roadObjectPos(opponent.lane, opponent.distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
@@ -3913,7 +4046,7 @@ function drawPhoneAssetTexturePass(w, h, theme) {
   };
   ctx.save();
   if (phoneMode) clipPhoneRoad();
-  ctx.globalAlpha = phoneMode ? 0.18 : 0.13;
+  ctx.globalAlpha = phoneMode ? 0.08 : 0.13;
   const tile = texture.width || 256;
   ctx.translate(-((raceState.roadOffset * 0.28) % tile), -((raceState.roadOffset * 0.08) % tile));
   ctx.fillStyle = pattern;
@@ -4225,8 +4358,8 @@ function drawPhoneLaneRadar(w, h, theme) {
   ctx.fill();
   raceState.opponents.forEach((opponent) => {
     const gap = opponent.distance - raceState.distance;
-    if (gap < -160 || gap > 1180 || opponent.finished) return;
-    const px = startX + Math.max(0, Math.min(1, (gap + 160) / 1340)) * span;
+    if (gap < -220 || gap > 1680 || opponent.finished) return;
+    const px = startX + Math.max(0, Math.min(1, (gap + 220) / 1900)) * span;
     const py = midY + Math.max(-2.2, Math.min(2.2, opponent.lane)) * panelH * 0.085;
     ctx.globalAlpha = opponent.wrecked ? 0.45 : 0.9;
     ctx.fillStyle = opponent.wrecked ? "#ff5b6b" : (opponent.color || theme[2] || "#ffd166");
