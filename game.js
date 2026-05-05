@@ -2964,6 +2964,13 @@ function roadObjectPos(lane, distance) {
   return objectPos(lane, screenYFromRoadDistance(distance));
 }
 
+function roadContactSink(scale = 1, vehicleType = "car") {
+  if (vehicleType === "airplane" || vehicleType === "helicopter" || vehicleType === "boat") return 0;
+  const h = canvas.height || 720;
+  const heavy = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicleType);
+  return Math.max(12, Math.min(h * 0.12, h * (heavy ? 0.058 : 0.046) + scale * (heavy ? 24 : 20)));
+}
+
 function visibleRoadObjectPos(lane, distance) {
   const w = canvas.width;
   const h = canvas.height;
@@ -3005,9 +3012,10 @@ function drawObjects() {
     const p = roadObjectPos(opponent.lane, opponent.distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
+    const groundY = p.y + roadContactSink(p.scale, vehicle.type);
     draws.push({
-      y: p.y,
-      draw: () => drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0)
+      y: groundY,
+      draw: () => drawTrafficRearCar(p.x, groundY, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0)
     });
   });
   raceState.coinsOnRoad.forEach((coin) => {
@@ -3021,17 +3029,19 @@ function drawObjects() {
   raceState.rivals.forEach((rival) => {
     const p = roadObjectPos(rival.lane, ensureRoadDistance(rival));
     if (!isVehicleScreenYVisible(p.y)) return;
+    const groundY = p.y + roadContactSink(p.scale, rival.type || "car");
     draws.push({
-      y: p.y,
-      draw: () => drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0)
+      y: groundY,
+      draw: () => drawTrafficRearCar(p.x, groundY, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0)
     });
   });
   raceState.police.forEach((unit) => {
     const p = roadObjectPos(unit.lane, ensureRoadDistance(unit));
     if (!isVehicleScreenYVisible(p.y)) return;
+    const groundY = p.y + roadContactSink(p.scale, "car");
     draws.push({
-      y: p.y,
-      draw: () => drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0)
+      y: groundY,
+      draw: () => drawTrafficRearCar(p.x, groundY, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0)
     });
   });
   draws.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
@@ -3143,8 +3153,8 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
 function spriteContactRatio(vehicleType = "car") {
   if (vehicleType === "airplane" || vehicleType === "helicopter") return 0.68;
   if (vehicleType === "boat") return 0.78;
-  if (vehicleType === "snowmobile") return 0.9;
-  return 0.9;
+  if (vehicleType === "snowmobile") return 0.94;
+  return 0.955;
 }
 
 function spriteContactLift(h, vehicleType = "car") {
@@ -3263,9 +3273,9 @@ function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
   const tireW = w * (wide ? 0.18 : 0.15);
   const tireH = h * (wide ? 0.055 : 0.045);
   ctx.save();
-  ctx.globalAlpha = snow ? 0.56 : 0.88;
+  ctx.globalAlpha = snow ? 0.68 : 0.95;
   ctx.fillStyle = snow ? "rgba(244,251,248,0.72)" : "rgba(0,0,0,0.98)";
-  roundRect(-w * (wide ? 0.62 : 0.56), -h * 0.018, w * (wide ? 1.24 : 1.12), h * 0.046, Math.max(2, w * 0.02));
+  roundRect(-w * (wide ? 0.64 : 0.58), -h * 0.035, w * (wide ? 1.28 : 1.16), h * 0.072, Math.max(2, w * 0.025));
   ctx.fill();
   ctx.globalAlpha = 0.42;
   ctx.strokeStyle = snow ? "rgba(244,251,248,0.82)" : "rgba(244,251,248,0.16)";
@@ -3274,20 +3284,20 @@ function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
   ctx.moveTo(-w * 0.48, -h * 0.002);
   ctx.lineTo(w * 0.48, -h * 0.002);
   ctx.stroke();
-  ctx.globalAlpha = snow ? 0.44 : 0.72;
+  ctx.globalAlpha = snow ? 0.5 : 0.82;
   ctx.strokeStyle = snow ? "rgba(244,251,248,0.78)" : "rgba(0,0,0,0.78)";
-  ctx.lineWidth = Math.max(2, w * 0.028);
+  ctx.lineWidth = Math.max(3, w * 0.034);
   ctx.beginPath();
   ctx.moveTo(-w * tireSpread, tireH * 0.24);
   ctx.lineTo(-w * tireSpread, h * 0.26);
   ctx.moveTo(w * tireSpread, tireH * 0.24);
   ctx.lineTo(w * tireSpread, h * 0.26);
   ctx.stroke();
-  ctx.globalAlpha = 0.94;
+  ctx.globalAlpha = 1;
   ctx.fillStyle = snow ? "rgba(244,251,248,0.86)" : "rgba(0,0,0,0.98)";
   ctx.beginPath();
-  ctx.ellipse(-w * tireSpread, 0, tireW, tireH, 0, 0, Math.PI * 2);
-  ctx.ellipse(w * tireSpread, 0, tireW, tireH, 0, 0, Math.PI * 2);
+  ctx.ellipse(-w * tireSpread, -h * 0.006, tireW * 1.14, tireH * 1.28, 0, 0, Math.PI * 2);
+  ctx.ellipse(w * tireSpread, -h * 0.006, tireW * 1.14, tireH * 1.28, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 0.58;
   ctx.strokeStyle = snow ? "rgba(244,251,248,0.72)" : "rgba(1,2,2,0.76)";
@@ -4056,7 +4066,7 @@ function drawCar(w, h) {
     const anchor = webglRenderer.projectWorldRoadPoint(raceState.lane, 5.2);
     if (anchor && Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) {
       x = anchor.x;
-      y = Math.max(h * 0.78, Math.min(h * 0.93, anchor.y + h * 0.02));
+      y = Math.max(h * 0.78, Math.min(h * 0.96, anchor.y + h * 0.045));
       projectionScale = Math.max(0.92, Math.min(1.12, anchor.scale || 1));
     }
   }
@@ -4064,7 +4074,7 @@ function drawCar(w, h) {
   const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost * projectionScale;
   const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale;
   if (cameraMode === "chase") {
-    drawPlayerChaseCar(x, y + 18, carWidth * 1.26, carHeight * 1.02, vehicle.color, vehicle.type);
+    drawPlayerChaseCar(x, y + 18 + roadContactSink(projectionScale, vehicle.type), carWidth * 1.26, carHeight * 1.02, vehicle.color, vehicle.type);
   } else {
     drawVehicle(x, y, carWidth, carHeight, vehicle.color, true, false, vehicle.type);
   }

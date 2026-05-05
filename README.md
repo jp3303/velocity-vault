@@ -60,6 +60,7 @@ Real-world style visuals:
 - Phone and browser race views now generate rear/chase-view road vehicle sprites with the wheel bottoms used as the tire-contact anchor, so cars, trucks, semis, tractors, tanks, and snowmobiles sit on the pavement instead of reading like overhead stickers.
 - Vehicle tire anchors are now pushed to the bottom of the generated sprite, and every grounded vehicle draws a hard pavement clamp directly across the tire line so there is no transparent gap that can read as floating.
 - The player chase camera now places the car lower on the road plane and draws stronger vertical tire contact streaks, so the vehicle reads as planted on the foreground pavement instead of hovering over it.
+- Grounded vehicle sprites now use the true generated wheel line as their contact anchor, then sink that anchor into the road by vehicle weight. This makes tires overlap the asphalt instead of hovering just above it.
 - Browser and phone vehicles now get heavier road grounding with lowered sprite anchoring, black tire sidewall pins, hard road-contact pads, and WebGL ground shadows under every moving vehicle.
 - Traffic, police, opponents, and route markers now use road-distance projection instead of raw screen-height movement, so vehicles enter from the road horizon and stay locked to the pavement instead of falling down from the sky.
 - Vehicle drawing now uses the tire/contact line as the screen anchor, so generated sprites grow upward from the pavement instead of hovering around a center point.
