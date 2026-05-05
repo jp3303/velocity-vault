@@ -2913,11 +2913,26 @@ function roadObjectY(object) {
 }
 
 function roadObjectPos(lane, distance) {
-  if (useWebGLRenderer() && webglRenderer && typeof webglRenderer.projectRoadPoint === "function") {
-    const projected = webglRenderer.projectRoadPoint(lane, distance);
-    if (projected && Number.isFinite(projected.x) && Number.isFinite(projected.y)) return projected;
-  }
+  if (useWebGLRenderer()) return visibleRoadObjectPos(lane, distance);
   return objectPos(lane, screenYFromRoadDistance(distance));
+}
+
+function visibleRoadObjectPos(lane, distance) {
+  const w = canvas.width;
+  const h = canvas.height;
+  const gap = Math.max(0, Number(distance) - raceState.distance);
+  const horizon = cameraMode === "cockpit" ? h * 0.34 : cameraMode === "hood" ? h * 0.36 : h * 0.35;
+  const nearY = cameraMode === "cockpit" ? h * 0.78 : cameraMode === "hood" ? h * 0.84 : h * 0.8;
+  const depth = Math.max(0.18, Math.min(1, 1 / (1 + gap / 88)));
+  const y = horizon + (nearY - horizon) * depth;
+  const curveShift = (raceState.roadCurve || 0) * (1 - depth) * w * 0.16;
+  const laneSpread = laneWidth() * (0.32 + depth * 1.08);
+  return {
+    x: w / 2 + curveShift + lane * laneSpread,
+    y,
+    scale: 0.36 + depth * 0.78,
+    depth
+  };
 }
 
 function isVehicleScreenYVisible(y) {
@@ -2925,31 +2940,45 @@ function isVehicleScreenYVisible(y) {
 }
 
 function drawObjects() {
+  const draws = [];
   raceState.opponents.forEach((opponent) => {
     const y = screenYFromRoadDistance(opponent.distance);
     if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(opponent.lane, opponent.distance);
     const vehicle = vehicleById(opponent.vehicleId);
-    drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0);
+    draws.push({
+      y: p.y,
+      draw: () => drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0)
+    });
   });
   raceState.coinsOnRoad.forEach((coin) => {
     const y = roadObjectY(coin);
     if (y < canvas.height * 0.32 || y > canvas.height * 1.08) return;
     const p = roadObjectPos(coin.lane, ensureRoadDistance(coin));
-    drawRouteMarker(p.x, p.y, (coin.r * 2.8) * p.scale, coin.pulse);
+    draws.push({
+      y: p.y,
+      draw: () => drawRouteMarker(p.x, p.y, (coin.r * 2.8) * p.scale, coin.pulse)
+    });
   });
   raceState.rivals.forEach((rival) => {
     const y = roadObjectY(rival);
     if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(rival.lane, ensureRoadDistance(rival));
-    drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0);
+    draws.push({
+      y: p.y,
+      draw: () => drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0)
+    });
   });
   raceState.police.forEach((unit) => {
     const y = roadObjectY(unit);
     if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(unit.lane, ensureRoadDistance(unit));
-    drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0);
+    draws.push({
+      y: p.y,
+      draw: () => drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0)
+    });
   });
+  draws.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
 }
 
 function drawRouteMarker(x, y, size, pulse) {
@@ -3914,16 +3943,8 @@ function drawCar(w, h) {
   if (cameraMode === "cockpit") return;
   const vehicle = selectedVehicle();
   let x = w / 2 + raceState.lane * laneWidth();
-  let y = cameraMode === "hood" ? h * 0.99 : h * 0.82;
+  let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.76 : h * 0.82;
   let projectionScale = 1;
-  if (cameraMode === "chase" && useWebGLRenderer() && webglRenderer && typeof webglRenderer.projectWorldRoadPoint === "function") {
-    const projected = webglRenderer.projectWorldRoadPoint(raceState.lane, 5.2);
-    if (projected && Number.isFinite(projected.x) && Number.isFinite(projected.y)) {
-      x = projected.x;
-      y = Math.min(h * 0.94, Math.max(h * 0.64, projected.y));
-      projectionScale = Math.max(0.92, Math.min(1.18, projected.scale));
-    }
-  }
   const sizeBoost = vehicle.type === "semi" ? 1.28 : vehicle.type === "monster" || vehicle.type === "tank" ? 1.18 : vehicle.type === "tractor" ? 1.08 : vehicle.type === "f1" || vehicle.type === "snowmobile" ? 0.9 : 1;
   const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost * projectionScale;
   const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale;
