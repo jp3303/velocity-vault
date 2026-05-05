@@ -1776,6 +1776,7 @@ function drawFrame() {
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
+    drawWebGLFlatPavementPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
       drawCar(w, h);
@@ -1886,6 +1887,68 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
     ctx.fillStyle = pavementRush;
     ctx.fillRect(0, h * 0.55, w, h * 0.45);
     ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
+function drawWebGLFlatPavementPass(w, h, theme) {
+  const floorY = cameraMode === "cockpit" ? h * 0.46 : cameraMode === "hood" ? h * 0.48 : h * 0.5;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.08, h);
+  ctx.lineTo(w * 0.29, floorY);
+  ctx.lineTo(w * 0.71, floorY);
+  ctx.lineTo(w * 1.08, h);
+  ctx.closePath();
+  ctx.clip();
+
+  const shade = ctx.createLinearGradient(0, floorY, 0, h);
+  shade.addColorStop(0, "rgba(18,24,22,0.46)");
+  shade.addColorStop(0.45, "rgba(15,19,18,0.76)");
+  shade.addColorStop(1, "rgba(6,8,8,0.92)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, floorY, w, h - floorY);
+
+  const speed = Math.max(0, Math.abs(raceState.speed || 0));
+  const offset = raceState.roadOffset || 0;
+  for (let i = 0; i < 28; i += 1) {
+    const y = floorY + (((i * 30 + offset * (0.48 + speed / 520)) % (h - floorY + 84)) - 34);
+    if (y < floorY || y > h) continue;
+    const t = (y - floorY) / Math.max(1, h - floorY);
+    ctx.globalAlpha = 0.16 + t * 0.34;
+    ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.22)" : `${theme[1]}30`;
+    ctx.lineWidth = 1 + t * 5;
+    ctx.beginPath();
+    ctx.moveTo(w * (0.3 - t * 0.34), y);
+    ctx.quadraticCurveTo(w * 0.5, y + 3 + t * 10, w * (0.7 + t * 0.34), y);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.52;
+  ctx.strokeStyle = "rgba(2,4,4,0.76)";
+  ctx.lineWidth = Math.max(2, w * 0.006);
+  for (let side = -1; side <= 1; side += 2) {
+    const x = w * 0.5 + side * laneWidth() * 0.25;
+    ctx.beginPath();
+    ctx.moveTo(x, floorY + h * 0.05);
+    ctx.bezierCurveTo(
+      x + side * w * 0.02,
+      floorY + h * 0.12,
+      x + side * w * 0.06,
+      h * 0.9,
+      x + side * w * 0.1,
+      h
+    );
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 0.78;
+  ctx.strokeStyle = "rgba(255,209,102,0.42)";
+  ctx.lineWidth = Math.max(2, w * 0.005);
+  for (let side = -1; side <= 1; side += 2) {
+    ctx.beginPath();
+    ctx.moveTo(w * (0.31 + side * 0.02), floorY + 6);
+    ctx.lineTo(w * (0.08 + side * 0.12), h);
+    ctx.stroke();
   }
   ctx.restore();
 }

@@ -131,14 +131,14 @@
       const shake = data.raceState.cameraShake || 0;
       const curve = data.raceState.roadCurve || 0;
       const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
-      let eye = [laneX * 0.65 - curve * 1.2 + jitter, 3.2, -9.8];
-      let target = [laneX * 0.22 + curve * 4.2, 0.85, 18];
+      let eye = [laneX * 0.58 - curve * 0.9 + jitter, 2.1, -14.6];
+      let target = [laneX * 0.16 + curve * 3.4, 1.96, 50];
       if (data.cameraMode === "hood") {
-        eye = [laneX * 0.42 - curve * 0.8 + jitter, 2.1, -4.2];
-        target = [laneX * 0.15 + curve * 4.6, 0.75, 26];
+        eye = [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
+        target = [laneX * 0.1 + curve * 3.6, 1.38, 52];
       } else if (data.cameraMode === "cockpit") {
-        eye = [laneX * 0.25 - curve * 0.65 + jitter, 2.25, -2.1];
-        target = [laneX * 0.08 + curve * 4.8, 0.85, 32];
+        eye = [laneX * 0.2 - curve * 0.5 + jitter, 1.58, -3.8];
+        target = [laneX * 0.05 + curve * 3.8, 1.52, 56];
       }
       const view = lookAt(eye, target, [0, 1, 0]);
       const proj = perspective(Math.PI / (data.cameraMode === "cockpit" ? 2.25 : 2.55), data.width / Math.max(1, data.height), 0.1, 220);
