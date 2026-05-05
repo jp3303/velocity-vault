@@ -1762,6 +1762,7 @@ function drawFrame() {
     drawRealisticDrivingPass(w, h, theme);
     drawPhoneAssetTexturePass(w, h, theme);
     drawRoadWeightPass(w, h, theme);
+    drawRoadMotionPass(w, h, theme);
     drawPhoneUltraGraphicsPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
@@ -1795,6 +1796,7 @@ function drawFrame() {
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
   drawRoadWeightPass(w, h, theme);
+  drawRoadMotionPass(w, h, theme);
   drawPhoneUltraGraphicsPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
@@ -3075,6 +3077,82 @@ function drawRoadWeightPass(w, h, theme) {
     ctx.stroke();
   }
   ctx.restore();
+}
+
+function drawRoadMotionPass(w, h, theme) {
+  const speed = Math.max(0, Math.abs(raceState.speed || 0));
+  if (speed < 3 && raceState.active) return;
+  const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
+  const motion = raceState.roadOffset * (1.35 + Math.min(1.9, speed / 130));
+  const loop = (value, span) => ((value % span) + span) % span;
+  const roadX = (lane, t) => w * 0.5 + lane * laneWidth() * (0.28 + t * 1.18);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
+  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.closePath();
+  ctx.clip();
+
+  const bandAlpha = Math.min(0.42, 0.12 + speed / 520);
+  for (let i = 0; i < 30; i += 1) {
+    const span = h - horizon + 180;
+    const y = horizon - 90 + loop(i * 58 + motion * 1.18, span);
+    if (y < horizon || y > h + 30) continue;
+    const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
+    const roadHalf = roadTop * 0.62 + (roadBottom * 0.63 - roadTop * 0.62) * t;
+    ctx.globalAlpha = bandAlpha * (0.3 + t * 0.9);
+    ctx.strokeStyle = i % 2 ? "rgba(0,0,0,0.78)" : `${theme[1]}55`;
+    ctx.lineWidth = 1 + t * 7;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5 - roadHalf, y);
+    ctx.lineTo(w * 0.5 + roadHalf, y + 3 + t * 14);
+    ctx.stroke();
+  }
+
+  const dashAlpha = Math.min(0.9, 0.4 + speed / 310);
+  for (let lane = -1.5; lane <= 1.5; lane += 1) {
+    for (let i = 0; i < 11; i += 1) {
+      const span = h - horizon + 260;
+      const y = horizon - 130 + loop(i * 128 + motion * 1.72, span);
+      if (y < horizon || y > h + 70) continue;
+      const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
+      const dashW = 2 + t * 11;
+      const dashH = 28 + t * 96;
+      const x = roadX(lane, t);
+      const dash = ctx.createLinearGradient(x, y, x, y + dashH);
+      dash.addColorStop(0, "rgba(244,251,248,0)");
+      dash.addColorStop(0.28, "rgba(244,251,248,0.78)");
+      dash.addColorStop(1, "rgba(244,251,248,0.08)");
+      ctx.globalAlpha = dashAlpha * (0.38 + t * 0.64);
+      ctx.fillStyle = dash;
+      roundRect(x - dashW / 2, y, dashW, dashH, dashW / 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.globalAlpha = Math.min(0.5, speed / 360);
+  ctx.strokeStyle = "rgba(244,251,248,0.5)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 26; i += 1) {
+    const span = h - horizon + 220;
+    const y = horizon - 90 + loop(i * 46 + motion * 2.1, span);
+    if (y < h * 0.5) continue;
+    const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
+    const side = i % 2 ? -1 : 1;
+    const x = w * 0.5 + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + side * w * (0.04 + t * 0.1), y + h * (0.04 + t * 0.12));
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function drawPhoneUltraGraphicsPass(w, h, theme) {

@@ -256,7 +256,7 @@
 
     function wrapZ(index, spacing, offset, speed = 0.07) {
       const total = spacing * 22;
-      let z = index * spacing - ((offset * speed) % total);
+      let z = index * spacing - ((offset * speed * 2.35) % total);
       while (z < 0) z += total;
       return z + 8;
     }
