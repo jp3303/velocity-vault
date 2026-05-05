@@ -436,6 +436,225 @@
     drawDamage(ctx, w, h, damage);
   }
 
+  function drawRearWheel(ctx, x, groundY, rx, ry, accent, heavy = false) {
+    ctx.save();
+    const cy = groundY - ry;
+    ctx.fillStyle = "rgba(2,4,4,0.98)";
+    ctx.beginPath();
+    ctx.ellipse(x, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.22)";
+    ctx.lineWidth = Math.max(2, rx * 0.13);
+    ctx.stroke();
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1, rx * 0.12);
+    for (let i = -1; i <= 1; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(x - rx * 0.62, cy + i * ry * 0.26);
+      ctx.lineTo(x + rx * 0.62, cy + i * ry * 0.26);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = heavy ? 0.52 : 0.34;
+    ctx.fillStyle = "rgba(0,0,0,0.92)";
+    ctx.beginPath();
+    ctx.ellipse(x, groundY + ry * 0.08, rx * 1.12, ry * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
+    const paint = police ? "#f2f5f2" : color;
+    const accent = police ? "rgba(70,217,255,0.56)" : rgba(color, 0.58);
+    const semi = type === "semi";
+    const tractor = type === "tractor";
+    const tank = type === "tank";
+    const monster = type === "monster";
+    const truck = type === "truck";
+    const f1 = type === "f1" || type === "prototype";
+    const snow = type === "snowmobile";
+    const wide = semi || tractor || tank || monster || truck;
+    const groundY = h * (snow ? 0.88 : 0.9);
+
+    ctx.save();
+    const contact = ctx.createRadialGradient(w * 0.5, groundY - h * 0.025, w * 0.07, w * 0.5, groundY, w * 0.55);
+    contact.addColorStop(0, snow ? "rgba(244,251,248,0.42)" : "rgba(0,0,0,0.72)");
+    contact.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = contact;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, groundY, w * (wide ? 0.52 : 0.44), h * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (snow) {
+      ctx.strokeStyle = "rgba(244,251,248,0.82)";
+      ctx.lineWidth = Math.max(7, w * 0.036);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(w * 0.26, groundY);
+      ctx.lineTo(w * 0.43, groundY - h * 0.02);
+      ctx.moveTo(w * 0.57, groundY - h * 0.02);
+      ctx.lineTo(w * 0.74, groundY);
+      ctx.stroke();
+    } else if (tank) {
+      ctx.fillStyle = "rgba(1,2,2,0.98)";
+      roundRect(ctx, w * 0.11, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
+      ctx.fill();
+      roundRect(ctx, w * 0.67, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.16)";
+      ctx.lineWidth = Math.max(2, w * 0.012);
+      for (let i = 0; i < 7; i += 1) {
+        const y = h * 0.49 + i * h * 0.052;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.14, y);
+        ctx.lineTo(w * 0.3, y);
+        ctx.moveTo(w * 0.7, y);
+        ctx.lineTo(w * 0.86, y);
+        ctx.stroke();
+      }
+    } else {
+      const rx = w * (monster ? 0.105 : semi || tractor ? 0.088 : f1 ? 0.074 : 0.082);
+      const ry = h * (monster ? 0.155 : semi || tractor ? 0.14 : f1 ? 0.09 : 0.125);
+      const left = w * (wide ? 0.2 : 0.24);
+      const right = w - left;
+      drawRearWheel(ctx, left, groundY, rx, ry, accent, wide);
+      drawRearWheel(ctx, right, groundY, rx, ry, accent, wide);
+      if (semi || tractor || truck) {
+        drawRearWheel(ctx, left + w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, "rgba(255,209,102,0.28)", true);
+        drawRearWheel(ctx, right - w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, "rgba(255,209,102,0.28)", true);
+      }
+    }
+
+    const body = ctx.createLinearGradient(w * 0.18, h * 0.14, w * 0.82, groundY);
+    body.addColorStop(0, shade(paint, 54));
+    body.addColorStop(0.34, paint);
+    body.addColorStop(0.7, shade(paint, -30));
+    body.addColorStop(1, shade(paint, -62));
+    ctx.fillStyle = body;
+
+    if (f1) {
+      ctx.fillStyle = shade(paint, -38);
+      roundRect(ctx, w * 0.12, h * 0.73, w * 0.76, h * 0.075, 9);
+      ctx.fill();
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.28);
+      ctx.lineTo(w * 0.68, h * 0.5);
+      ctx.lineTo(w * 0.61, h * 0.82);
+      ctx.lineTo(w * 0.39, h * 0.82);
+      ctx.lineTo(w * 0.32, h * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(4,6,6,0.92)";
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.53, w * 0.12, h * 0.09, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (semi) {
+      roundRect(ctx, w * 0.19, h * 0.33, w * 0.62, h * 0.43, 18);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, 18);
+      roundRect(ctx, w * 0.24, h * 0.17, w * 0.52, h * 0.26, 16);
+      ctx.fill();
+      ctx.fillStyle = "rgba(4,7,8,0.9)";
+      roundRect(ctx, w * 0.31, h * 0.22, w * 0.38, h * 0.12, 8);
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.28)";
+      for (let i = 0; i < 3; i += 1) {
+        roundRect(ctx, w * 0.27, h * (0.48 + i * 0.1), w * 0.46, h * 0.026, 4);
+        ctx.fill();
+      }
+    } else if (tractor) {
+      roundRect(ctx, w * 0.3, h * 0.25, w * 0.4, h * 0.24, 14);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, -28);
+      roundRect(ctx, w * 0.23, h * 0.48, w * 0.54, h * 0.26, 12);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,209,102,0.58)";
+      ctx.lineWidth = Math.max(4, w * 0.022);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.23, h * 0.77);
+      ctx.lineTo(w * 0.77, h * 0.77);
+      ctx.stroke();
+    } else if (tank) {
+      roundRect(ctx, w * 0.24, h * 0.32, w * 0.52, h * 0.46, 9);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, -34);
+      roundRect(ctx, w * 0.34, h * 0.38, w * 0.32, h * 0.2, 8);
+      ctx.fill();
+      ctx.fillRect(w * 0.47, h * 0.18, w * 0.06, h * 0.26);
+    } else {
+      const topHalf = w * (truck || monster ? 0.24 : 0.2);
+      const shoulder = w * (truck || monster ? 0.38 : 0.34);
+      const lower = w * (truck || monster ? 0.43 : 0.37);
+      const top = h * (snow ? 0.3 : 0.18);
+      const belly = groundY - h * 0.055;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5 - topHalf, top);
+      ctx.lineTo(w * 0.5 + topHalf, top);
+      ctx.quadraticCurveTo(w * 0.5 + shoulder, h * 0.26, w * 0.5 + shoulder, h * 0.48);
+      ctx.lineTo(w * 0.5 + lower, belly);
+      ctx.quadraticCurveTo(w * 0.5 + lower * 0.7, groundY - h * 0.015, w * 0.5, groundY - h * 0.012);
+      ctx.quadraticCurveTo(w * 0.5 - lower * 0.7, groundY - h * 0.015, w * 0.5 - lower, belly);
+      ctx.lineTo(w * 0.5 - shoulder, h * 0.48);
+      ctx.quadraticCurveTo(w * 0.5 - shoulder, h * 0.26, w * 0.5 - topHalf, top);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(5,8,7,0.9)";
+    roundRect(ctx, w * 0.31, h * (semi ? 0.46 : 0.32), w * 0.38, h * 0.13, 10);
+    ctx.fill();
+    if (!f1 && !semi && !tractor && !tank) {
+      roundRect(ctx, w * 0.27, h * 0.55, w * 0.46, h * 0.19, 12);
+      ctx.fill();
+    }
+    ctx.fillStyle = "rgba(222,249,255,0.24)";
+    roundRect(ctx, w * 0.34, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
+    ctx.fill();
+    roundRect(ctx, w * 0.52, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
+    ctx.fill();
+
+    if (police) {
+      ctx.fillStyle = "rgba(5,8,7,0.88)";
+      roundRect(ctx, w * 0.29, h * 0.53, w * 0.42, h * 0.052, 5);
+      ctx.fill();
+      ctx.fillStyle = "#f4fbf8";
+      ctx.font = `900 ${Math.max(16, w * 0.07)}px system-ui`;
+      ctx.textAlign = "center";
+      ctx.fillText("POLICE", w * 0.5, h * 0.65);
+      ctx.fillStyle = "#ff3348";
+      roundRect(ctx, w * 0.4, h * 0.27, w * 0.08, h * 0.034, 4);
+      ctx.fill();
+      ctx.fillStyle = "#46d9ff";
+      roundRect(ctx, w * 0.52, h * 0.27, w * 0.08, h * 0.034, 4);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#ff3348";
+    roundRect(ctx, w * 0.28, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.55, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.68)";
+    roundRect(ctx, w * 0.43, groundY - h * 0.085, w * 0.14, h * 0.028, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(5,8,7,0.46)";
+    ctx.lineWidth = Math.max(2, w * 0.016);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.2);
+    ctx.lineTo(w * 0.5, groundY - h * 0.08);
+    ctx.stroke();
+
+    drawPaintGrain(ctx, w, h, paint);
+    drawDamage(ctx, w, h, damage);
+    ctx.restore();
+  }
+
   function getVehicleSprite(type = "car", color = "#46d9ff", options = {}) {
     const police = Boolean(options.police);
     const damage = Math.max(0, Math.min(100, Number(options.damage) || 0));
@@ -447,19 +666,18 @@
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
 
-    const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
-    shadow.addColorStop(0, "rgba(0,0,0,0.52)");
-    shadow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = shadow;
-    ctx.beginPath();
-    ctx.ellipse(192, 422, 168, 56, 0, 0, Math.PI * 2);
-    ctx.fill();
-    drawSpriteContact(ctx, 384, 552, type);
-
-    if (["boat", "snowmobile", "airplane", "helicopter"].includes(type)) {
+    if (["boat", "airplane", "helicopter"].includes(type)) {
+      const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
+      shadow.addColorStop(0, "rgba(0,0,0,0.52)");
+      shadow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = shadow;
+      ctx.beginPath();
+      ctx.ellipse(192, 422, 168, 56, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawSpriteContact(ctx, 384, 552, type);
       drawAirOrWater(ctx, 384, 552, type, police ? "#f4fbf8" : color, damage);
     } else {
-      drawCarLike(ctx, 384, 552, type, color, police, damage);
+      drawRearGroundVehicle(ctx, 384, 552, type, color, police, damage);
     }
 
     spriteCache.set(key, canvas);

@@ -2921,8 +2921,8 @@ function visibleRoadObjectPos(lane, distance) {
   const w = canvas.width;
   const h = canvas.height;
   const gap = Math.max(0, Number(distance) - raceState.distance);
-  const horizon = cameraMode === "cockpit" ? h * 0.34 : cameraMode === "hood" ? h * 0.36 : h * 0.35;
-  const nearY = cameraMode === "cockpit" ? h * 0.78 : cameraMode === "hood" ? h * 0.84 : h * 0.8;
+  const horizon = cameraMode === "cockpit" ? h * 0.44 : cameraMode === "hood" ? h * 0.48 : h * 0.5;
+  const nearY = cameraMode === "cockpit" ? h * 0.8 : cameraMode === "hood" ? h * 0.86 : h * 0.82;
   const depth = Math.max(0.18, Math.min(1, 1 / (1 + gap / 88)));
   const y = horizon + (nearY - horizon) * depth;
   const curveShift = (raceState.roadCurve || 0) * (1 - depth) * w * 0.16;
@@ -2936,15 +2936,14 @@ function visibleRoadObjectPos(lane, distance) {
 }
 
 function isVehicleScreenYVisible(y) {
-  return y >= canvas.height * 0.32 && y <= canvas.height * 1.08;
+  return y >= canvas.height * 0.44 && y <= canvas.height * 1.08;
 }
 
 function drawObjects() {
   const draws = [];
   raceState.opponents.forEach((opponent) => {
-    const y = screenYFromRoadDistance(opponent.distance);
-    if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(opponent.lane, opponent.distance);
+    if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
     draws.push({
       y: p.y,
@@ -2952,27 +2951,24 @@ function drawObjects() {
     });
   });
   raceState.coinsOnRoad.forEach((coin) => {
-    const y = roadObjectY(coin);
-    if (y < canvas.height * 0.32 || y > canvas.height * 1.08) return;
     const p = roadObjectPos(coin.lane, ensureRoadDistance(coin));
+    if (!isVehicleScreenYVisible(p.y)) return;
     draws.push({
       y: p.y,
       draw: () => drawRouteMarker(p.x, p.y, (coin.r * 2.8) * p.scale, coin.pulse)
     });
   });
   raceState.rivals.forEach((rival) => {
-    const y = roadObjectY(rival);
-    if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(rival.lane, ensureRoadDistance(rival));
+    if (!isVehicleScreenYVisible(p.y)) return;
     draws.push({
       y: p.y,
       draw: () => drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0)
     });
   });
   raceState.police.forEach((unit) => {
-    const y = roadObjectY(unit);
-    if (!isVehicleScreenYVisible(y)) return;
     const p = roadObjectPos(unit.lane, ensureRoadDistance(unit));
+    if (!isVehicleScreenYVisible(p.y)) return;
     draws.push({
       y: p.y,
       draw: () => drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0)
@@ -3087,7 +3083,8 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
 function spriteContactRatio(vehicleType = "car") {
   if (vehicleType === "airplane" || vehicleType === "helicopter") return 0.68;
   if (vehicleType === "boat") return 0.78;
-  return 0.84;
+  if (vehicleType === "snowmobile") return 0.88;
+  return 0.9;
 }
 
 function spriteContactLift(h, vehicleType = "car") {
@@ -3196,6 +3193,35 @@ function drawGroundPinnedVehicleContact(w, h, vehicleType = "car", speedFactor =
   ctx.restore();
 }
 
+function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
+  const air = ["airplane", "helicopter"].includes(vehicleType);
+  const water = vehicleType === "boat";
+  if (air || water) return;
+  const wide = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicleType);
+  const snow = vehicleType === "snowmobile";
+  const tireSpread = wide ? 0.42 : 0.36;
+  const tireW = w * (wide ? 0.18 : 0.15);
+  const tireH = h * (wide ? 0.055 : 0.045);
+  ctx.save();
+  ctx.globalAlpha = 0.94;
+  ctx.fillStyle = snow ? "rgba(244,251,248,0.86)" : "rgba(0,0,0,0.98)";
+  ctx.beginPath();
+  ctx.ellipse(-w * tireSpread, 0, tireW, tireH, 0, 0, Math.PI * 2);
+  ctx.ellipse(w * tireSpread, 0, tireW, tireH, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.58;
+  ctx.strokeStyle = snow ? "rgba(244,251,248,0.72)" : "rgba(1,2,2,0.76)";
+  ctx.lineWidth = Math.max(1.4, w * 0.02);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-w * tireSpread, tireH * 0.35);
+  ctx.lineTo(-w * (tireSpread + 0.18), h * 0.16);
+  ctx.moveTo(w * tireSpread, tireH * 0.35);
+  ctx.lineTo(w * (tireSpread + 0.18), h * 0.16);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = false, damage = 0, contactAnchored = false) {
   const assets = window.VelocityPhoneAssets;
   if (!assets || !assets.ready || typeof assets.getVehicleSprite !== "function") return false;
@@ -3214,6 +3240,7 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
     drawGroundPinnedVehicleContact(w, h, type, speedFactor);
     ctx.drawImage(sprite, -spriteW / 2, -spriteH * contactRatio, spriteW, spriteH);
     drawGroundPinnedVehicleContact(w * 0.72, h * 0.72, type, speedFactor);
+    drawVisibleTireRoadLock(w, h, type);
   } else {
     drawVehicleGroundContact(w, h, type, speedFactor);
     ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.3, spriteW, spriteH);
