@@ -346,6 +346,7 @@
       const accent = hexToRgba(theme[1], 1);
       const accent2 = hexToRgba(theme[2], 1);
       const turn = roadCurveValue(data);
+      const phoneFrame = data.width <= 940 || data.height <= 540;
       const roadColors = {
         snow: [0.34, 0.42, 0.41, 1],
         harbor: [0.12, 0.25, 0.3, 1],
@@ -371,10 +372,16 @@
         rainforest: [0.03, 0.18, 0.1, 1],
         europe: [0.07, 0.18, 0.16, 1]
       };
-      const roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
-      const groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
-      const roadMark = [0.78, 0.82, 0.78, 1];
-      const roadMarkDim = [0.48, 0.52, 0.5, 1];
+      let roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
+      let groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
+      let roadMark = [0.78, 0.82, 0.78, 1];
+      let roadMarkDim = [0.48, 0.52, 0.5, 1];
+      if (phoneFrame) {
+        roadColor = shade(roadColor, place === "snow" ? 0.56 : 0.38);
+        groundColor = shade(groundColor, 0.34);
+        roadMark = [0.34, 0.37, 0.36, 1];
+        roadMarkDim = [0.18, 0.2, 0.2, 1];
+      }
       quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColor);
       quad([roadWorldX(data, -5.8, 0), 0, 0], [roadWorldX(data, 5.8, 0), 0, 0], [roadWorldX(data, 7.4, 170), 0, 170], [roadWorldX(data, -7.4, 170), 0, 170], roadColor);
       for (let segment = 0; segment < 12; segment += 1) {
@@ -384,7 +391,7 @@
         const t1 = z1 / 170;
         const half0 = 5.8 + t0 * 1.6;
         const half1 = 5.8 + t1 * 1.6;
-        const tone = segment % 2 ? 0.98 : 1.06;
+        const tone = phoneFrame ? (segment % 2 ? 0.82 : 0.92) : (segment % 2 ? 0.98 : 1.06);
         quad(
           [roadWorldX(data, -half0, z0), 0.006, z0],
           [roadWorldX(data, half0, z0), 0.006, z0],
@@ -398,7 +405,7 @@
       for (let i = 0; i < 42; i += 1) {
         const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
         const x = ((i * 1.37) % 10.6) - 5.3;
-        const patch = i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18);
+        const patch = phoneFrame ? (i % 3 ? shade(roadColor, 0.72) : shade(roadColor, 0.98)) : (i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18));
         box(roadWorldX(data, x, z), 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
       }
       for (let i = 0; i < 36; i += 1) {
@@ -676,6 +683,7 @@
       vertices = [];
       const theme = data.selectedRace.theme || ["#09100f", "#46d9ff", "#ffd166"];
       const clear = hexToRgba(theme[0], 1);
+      const phoneFrame = data.width <= 940 || data.height <= 540;
       gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
       gl.clearColor(clear[0] * 0.72, clear[1] * 0.72, clear[2] * 0.72, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -690,7 +698,7 @@
       };
 
       addRoad(data);
-      addScenery(data);
+      if (!phoneFrame) addScenery(data);
 
       gl.useProgram(program);
       gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));

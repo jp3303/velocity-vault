@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 48;
+const starterGarageVersion = 49;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -2274,12 +2274,12 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.beginPath();
       ctx.ellipse(x, baseY + 8, 48 + (i % 3) * 12, 12 + (i % 4) * 3, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(244,251,248,0.18)";
-      ctx.beginPath();
-      ctx.moveTo(x - 18, baseY - 4);
-      ctx.lineTo(x, baseY - 28 - (i % 3) * 6);
-      ctx.lineTo(x + 18, baseY - 4);
-      ctx.stroke();
+      ctx.fillStyle = "rgba(244,251,248,0.16)";
+      roundRect(x - 24, baseY - 5, 48, 5, 2);
+      ctx.fill();
+      ctx.fillStyle = `${theme[1]}33`;
+      roundRect(x - 8, baseY - 24 - (i % 3) * 4, 16, 20 + (i % 3) * 4, 2);
+      ctx.fill();
     } else if (place === "desert" || place === "canyon") {
       ctx.fillStyle = "rgba(132,72,38,0.58)";
       ctx.beginPath();
@@ -2288,14 +2288,12 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.closePath();
       ctx.fill();
     } else if (place === "snow" || place === "alpine" || place === "europe") {
-      ctx.fillStyle = "rgba(150,174,174,0.46)";
+      ctx.fillStyle = "rgba(150,174,174,0.26)";
       ctx.beginPath();
-      ctx.moveTo(x - 72, baseY + 12);
-      ctx.lineTo(x - 10, baseY - 70 - (i % 3) * 18);
-      ctx.lineTo(x + 68, baseY + 12);
-      ctx.closePath();
+      ctx.ellipse(x, baseY + 8, 68 + (i % 4) * 12, 20 + (i % 3) * 5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "rgba(244,251,248,0.42)";
+      roundRect(x - 26, baseY - 3 - (i % 2) * 4, 52, 5, 3);
       ctx.fill();
     } else {
       ctx.fillStyle = place === "farm" ? "rgba(60,92,42,0.58)" : "rgba(24,78,52,0.55)";
@@ -2379,6 +2377,32 @@ function drawPhoneConsolePostPass(w, h, theme) {
 }
 
 function drawWebGLFlatPavementPass(w, h, theme) {
+  if (phoneGraphicsActive()) {
+    const floorY = cameraMode === "cockpit" ? h * 0.52 : cameraMode === "hood" ? h * 0.56 : h * 0.58;
+    const speed = Math.max(0, Math.abs(raceState.speed || 0));
+    const offset = raceState.roadOffset || 0;
+    ctx.save();
+    const shade = ctx.createLinearGradient(0, floorY, 0, h);
+    shade.addColorStop(0, "rgba(0,0,0,0)");
+    shade.addColorStop(0.35, "rgba(5,7,7,0.42)");
+    shade.addColorStop(1, "rgba(0,0,0,0.72)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, floorY, w, h - floorY);
+    for (let i = 0; i < 16; i += 1) {
+      const y = floorY + (((i * 34 + offset * (0.34 + speed / 760)) % (h - floorY + 60)) - 20);
+      if (y < floorY || y > h) continue;
+      const t = (y - floorY) / Math.max(1, h - floorY);
+      ctx.globalAlpha = 0.08 + t * 0.16;
+      ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.12)" : "rgba(2,3,3,0.48)";
+      ctx.lineWidth = 1 + t * 3;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.18, y);
+      ctx.lineTo(w * 0.82, y + 1);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   const floorY = cameraMode === "cockpit" ? h * 0.36 : cameraMode === "hood" ? h * 0.39 : h * 0.42;
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const speed = Math.max(0, Math.abs(raceState.speed || 0));
@@ -5395,7 +5419,11 @@ function bindHold(button, key) {
 }
 
 function bindMobileControl(button) {
-  if (button.closest && button.closest(".drive-stick")) return;
+  const stickButton = button.closest && button.closest(".drive-stick") ? button.closest(".drive-stick") : null;
+  if (stickButton) {
+    bindDriveStickButtonFallback(button, stickButton);
+    return;
+  }
   const control = button.dataset.control;
   const start = (event) => {
     if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
@@ -5440,6 +5468,56 @@ function bindMobileControl(button) {
     }
   };
   button.addEventListener("pointerdown", start);
+  button.addEventListener("pointerup", stop);
+  button.addEventListener("pointercancel", stop);
+  button.addEventListener("lostpointercapture", stop);
+  button.addEventListener("contextmenu", (event) => event.preventDefault());
+}
+
+function directStickControl(control) {
+  if (control === "gas") return "stick:gas";
+  if (control === "brake") return "stick:brake";
+  if (control === "left") return "stick:left:steer=-1";
+  if (control === "right") return "stick:right:steer=1";
+  return "stick:neutral";
+}
+
+function bindDriveStickButtonFallback(button, stick) {
+  const pointerKey = `drive-stick-button-${button.dataset.control || "neutral"}`;
+  const readControl = (event) => driveStickControlAt(stick, event.clientX, event.clientY) || directStickControl(button.dataset.control);
+  const apply = (event) => {
+    if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (touchControlSize !== "mini") return;
+    event.preventDefault();
+    startAudio();
+    if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+    const control = readControl(event);
+    if (touchDriveMode === "toggle") mobileTouchState.latchedStickControl = control.includes("neutral") ? "" : control;
+    mobileTouchState.active.set(pointerKey, control);
+    applyMobileTouchSnapshot();
+    if (button.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        button.setPointerCapture(event.pointerId);
+      } catch {
+        // Some browsers reject capture after synthetic pointer events.
+      }
+    }
+  };
+  const stop = (event) => {
+    if (event && event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (event) event.preventDefault();
+    if (touchDriveMode !== "toggle") mobileTouchState.active.delete(pointerKey);
+    applyMobileTouchSnapshot();
+    if (button.releasePointerCapture && event && event.pointerId !== undefined) {
+      try {
+        button.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already be released by the browser.
+      }
+    }
+  };
+  button.addEventListener("pointerdown", apply);
+  button.addEventListener("pointermove", apply);
   button.addEventListener("pointerup", stop);
   button.addEventListener("pointercancel", stop);
   button.addEventListener("lostpointercapture", stop);
