@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 51;
+const starterGarageVersion = 52;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -1403,13 +1403,18 @@ function updateOpponents(dt, maxSpeed) {
   enforceOpponentSpacing(length, dt);
 }
 
+function phonePassLaneSlots(playerLane = raceState.lane) {
+  const slots = [-1.95, -0.72, 0.72, 1.95];
+  return slots.sort((a, b) => Math.abs(b - playerLane) - Math.abs(a - playerLane));
+}
+
 function enforceOpponentSpacing(length, dt) {
   const active = raceState.opponents
     .filter((opponent) => opponent && !opponent.finished)
     .sort((a, b) => a.distance - b.distance);
   const phoneMode = phoneGraphicsActive();
-  const minGap = phoneMode ? 340 : 150;
-  const laneSlots = [-1.95, -0.75, 0.75, 1.95, 0.1];
+  const minGap = phoneMode ? 520 : 150;
+  const laneSlots = phonePassLaneSlots();
   active.forEach((opponent, index) => {
     if (index > 0) {
       const previous = active[index - 1];
@@ -1420,13 +1425,68 @@ function enforceOpponentSpacing(length, dt) {
       }
     }
     const playerGap = opponent.distance - raceState.distance;
-    if (phoneMode && playerGap > -260 && playerGap < 1750 && !opponent.wrecked) {
-      const laneTarget = laneSlots[index % laneSlots.length];
+    if (phoneMode && playerGap > -360 && playerGap < 1900 && !opponent.wrecked) {
+      const nearPlayerLane = Math.abs(opponent.lane - raceState.lane) < 0.9 && playerGap > -90 && playerGap < 420;
+      const laneConflict = active.some((other) => {
+        if (other === opponent || other.finished) return false;
+        const otherGap = other.distance - opponent.distance;
+        return Math.abs(otherGap) < 360 && Math.abs(other.lane - opponent.lane) < 0.72;
+      });
+      const openSlot = laneSlots.find((slot) => Math.abs(slot - raceState.lane) > 1.05 && active.every((other) => {
+        if (other === opponent) return true;
+        const otherGap = other.distance - raceState.distance;
+        return Math.abs(otherGap - playerGap) > 360 || Math.abs(other.lane - slot) > 0.72;
+      }));
+      const currentHome = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : opponent.lane;
+      const laneTarget = nearPlayerLane || laneConflict
+        ? (openSlot ?? (opponent.lane < raceState.lane ? -1.95 : 1.95))
+        : currentHome;
       opponent.homeLane = laneTarget;
-      opponent.lane += (laneTarget - opponent.lane) * Math.min(1, dt * 0.92);
+      const laneRate = nearPlayerLane ? 2.6 : laneConflict ? 1.4 : 0.28;
+      opponent.lane += (laneTarget - opponent.lane) * Math.min(1, dt * laneRate);
+      if (nearPlayerLane) opponent.speed *= Math.max(0.96, 1 - dt * 0.16);
       opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
     }
   });
+}
+
+function visiblePhoneTrafficCount() {
+  if (!phoneGraphicsActive()) return 0;
+  let count = 0;
+  const inRange = (object) => {
+    const gap = ensureRoadDistance(object) - raceState.distance;
+    return gap > -180 && gap < 1150;
+  };
+  raceState.rivals.forEach((rival) => {
+    if (!rival.wrecked && inRange(rival)) count += 1;
+  });
+  raceState.police.forEach((unit) => {
+    if (!unit.wrecked && inRange(unit)) count += 1;
+  });
+  raceState.opponents.forEach((opponent) => {
+    const gap = opponent.distance - raceState.distance;
+    if (!opponent.wrecked && gap > -180 && gap < 1150) count += 1;
+  });
+  return count;
+}
+
+function choosePhoneSpawnLane() {
+  const slots = phonePassLaneSlots();
+  const busy = (lane) => {
+    const closeToPlayer = Math.abs(lane - raceState.lane) < 1.05;
+    if (closeToPlayer) return true;
+    return raceState.opponents.some((opponent) => {
+      const gap = opponent.distance - raceState.distance;
+      return gap > -160 && gap < 1200 && Math.abs(opponent.lane - lane) < 0.76;
+    }) || raceState.rivals.some((rival) => {
+      const gap = ensureRoadDistance(rival) - raceState.distance;
+      return gap > -160 && gap < 1200 && Math.abs(rival.lane - lane) < 0.76;
+    }) || raceState.police.some((unit) => {
+      const gap = ensureRoadDistance(unit) - raceState.distance;
+      return gap > -160 && gap < 1200 && Math.abs(unit.lane - lane) < 0.76;
+    });
+  };
+  return slots.find((lane) => !busy(lane)) ?? slots.find((lane) => Math.abs(lane - raceState.lane) > 1.05) ?? -1.95;
 }
 
 function routeVehicleBoost(place, vehicleType, rival = false) {
@@ -1461,7 +1521,7 @@ function spawnRival() {
   const age = ageBands[activeProfile.age];
   const director = raceState.director || getDirector(activeProfile);
   const laneOptions = [-2, -1, 0, 1, 2].filter((candidate) => Math.abs(candidate - raceState.lane) > 0.72);
-  const lane = laneOptions[Math.floor(Math.random() * laneOptions.length)] ?? (Math.floor(Math.random() * 5) - 2);
+  const lane = phoneGraphicsActive() ? choosePhoneSpawnLane() : (laneOptions[Math.floor(Math.random() * laneOptions.length)] ?? (Math.floor(Math.random() * 5) - 2));
   const routeTypes = selectedRace.place === "harbor" ? ["boat", "car", "truck"]
     : selectedRace.place === "snow" ? ["snowmobile", "truck", "car"]
       : selectedRace.place === "airfield" ? ["airplane", "helicopter", "car", "truck"]
@@ -1491,7 +1551,7 @@ function spawnRival() {
 }
 
 function spawnPoliceUnit() {
-  const lane = Math.floor(Math.random() * 5) - 2;
+  const lane = phoneGraphicsActive() ? choosePhoneSpawnLane() : Math.floor(Math.random() * 5) - 2;
   raceState.police.push({
     lane,
     distance: roadSpawnDistance(0.34, 0.42),
@@ -1604,15 +1664,21 @@ function tick(dt) {
   updateOpponents(dt, maxSpeed);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
-  if (raceState.spawnClock <= 0 && raceState.speed > 45 && raceState.elapsed > 5) {
+  const phoneMode = phoneGraphicsActive();
+  const trafficRoom = !phoneMode || visiblePhoneTrafficCount() < 3;
+  if (raceState.spawnClock <= 0 && raceState.speed > 45 && raceState.elapsed > 5 && trafficRoom) {
     spawnRival();
-    raceState.spawnClock = Math.max(1.15, 2.1 - age.traffic * director.traffic * 0.16 - raceState.elapsed * 0.002);
+    raceState.spawnClock = phoneMode
+      ? Math.max(3.4, 4.8 - age.traffic * director.traffic * 0.18)
+      : Math.max(1.15, 2.1 - age.traffic * director.traffic * 0.16 - raceState.elapsed * 0.002);
+  } else if (phoneMode && raceState.spawnClock <= 0) {
+    raceState.spawnClock = 1.4;
   }
   if (raceState.coinClock <= 0 && raceState.speed > 30) {
     spawnCoin();
     raceState.coinClock = Math.max(0.3, (0.76 - upgrades.magnet * 0.035) / director.coinRate);
   }
-  if (raceState.heat > 18 && raceState.heatClock <= 0 && raceState.speed > 45) {
+  if (raceState.heat > 18 && raceState.heatClock <= 0 && raceState.speed > 45 && (!phoneMode || visiblePhoneTrafficCount() < 4)) {
     raceState.chaseActive = true;
     spawnPoliceUnit();
     raceState.heatClock = Math.max(1.2, 4.5 - raceState.heat / 24 - activeProfile.upgrades.engine * 0.12);
@@ -2178,6 +2244,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   ctx.fillStyle = skyWash;
   ctx.fillRect(0, 0, w, skyBottom);
 
+  drawPhoneSceneryBackdrop(w, h, horizon, place, theme);
   drawPhoneConsoleLandmarks(w, h, horizon, place, theme);
   if (webglActive) {
     ctx.restore();
@@ -2386,6 +2453,82 @@ function drawPhoneRoadContrastPass(w, h, theme) {
     ctx.lineTo(roadCenter(1) + side * roadBottom * 0.5, h + 8);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawPhoneSceneryBackdrop(w, h, horizon, place, theme) {
+  if (!phoneGraphicsActive()) return;
+  const offset = (raceState.roadOffset || 0) * 0.018;
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  const farY = horizon - h * 0.02;
+  if (place === "city" || place === "tokyo") {
+    for (let i = 0; i < 22; i += 1) {
+      const x = ((i * 94 - offset * (1.2 + (i % 3) * 0.18)) % (w + 180)) - 90;
+      const bw = 34 + (i % 5) * 13;
+      const bh = h * (0.2 + (i % 6) * 0.045);
+      const glow = place === "tokyo" ? "rgba(255,79,216,0.26)" : "rgba(70,217,255,0.2)";
+      const tower = ctx.createLinearGradient(x, farY - bh, x + bw, farY);
+      tower.addColorStop(0, glow);
+      tower.addColorStop(0.45, "rgba(16,25,28,0.9)");
+      tower.addColorStop(1, "rgba(5,8,7,0.82)");
+      ctx.fillStyle = tower;
+      roundRect(x, farY - bh, bw, bh, 3);
+      ctx.fill();
+      ctx.fillStyle = i % 2 ? `${theme[1]}88` : `${theme[2]}77`;
+      for (let yy = 14; yy < bh - 10; yy += 24) {
+        ctx.globalAlpha = 0.42;
+        ctx.fillRect(x + 8 + (yy % 3) * 7, farY - bh + yy, 5, 12);
+        ctx.fillRect(x + bw - 15, farY - bh + yy + 5, 5, 10);
+      }
+      ctx.globalAlpha = 0.9;
+    }
+  } else if (place === "coast" || place === "harbor") {
+    const water = ctx.createLinearGradient(0, horizon - h * 0.01, 0, horizon + h * 0.2);
+    water.addColorStop(0, "rgba(70,217,255,0.16)");
+    water.addColorStop(1, "rgba(4,21,24,0.42)");
+    ctx.fillStyle = water;
+    ctx.fillRect(0, horizon - h * 0.02, w, h * 0.24);
+    for (let i = 0; i < 12; i += 1) {
+      const x = ((i * 128 - offset * 1.9) % (w + 180)) - 90;
+      ctx.fillStyle = "rgba(8,38,43,0.86)";
+      ctx.beginPath();
+      ctx.ellipse(x, horizon + h * 0.06, 54 + (i % 4) * 12, 12 + (i % 3) * 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.28)";
+      roundRect(x - 26, horizon + h * 0.025, 52, 6, 2);
+      ctx.fill();
+    }
+  } else if (place === "alpine" || place === "snow" || place === "europe") {
+    for (let i = 0; i < 9; i += 1) {
+      const x = ((i * 180 - offset) % (w + 260)) - 130;
+      const ridgeW = 180 + (i % 3) * 45;
+      const ridgeH = h * (0.13 + (i % 4) * 0.025);
+      ctx.fillStyle = place === "snow" ? "rgba(210,228,230,0.42)" : "rgba(102,130,126,0.38)";
+      ctx.beginPath();
+      ctx.ellipse(x, horizon + h * 0.025, ridgeW * 0.5, ridgeH, -0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.36)";
+      roundRect(x - ridgeW * 0.22, horizon - ridgeH * 0.28, ridgeW * 0.44, 7, 4);
+      ctx.fill();
+    }
+  } else {
+    for (let i = 0; i < 26; i += 1) {
+      const x = ((i * 82 - offset * 2.2) % (w + 160)) - 80;
+      const treeH = h * (0.1 + (i % 5) * 0.018);
+      ctx.fillStyle = place === "desert" || place === "canyon" ? "rgba(132,72,38,0.64)" : "rgba(24,78,52,0.66)";
+      ctx.beginPath();
+      ctx.ellipse(x, horizon + h * 0.04, 34 + (i % 4) * 8, treeH * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = place === "farm" ? "rgba(187,242,74,0.24)" : "rgba(54,217,138,0.2)";
+      ctx.fillRect(x - 2, horizon - treeH * 0.42, 4, treeH * 0.72);
+    }
+  }
+  const roadside = ctx.createLinearGradient(0, horizon + h * 0.06, 0, h);
+  roadside.addColorStop(0, "rgba(7,20,18,0)");
+  roadside.addColorStop(1, "rgba(7,20,18,0.45)");
+  ctx.fillStyle = roadside;
+  ctx.fillRect(0, horizon + h * 0.05, w, h * 0.42);
   ctx.restore();
 }
 
@@ -3644,10 +3787,22 @@ function isVehicleScreenYVisible(y) {
 function drawObjects() {
   const draws = [];
   const phoneMode = phoneGraphicsActive();
+  const phoneDrawnVehicles = [];
+  const canDrawPhoneVehicle = (gap, lane, priority = false) => {
+    if (!phoneMode) return true;
+    if (gap > 1180) return false;
+    if (gap < -130) return false;
+    if (!priority && gap < 95 && Math.abs(lane - raceState.lane) < 0.95) return false;
+    const conflict = phoneDrawnVehicles.some((item) => Math.abs(item.gap - gap) < 250 && Math.abs(item.lane - lane) < 1.05);
+    if (conflict) return false;
+    phoneDrawnVehicles.push({ gap, lane });
+    return true;
+  };
   raceState.opponents.forEach((opponent) => {
     const gap = opponent.distance - raceState.distance;
     if (gap < (phoneMode ? -180 : -55)) return;
     if (phoneMode && gap > 1250) return;
+    if (!canDrawPhoneVehicle(gap, opponent.lane, true)) return;
     const p = roadObjectPos(opponent.lane, opponent.distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
@@ -3670,7 +3825,10 @@ function drawObjects() {
     });
   });
   raceState.rivals.forEach((rival) => {
-    const p = roadObjectPos(rival.lane, ensureRoadDistance(rival));
+    const distance = ensureRoadDistance(rival);
+    const gap = distance - raceState.distance;
+    if (!canDrawPhoneVehicle(gap, rival.lane)) return;
+    const p = roadObjectPos(rival.lane, distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const groundY = p.y + roadContactSink(p.scale, rival.type || "car");
     draws.push({
@@ -3679,7 +3837,10 @@ function drawObjects() {
     });
   });
   raceState.police.forEach((unit) => {
-    const p = roadObjectPos(unit.lane, ensureRoadDistance(unit));
+    const distance = ensureRoadDistance(unit);
+    const gap = distance - raceState.distance;
+    if (!canDrawPhoneVehicle(gap, unit.lane)) return;
+    const p = roadObjectPos(unit.lane, distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const groundY = p.y + roadContactSink(p.scale, "car");
     draws.push({
@@ -4810,6 +4971,10 @@ function drawDemoPursuitTraffic(w, h) {
 function drawCar(w, h) {
   if (cameraMode === "cockpit") return;
   const vehicle = selectedVehicle();
+  if (phoneGraphicsActive() && cameraMode === "hood") {
+    drawPhoneDriverHood(w, h, vehicle);
+    return;
+  }
   let x = w / 2 + raceState.lane * laneWidth();
   let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.84 : h * 0.86;
   let projectionScale = 1;
@@ -4840,6 +5005,60 @@ function drawCar(w, h) {
     ctx.closePath();
     ctx.fill();
   }
+}
+
+function drawPhoneDriverHood(w, h, vehicle) {
+  const hoodY = h * 0.84;
+  const color = vehicle.color || "#46d9ff";
+  ctx.save();
+  const shadow = ctx.createLinearGradient(0, h * 0.68, 0, h);
+  shadow.addColorStop(0, "rgba(0,0,0,0)");
+  shadow.addColorStop(0.62, "rgba(0,0,0,0.62)");
+  shadow.addColorStop(1, "rgba(0,0,0,0.92)");
+  ctx.fillStyle = shadow;
+  ctx.fillRect(0, h * 0.62, w, h * 0.38);
+
+  const hood = ctx.createLinearGradient(w * 0.28, hoodY, w * 0.72, h);
+  hood.addColorStop(0, shade(color, -24));
+  hood.addColorStop(0.45, shade(color, 42));
+  hood.addColorStop(1, shade(color, -52));
+  ctx.fillStyle = hood;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.18, h + 18);
+  ctx.quadraticCurveTo(w * 0.28, hoodY + 4, w * 0.42, hoodY - h * 0.015);
+  ctx.lineTo(w * 0.58, hoodY - h * 0.015);
+  ctx.quadraticCurveTo(w * 0.72, hoodY + 4, w * 0.82, h + 18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.24)";
+  ctx.lineWidth = Math.max(2, w * 0.004);
+  ctx.stroke();
+
+  ctx.globalAlpha = 0.72;
+  ctx.strokeStyle = "rgba(5,8,7,0.58)";
+  ctx.lineWidth = Math.max(3, w * 0.006);
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5, hoodY);
+  ctx.lineTo(w * 0.5, h);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "rgba(5,8,7,0.82)";
+  roundRect(w * 0.36, hoodY + h * 0.08, w * 0.28, h * 0.045, 5);
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.2)";
+  roundRect(w * 0.375, hoodY + h * 0.095, w * 0.25, h * 0.012, 4);
+  ctx.fill();
+  if ((input.boost || input.gamepadBoost) && raceState.active) {
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,209,102,0.28)";
+    ctx.beginPath();
+    ctx.moveTo(w * 0.42, h * 0.97);
+    ctx.lineTo(w * 0.5, h * 0.82);
+    ctx.lineTo(w * 0.58, h * 0.97);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
