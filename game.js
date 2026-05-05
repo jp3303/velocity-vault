@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 46;
+const starterGarageVersion = 48;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -115,6 +115,7 @@ const mobileTouchState = {
   usingTouchEvents: false,
   stickSteer: 0,
   driveStickActive: false,
+  latchedStickControl: "",
   modeToggleAt: 0
 };
 
@@ -954,6 +955,7 @@ function clearTouchDriveInputs() {
   mobileTouchState.active.clear();
   mobileTouchState.stickSteer = 0;
   mobileTouchState.driveStickActive = false;
+  mobileTouchState.latchedStickControl = "";
 }
 
 function setTouchDriveMode(mode, quiet = false) {
@@ -1099,6 +1101,11 @@ function applyMobileTouchSnapshot() {
   const controls = new Set();
   let hasDriveStick = false;
   let stickSteer = 0;
+  if (touchDriveMode === "toggle" && mobileTouchState.latchedStickControl) {
+    hasDriveStick = true;
+    stickSteer = driveStickSteerValue(mobileTouchState.latchedStickControl);
+    addTouchControls(mobileTouchState.latchedStickControl, controls);
+  }
   mobileTouchState.active.forEach((control) => {
     if (isDriveStickControl(control)) {
       hasDriveStick = true;
@@ -1121,6 +1128,7 @@ function applyMobileTouchSnapshot() {
   input.gas = gas && !brake;
   input.brake = brake && !gas;
   input.boost = controls.has("boost");
+  if (touchDriveMode === "toggle" && neutral) mobileTouchState.latchedStickControl = "";
   updateRaceUi();
 }
 
@@ -1146,6 +1154,7 @@ function handleMobileTouchStart(event) {
     }
     if (touchDriveMode === "toggle") {
       if (isDriveStickControl(control)) {
+        mobileTouchState.latchedStickControl = control.includes("neutral") ? "" : control;
         mobileTouchState.active.set(touch.identifier, control);
       } else {
         toggleDriveInput(control);
@@ -1165,6 +1174,7 @@ function handleMobileTouchMove(event) {
     const control = mobileControlAt(touch.clientX, touch.clientY);
     if (touchDriveMode === "toggle") {
       if (isDriveStickControl(control)) {
+        mobileTouchState.latchedStickControl = control.includes("neutral") ? "" : control;
         mobileTouchState.active.set(touch.identifier, control);
       } else if (isDriveStickControl(previous)) {
         mobileTouchState.active.delete(touch.identifier);
@@ -1194,7 +1204,9 @@ function bindDriveStickPointerControl() {
     if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
     if (touchControlSize !== "mini") return;
     event.preventDefault();
-    mobileTouchState.active.set(pointerKey, driveStickControlAt(stick, event.clientX, event.clientY));
+    const control = driveStickControlAt(stick, event.clientX, event.clientY);
+    if (touchDriveMode === "toggle") mobileTouchState.latchedStickControl = control.includes("neutral") ? "" : control;
+    mobileTouchState.active.set(pointerKey, control);
     applyMobileTouchSnapshot();
   };
   const stopStick = (event) => {
@@ -1262,11 +1274,11 @@ function installApp() {
 function makeOpponents(playerVehicle, age, director) {
   const pool = vehicleDefs.filter((vehicle) => vehicle.id !== playerVehicle.id);
   const grid = [
-    { gap: 58, lane: -1.55, bias: 0.62, speed: 24 },
-    { gap: 176, lane: 1.25, bias: 0.69, speed: 34 },
-    { gap: 332, lane: -0.35, bias: 0.78, speed: 42 },
-    { gap: -220, lane: 1.82, bias: 0.72, speed: 30 },
-    { gap: -430, lane: -1.88, bias: 0.78, speed: 36 }
+    { gap: 420, lane: -1.85, bias: 0.54, speed: 22 },
+    { gap: 1120, lane: 0.55, bias: 0.64, speed: 30 },
+    { gap: 2050, lane: 1.9, bias: 0.76, speed: 40 },
+    { gap: -980, lane: 1.25, bias: 0.72, speed: 26 },
+    { gap: -1850, lane: -1.25, bias: 0.82, speed: 34 }
   ];
   return opponentNames.map((name, index) => {
     const vehicle = pool[(index * 2 + selectedRace.id.length) % pool.length];
@@ -1286,6 +1298,8 @@ function makeOpponents(playerVehicle, age, director) {
       color: vehicle.color,
       wobble: Math.random() * Math.PI * 2,
       surgePhase: Math.random() * Math.PI * 2,
+      packPhase: Math.random() * Math.PI * 2,
+      spreadGap: slot.gap,
       bumpCooldown: 0,
       passCooldown: 0,
       wasAhead: startGap > 0,
@@ -1309,15 +1323,24 @@ function updateOpponents(dt, maxSpeed) {
     opponent.spin = Number(opponent.spin) || 0;
     opponent.passCooldown = Math.max(0, (Number(opponent.passCooldown) || 0) - dt);
     opponent.surgePhase = Number(opponent.surgePhase) || index * 1.3;
+    opponent.packPhase = Number(opponent.packPhase) || index * 0.9;
     const vehicle = vehicleById(opponent.vehicleId);
     const routePush = routeVehicleBoost(selectedRace.place, vehicle.type, true);
     const gapToPlayer = opponent.distance - raceState.distance;
-    let racePressure = Math.max(-0.2, Math.min(0.18, -gapToPlayer / 760));
-    if (gapToPlayer < -20 && raceState.elapsed < 32) racePressure = Math.min(racePressure, 0.035);
-    const duelSurge = Math.abs(gapToPlayer) < 150 ? Math.sin(raceState.elapsed * (1.18 + index * 0.08) + opponent.surgePhase) * 0.075 : 0;
+    let racePressure = gapToPlayer > 0
+      ? Math.max(-0.07, -gapToPlayer / 2400)
+      : Math.min(0.2, Math.abs(gapToPlayer) / 980);
+    if (gapToPlayer < -20 && raceState.elapsed < 26) racePressure = Math.min(racePressure, 0.045);
+    const duelSurge = Math.abs(gapToPlayer) < 260 ? Math.sin(raceState.elapsed * (1.05 + index * 0.08) + opponent.surgePhase) * 0.085 : 0;
+    let spreadPressure = 0;
+    raceState.opponents.forEach((other) => {
+      if (other === opponent || other.finished) return;
+      const otherGap = other.distance - opponent.distance;
+      if (Math.abs(otherGap) < 82) spreadPressure += otherGap >= 0 ? -0.035 : 0.035;
+    });
     const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
     const vehiclePace = fieldSpeed * (0.78 + vehicle.speed * 0.24);
-    const packPace = 0.92 + opponent.aiTune * 0.055 + racePressure + duelSurge;
+    const packPace = 0.92 + opponent.aiTune * 0.045 + racePressure + duelSurge + Math.max(-0.08, Math.min(0.08, spreadPressure));
     const target = opponent.wrecked
       ? Math.max(18, maxSpeed * 0.16 * damageDrag)
       : vehiclePace * opponent.targetBias * routePush * packPace * damageDrag;
@@ -1325,14 +1348,14 @@ function updateOpponents(dt, maxSpeed) {
     opponent.distance = Math.min(length + 80, opponent.distance + Math.max(0, opponent.speed) * dt);
     opponent.wobble += dt * (0.85 + index * 0.08);
     const homeLane = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : ((index % 5) - 2);
-    const flowLane = homeLane * 0.58 + Math.sin(opponent.wobble) * 0.88 + Math.sin(opponent.wobble * 0.47 + index) * 0.2;
+    const flowLane = homeLane * 0.82 + Math.sin(opponent.wobble + opponent.packPhase) * 0.42 + Math.sin(opponent.wobble * 0.47 + index) * 0.18;
     const sideFromPlayer = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-    const passSide = gapToPlayer > 0 && gapToPlayer < 95 ? sideFromPlayer : (index % 2 ? -1 : 1);
-    const clearance = gapToPlayer > 0 && gapToPlayer < 105 ? 1.34 : 0.92;
+    const passSide = gapToPlayer > -80 && gapToPlayer < 145 ? sideFromPlayer : (index % 2 ? -1 : 1);
+    const clearance = gapToPlayer > -80 && gapToPlayer < 145 ? 1.55 : 1.08;
     const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * clearance + Math.sin(opponent.wobble * 1.6) * 0.14));
-    const laneTarget = Math.abs(gapToPlayer) < 135 && !opponent.wrecked ? duelLane : flowLane;
+    const laneTarget = Math.abs(gapToPlayer) < 170 && !opponent.wrecked ? duelLane : flowLane;
     if (!opponent.wrecked) {
-      opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling * Math.max(0.42, damageDrag);
+      opponent.lane += (laneTarget - opponent.lane) * dt * 0.42 * vehicle.handling * Math.max(0.42, damageDrag);
     }
     opponent.lane += (opponent.laneVelocity || 0) * dt;
     opponent.laneVelocity = (opponent.laneVelocity || 0) * Math.max(0, 1 - dt * (opponent.wrecked ? 0.75 : 1.35));
@@ -2002,25 +2025,27 @@ function drawFrame() {
 
 function drawWebGLRouteAtmosphere(w, h, theme) {
   const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const phoneMode = phoneGraphicsActive();
+  const skyLimit = phoneMode ? h * 0.34 : h * 0.62;
   ctx.save();
-  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  const sky = ctx.createLinearGradient(0, 0, 0, skyLimit);
   sky.addColorStop(0, `${theme[0]}99`);
   sky.addColorStop(0.6, "rgba(5,8,7,0.08)");
   sky.addColorStop(1, "rgba(5,8,7,0)");
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, h * 0.62);
+  ctx.fillRect(0, 0, w, skyLimit);
 
   const glow = ctx.createRadialGradient(w * 0.5, h * 0.42, w * 0.06, w * 0.5, h * 0.55, w * 0.62);
-  glow.addColorStop(0, "rgba(244,251,248,0.08)");
+  glow.addColorStop(0, phoneMode ? "rgba(244,251,248,0.025)" : "rgba(244,251,248,0.08)");
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, w, phoneMode ? h * 0.42 : h);
 
   if (place === "tokyo" || place === "city") {
-    ctx.globalAlpha = place === "tokyo" ? 0.18 : 0.08;
+    ctx.globalAlpha = phoneMode ? (place === "tokyo" ? 0.12 : 0.06) : (place === "tokyo" ? 0.18 : 0.08);
     for (let i = 0; i < 14; i += 1) {
       const x = (i * 83 + raceState.roadOffset * 0.07) % (w + 140) - 70;
-      const y = h * (0.25 + (i % 5) * 0.058);
+      const y = phoneMode ? h * (0.19 + (i % 4) * 0.032) : h * (0.25 + (i % 5) * 0.058);
       const dashW = 24 + (i % 4) * 18;
       const neon = ctx.createLinearGradient(x, y, x + dashW, y);
       neon.addColorStop(0, "rgba(255,255,255,0)");
@@ -2058,16 +2083,6 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
     }
   }
 
-  if (raceState.speed > 90) {
-    ctx.globalAlpha = Math.min(0.18, raceState.speed / 1400);
-    const pavementRush = ctx.createLinearGradient(0, h * 0.58, 0, h);
-    pavementRush.addColorStop(0, "rgba(255,255,255,0)");
-    pavementRush.addColorStop(0.72, "rgba(244,251,248,0.14)");
-    pavementRush.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = pavementRush;
-    ctx.fillRect(0, h * 0.55, w, h * 0.45);
-    ctx.globalAlpha = 1;
-  }
   ctx.restore();
 }
 
@@ -2090,12 +2105,13 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   };
 
   ctx.save();
-  const skyWash = ctx.createLinearGradient(0, 0, 0, horizon + h * 0.24);
+  const skyBottom = webglActive ? horizon + h * 0.1 : horizon + h * 0.24;
+  const skyWash = ctx.createLinearGradient(0, 0, 0, skyBottom);
   skyWash.addColorStop(0, `${theme[0]}d9`);
   skyWash.addColorStop(0.54, warm ? "rgba(178,118,56,0.18)" : "rgba(70,217,255,0.11)");
   skyWash.addColorStop(1, "rgba(5,8,7,0)");
   ctx.fillStyle = skyWash;
-  ctx.fillRect(0, 0, w, horizon + h * 0.28);
+  ctx.fillRect(0, 0, w, skyBottom);
 
   drawPhoneConsoleLandmarks(w, h, horizon, place, theme);
   if (webglActive) {
@@ -2363,18 +2379,28 @@ function drawPhoneConsolePostPass(w, h, theme) {
 }
 
 function drawWebGLFlatPavementPass(w, h, theme) {
-  const floorY = cameraMode === "cockpit" ? h * 0.54 : cameraMode === "hood" ? h * 0.58 : h * 0.6;
+  const floorY = cameraMode === "cockpit" ? h * 0.36 : cameraMode === "hood" ? h * 0.39 : h * 0.42;
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const speed = Math.max(0, Math.abs(raceState.speed || 0));
   const offset = raceState.roadOffset || 0;
   ctx.save();
 
-  const bottomShade = ctx.createLinearGradient(0, floorY, 0, h);
-  bottomShade.addColorStop(0, "rgba(0,0,0,0)");
-  bottomShade.addColorStop(0.42, "rgba(0,0,0,0.12)");
-  bottomShade.addColorStop(1, "rgba(0,0,0,0.36)");
-  ctx.fillStyle = bottomShade;
-  ctx.fillRect(0, floorY, w, h - floorY);
+  const roadTop = w * (cameraMode === "cockpit" ? 0.16 : cameraMode === "hood" ? 0.19 : 0.18);
+  const roadBottom = w * (cameraMode === "cockpit" ? 0.96 : cameraMode === "hood" ? 1.04 : 1.1);
+  const roadCenter = (t) => w * 0.5 + turn * (1 - t) * (1 - t) * w * 0.12;
+  ctx.beginPath();
+  ctx.moveTo(roadCenter(0) - roadTop, floorY);
+  ctx.lineTo(roadCenter(0) + roadTop, floorY);
+  ctx.lineTo(roadCenter(1) + roadBottom * 0.55, h + 10);
+  ctx.lineTo(roadCenter(1) - roadBottom * 0.55, h + 10);
+  ctx.closePath();
+  const asphalt = ctx.createLinearGradient(0, floorY, 0, h);
+  asphalt.addColorStop(0, "rgba(19,23,23,0.99)");
+  asphalt.addColorStop(0.42, "rgba(11,14,14,1)");
+  asphalt.addColorStop(1, "rgba(2,3,3,1)");
+  ctx.fillStyle = asphalt;
+  ctx.fill();
+  ctx.clip();
 
   for (let i = 0; i < 20; i += 1) {
     const y = floorY + (((i * 32 + offset * (0.42 + speed / 650)) % (h - floorY + 72)) - 24);
@@ -2384,7 +2410,7 @@ function drawWebGLFlatPavementPass(w, h, theme) {
     ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.14)" : "rgba(6,8,8,0.42)";
     ctx.lineWidth = 1 + t * 3.5;
     ctx.beginPath();
-    const center = w * 0.5 + turn * (1 - t) * (1 - t) * w * 0.12;
+    const center = roadCenter(t);
     const half = w * (0.24 + t * 0.42);
     ctx.moveTo(center - half, y);
     ctx.lineTo(center + half, y + 1);
@@ -2396,7 +2422,7 @@ function drawWebGLFlatPavementPass(w, h, theme) {
       const y = floorY + (((i * 58 + offset * 0.42) % (h - floorY + 80)) - 16);
       if (y < floorY || y > h) continue;
       const t = (y - floorY) / Math.max(1, h - floorY);
-      const center = w * 0.5 + turn * (1 - t) * (1 - t) * w * 0.1;
+      const center = roadCenter(t);
       const roadHalf = w * (0.25 + t * 0.4);
       ctx.globalAlpha = 0.1 + t * 0.18;
       ctx.fillStyle = side < 0 ? "rgba(255,91,107,0.22)" : "rgba(70,217,255,0.2)";
@@ -3425,11 +3451,12 @@ function isVehicleScreenYVisible(y) {
 function drawObjects() {
   const draws = [];
   raceState.opponents.forEach((opponent) => {
+    const gap = opponent.distance - raceState.distance;
+    if (gap < -55) return;
     const p = roadObjectPos(opponent.lane, opponent.distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
     const groundY = p.y + roadContactSink(p.scale, vehicle.type);
-    const gap = opponent.distance - raceState.distance;
     const label = phoneGraphicsActive() && gap > 115 ? "" : opponent.name;
     draws.push({
       y: groundY,
@@ -4871,6 +4898,7 @@ function drawRealisticDrivingPass(w, h, theme) {
   const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
   const speed = Math.max(0, raceState.speed);
   const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const webglActive = useWebGLRenderer();
   ctx.save();
 
   const depthFog = ctx.createLinearGradient(0, horizon - h * 0.08, 0, horizon + h * 0.18);
@@ -4879,6 +4907,10 @@ function drawRealisticDrivingPass(w, h, theme) {
   depthFog.addColorStop(1, "rgba(5,8,7,0)");
   ctx.fillStyle = depthFog;
   ctx.fillRect(0, Math.max(0, horizon - h * 0.12), w, h * 0.36);
+  if (webglActive) {
+    ctx.restore();
+    return;
+  }
 
   const wetPlaces = ["city", "tokyo", "coast", "harbor", "rainforest"];
   if (wetPlaces.includes(place)) {
@@ -5363,6 +5395,7 @@ function bindHold(button, key) {
 }
 
 function bindMobileControl(button) {
+  if (button.closest && button.closest(".drive-stick")) return;
   const control = button.dataset.control;
   const start = (event) => {
     if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
