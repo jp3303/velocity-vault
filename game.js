@@ -9,7 +9,8 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const raceDistanceMultiplier = 2.85;
+const starterGarageVersion = 41;
+const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
   prodigy: { label: "Prodigy 9-12", help: "Sharper goals, more traffic, better rewards.", speed: 1, traffic: 1, rewards: 1 },
@@ -125,6 +126,8 @@ const raceState = {
   score: 0,
   coins: 0,
   dodges: 0,
+  overtakes: 0,
+  passesAgainst: 0,
   combo: 1,
   lane: 0,
   x: 0,
@@ -202,13 +205,29 @@ function makeProfile(name, pin, age) {
     name,
     pinHash: pin ? hashPin(pin) : "",
     age,
-    coins: 250,
-    rep: 0,
+    coins: 1250,
+    rep: 44,
     selectedVehicle: "street",
     upgrades: { engine: 0, tires: 0, shield: 0, magnet: 0, boost: 0 },
     completedMissions: [],
-    stats: { races: 0, wins: 0, totalCoins: 0, steadyRuns: 0, bestScore: 0 }
+    stats: { races: 0, wins: 0, totalCoins: 0, steadyRuns: 0, bestScore: 0 },
+    garageStarterVersion: starterGarageVersion
   };
+}
+
+function normalizeProfile(profile) {
+  profile.coins = Number(profile.coins) || 0;
+  profile.rep = Number(profile.rep) || 0;
+  profile.selectedVehicle = profile.selectedVehicle || "street";
+  profile.upgrades = Object.assign({ engine: 0, tires: 0, shield: 0, magnet: 0, boost: 0 }, profile.upgrades || {});
+  profile.completedMissions = Array.isArray(profile.completedMissions) ? profile.completedMissions : [];
+  profile.stats = Object.assign({ races: 0, wins: 0, totalCoins: 0, steadyRuns: 0, bestScore: 0 }, profile.stats || {});
+  if (profile.garageStarterVersion !== starterGarageVersion) {
+    profile.coins = Math.max(profile.coins, 1250);
+    profile.rep = Math.max(profile.rep, 44);
+    profile.garageStarterVersion = starterGarageVersion;
+  }
+  return profile;
 }
 
 function hashPin(pin) {
@@ -369,7 +388,7 @@ function enterProfile(openRace = false) {
     showToast("PIN did not match this local profile.");
     return null;
   }
-  const profile = existing || makeProfile(name, pin, selectedAge);
+  const profile = normalizeProfile(existing || makeProfile(name, pin, selectedAge));
   profiles[profile.id] = profile;
   saveProfiles();
   setActiveProfile(profile);
@@ -417,7 +436,7 @@ function renderRaces() {
     card.disabled = locked;
     card.innerHTML = `
       <div class="card-top"><strong>${race.name}</strong><span class="badge">${locked ? `${requiredRep} rep` : `${Math.round(race.reward * director.reward)} coins`}</span></div>
-      <div class="tiny">${race.target} | ${Math.round(race.length / 100)} sectors | ${director.event.name}</div>
+      <div class="tiny">${race.target} | ${Math.round(raceLength(race) / 100)} sectors | ${director.event.name}</div>
     `;
     card.addEventListener("click", () => {
       if (locked) return;
@@ -441,8 +460,8 @@ function renderVehicles() {
       <div class="vehicle-preview asset-preview" data-type="${vehicle.type}" style="--vehicle-color:${vehicle.color}">
         <canvas class="vehicle-preview-canvas" width="180" height="116" aria-hidden="true"></canvas>
       </div>
-      <div class="card-top"><strong>${vehicle.name}</strong><span class="badge">${current.id === vehicle.id ? "Active" : `${Math.round(vehicle.speed * 100)} spd`}</span></div>
-      <div class="tiny">${vehicle.desc} | Handling ${Math.round(vehicle.handling * 100)} | Mass ${Math.round(vehicle.mass * 100)}</div>
+      <div class="card-top"><strong>${vehicle.name}</strong><span class="badge">${current.id === vehicle.id ? "Active" : "Tap Drive"}</span></div>
+      <div class="tiny">${vehicle.desc} | Speed ${Math.round(vehicle.speed * 100)} | Handling ${Math.round(vehicle.handling * 100)} | Mass ${Math.round(vehicle.mass * 100)}</div>
     `;
     drawVehiclePreview(card.querySelector(".vehicle-preview-canvas"), vehicle);
     card.addEventListener("click", () => {
@@ -543,7 +562,7 @@ function renderUpgrades() {
       <div class="tiny">${def.desc}</div>
       <div class="upgrade-action">
         <div class="bar"><i></i></div>
-        <button type="button" ${level >= 5 || activeProfile.coins < cost ? "disabled" : ""}>${level >= 5 ? "MAX" : cost}</button>
+        <button type="button" ${level >= 5 || activeProfile.coins < cost ? "disabled" : ""}>${level >= 5 ? "MAX" : `Buy ${cost}`}</button>
       </div>
     `;
     card.querySelector(".bar i").style.width = `${(level / 5) * 100}%`;
@@ -610,6 +629,8 @@ function launchRace() {
     score: 0,
     coins: 0,
     dodges: 0,
+    overtakes: 0,
+    passesAgainst: 0,
     combo: 1,
     lane: 0,
     x: 0,
@@ -671,6 +692,8 @@ function saveRace() {
       score: raceState.score,
       coins: raceState.coins,
       dodges: raceState.dodges,
+      overtakes: raceState.overtakes,
+      passesAgainst: raceState.passesAgainst,
       combo: raceState.combo,
       lane: raceState.lane,
       x: raceState.x,
@@ -734,6 +757,14 @@ function resumeSavedRace() {
   raceState.resetReason = saved.state.resetReason || "";
   raceState.crashCooldown = Math.max(0, Number(saved.state.crashCooldown) || 0);
   raceState.roadCurve = Number(saved.state.roadCurve) || 0;
+  raceState.overtakes = Number(saved.state.overtakes) || 0;
+  raceState.passesAgainst = Number(saved.state.passesAgainst) || 0;
+  raceState.opponents.forEach((opponent) => {
+    const gap = Number(opponent.distance) - raceState.distance;
+    opponent.wasAhead = gap > 4;
+    opponent.passCooldown = Math.max(0, Number(opponent.passCooldown) || 0);
+    opponent.surgePhase = Number(opponent.surgePhase) || Math.random() * Math.PI * 2;
+  });
   input.paused = Boolean(saved.inputPaused);
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
@@ -780,6 +811,7 @@ function endRace(manual = false) {
     <div><span>Position</span><strong>${finishPosition}/6</strong></div>
     <div><span>Coins earned</span><strong>${reward}</strong></div>
     <div><span>Reputation</span><strong>+${rep}</strong></div>
+    <div><span>Overtakes</span><strong>${raceState.overtakes}</strong></div>
     <div><span>Score</span><strong>${Math.round(raceState.score)}</strong></div>
     <div><span>Damage</span><strong>${Math.round(raceState.damage)}%</strong></div>
     <div><span>Focus left</span><strong>${Math.max(0, Math.round(raceState.focus))}</strong></div>
@@ -809,8 +841,8 @@ function updateHud() {
     const pos = playerPosition();
     const leader = raceRankings()[0];
     $("#missionChip").textContent = raceState.chaseActive
-      ? `P${pos}/6 | Police heat ${Math.round(raceState.heat)}%`
-      : `P${pos}/6 | Leader ${leader.name} | ${selectedRace.target}`;
+      ? `P${pos}/6 | Overtakes ${raceState.overtakes} | Police heat ${Math.round(raceState.heat)}%`
+      : `P${pos}/6 | Overtakes ${raceState.overtakes} | Leader ${leader.name}`;
     if (raceState.speed < 8) $("#missionChip").textContent = "Hold Gas to accelerate | Brake to stop/reverse";
     if (raceState.resetTimer > 0) $("#missionChip").textContent = `Vehicle reset in ${Math.ceil(raceState.resetTimer)} | ${raceState.resetReason}`;
   }
@@ -1184,22 +1216,26 @@ function installApp() {
 
 function makeOpponents(playerVehicle, age, director) {
   const pool = vehicleDefs.filter((vehicle) => vehicle.id !== playerVehicle.id);
+  const gridLanes = [-1.55, 1.45, -0.55, 0.58, 1.95];
   return opponentNames.map((name, index) => {
     const vehicle = pool[(index * 2 + selectedRace.id.length) % pool.length];
-    const startGap = 70 + index * 46;
+    const startGap = 30 + index * 62 + Math.random() * 18;
     return {
       name,
       vehicleId: vehicle.id,
-      lane: (index % 5) - 2,
+      lane: gridLanes[index % gridLanes.length],
       distance: startGap,
-      speed: 35 + index * 8,
-      targetBias: 0.9 + index * 0.035 + Math.random() * 0.08,
+      speed: 26 + index * 10,
+      targetBias: 0.72 + index * 0.075 + Math.random() * 0.06,
       focus: 100,
       damage: 0,
       wrecked: false,
       color: vehicle.color,
       wobble: Math.random() * Math.PI * 2,
+      surgePhase: Math.random() * Math.PI * 2,
       bumpCooldown: 0,
+      passCooldown: 0,
+      wasAhead: true,
       laneVelocity: 0,
       spin: 0,
       finished: false,
@@ -1211,22 +1247,33 @@ function makeOpponents(playerVehicle, age, director) {
 
 function updateOpponents(dt, maxSpeed) {
   const length = raceLength();
+  const playerVehicle = selectedVehicle();
+  const fieldSpeed = maxSpeed / Math.max(0.68, playerVehicle.speed);
   raceState.opponents.forEach((opponent, index) => {
     if (opponent.finished) return;
     opponent.damage = Math.max(0, Math.min(100, Number(opponent.damage) || 0));
     opponent.laneVelocity = Number(opponent.laneVelocity) || 0;
     opponent.spin = Number(opponent.spin) || 0;
+    opponent.passCooldown = Math.max(0, (Number(opponent.passCooldown) || 0) - dt);
+    opponent.surgePhase = Number(opponent.surgePhase) || index * 1.3;
     const vehicle = vehicleById(opponent.vehicleId);
     const routePush = routeVehicleBoost(selectedRace.place, vehicle.type, true);
-    const racePressure = Math.max(-0.12, Math.min(0.16, (raceState.distance - opponent.distance) / length));
+    const gapToPlayer = opponent.distance - raceState.distance;
+    const racePressure = Math.max(-0.18, Math.min(0.27, -gapToPlayer / 720));
+    const duelSurge = Math.abs(gapToPlayer) < 150 ? Math.sin(raceState.elapsed * (1.18 + index * 0.08) + opponent.surgePhase) * 0.075 : 0;
     const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
+    const vehiclePace = fieldSpeed * (0.78 + vehicle.speed * 0.24);
+    const packPace = 0.92 + opponent.aiTune * 0.055 + racePressure + duelSurge;
     const target = opponent.wrecked
       ? Math.max(18, maxSpeed * 0.16 * damageDrag)
-      : maxSpeed * vehicle.speed * opponent.targetBias * routePush * (0.88 + opponent.aiTune * 0.07 + racePressure) * damageDrag;
+      : vehiclePace * opponent.targetBias * routePush * packPace * damageDrag;
     opponent.speed += (target - opponent.speed) * Math.min(1, dt * (opponent.wrecked ? 0.45 : 0.85 + vehicle.handling * 0.35));
     opponent.distance = Math.min(length + 80, opponent.distance + Math.max(0, opponent.speed) * dt);
     opponent.wobble += dt * (0.85 + index * 0.08);
-    const laneTarget = Math.sin(opponent.wobble) * 1.7 + Math.sin(opponent.wobble * 0.47 + index) * 0.34;
+    const flowLane = Math.sin(opponent.wobble) * 1.7 + Math.sin(opponent.wobble * 0.47 + index) * 0.34;
+    const passSide = index % 2 ? -1 : 1;
+    const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * (0.72 + (index % 3) * 0.18) + Math.sin(opponent.wobble * 1.6) * 0.18));
+    const laneTarget = Math.abs(gapToPlayer) < 135 && !opponent.wrecked ? duelLane : flowLane;
     if (!opponent.wrecked) {
       opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling * Math.max(0.42, damageDrag);
     }
@@ -1250,6 +1297,24 @@ function updateOpponents(dt, maxSpeed) {
       burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       playHitSound("impact");
     }
+    const gapAfter = opponent.distance - raceState.distance;
+    const previouslyAhead = opponent.wasAhead !== false;
+    if (previouslyAhead && gapAfter < -2 && raceState.elapsed > 1.4) {
+      raceState.overtakes = (raceState.overtakes || 0) + 1;
+      raceState.score += 240 * raceState.combo;
+      raceState.combo = Math.min(5, raceState.combo + 0.22);
+      opponent.passCooldown = 1.8;
+      showToast(`Overtake: ${opponent.name}`);
+      burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.72, opponent.color || "#ffd166");
+      playHitSound("coin");
+    } else if (!previouslyAhead && gapAfter > 6 && opponent.passCooldown <= 0 && raceState.elapsed > 3) {
+      raceState.passesAgainst = (raceState.passesAgainst || 0) + 1;
+      raceState.combo = Math.max(1, raceState.combo * 0.94);
+      opponent.passCooldown = 2.1;
+      showToast(`${opponent.name} passed you. Draft back.`);
+    }
+    if (gapAfter > 3) opponent.wasAhead = true;
+    if (gapAfter < -2) opponent.wasAhead = false;
     if (opponent.distance >= length) opponent.finished = true;
   });
 }
@@ -2987,17 +3052,22 @@ function visibleRoadObjectPos(lane, distance) {
       };
     }
   }
-  const gap = Math.max(0, Number(distance) - raceState.distance);
+  const rawGap = Number(distance) - raceState.distance;
+  const gap = Math.max(-140, rawGap);
   const horizon = cameraMode === "cockpit" ? h * 0.44 : cameraMode === "hood" ? h * 0.48 : h * 0.5;
   const nearY = cameraMode === "cockpit" ? h * 0.84 : cameraMode === "hood" ? h * 0.9 : h * 0.88;
-  const depth = Math.max(0.18, Math.min(1, 1 / (1 + gap / 88)));
-  const y = horizon + (nearY - horizon) * depth;
+  const depth = gap >= 0
+    ? Math.max(0.18, Math.min(1, 1 / (1 + gap / 88)))
+    : Math.min(1.28, 1 + Math.abs(gap) / 360);
+  const y = gap >= 0
+    ? horizon + (nearY - horizon) * depth
+    : nearY + Math.min(h * 0.2, Math.abs(gap) * 0.18);
   const curveShift = (raceState.roadCurve || 0) * (1 - depth) * w * 0.16;
   const laneSpread = laneWidth() * (0.32 + depth * 1.08);
   return {
     x: w / 2 + curveShift + lane * laneSpread,
     y,
-    scale: 0.36 + depth * 0.78,
+    scale: Math.min(1.34, 0.36 + depth * 0.78),
     depth
   };
 }
@@ -3079,7 +3149,7 @@ function drawRaceStandings(w, h) {
   const vehicle = selectedVehicle();
   ctx.save();
   const panelW = Math.min(178, w * 0.34);
-  const panelH = 54;
+  const panelH = 66;
   const x = w - panelW - 14;
   const y = cameraMode === "chase" ? h * 0.13 : 14;
   ctx.fillStyle = "rgba(5,8,7,0.68)";
@@ -3095,6 +3165,8 @@ function drawRaceStandings(w, h) {
   ctx.font = "800 11px system-ui";
   const leader = raceRankings()[0];
   ctx.fillText(`${leader.name} leads`, x + 12, y + 39);
+  ctx.fillStyle = "rgba(187,242,74,0.9)";
+  ctx.fillText(`${raceState.overtakes || 0} overtakes`, x + 12, y + 54);
   ctx.fillStyle = vehicle.color;
   roundRect(x + panelW - 48, y + 15, 32, 18, 5);
   ctx.fill();

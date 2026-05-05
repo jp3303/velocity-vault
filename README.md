@@ -43,6 +43,7 @@ Real-world style visuals:
 - WebGL mode now layers the high-detail canvas vehicle renderer over the 3D road, so player cars, opponents, police, and traffic keep readable wheels, glass, mirrors, trim, labels, brake lights, and damage marks instead of looking like simple boxes.
 - Phone WebGL mode now prefers the generated asset sprites over the older simple procedural silhouettes, giving the app a more model-like vehicle read while staying light enough for mobile browsers.
 - Race opponents now line up against the player, change pace during the route, show names on the track, show visible damage bars, take collision damage, limp when wrecked, and affect finish position, rewards, and wins.
+- Opponent pack racing now uses a longer staggered grid, side-lane passing behavior, draft/catch-up pressure, and overtake tracking. You can pass opponents, they can draft back and pass you, and the phone HUD/finish screen show overtake progress.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
@@ -74,7 +75,8 @@ Real-world style visuals:
 - WebGL mode now keeps road paint in the 3D ground layer and draws the high-detail vehicle sprites on top, preventing 2D road streaks or duplicate low-poly vehicles from appearing to float in front of the race.
 - The Vehicles garage now paints real generated preview images for every vehicle class, including cars, F1, prototypes, trucks, semis, tractors, monster trucks, tanks, snowmobiles, boats, helicopters, and airplanes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
-- Race routes now run almost three times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.
+- New and existing local profiles now get a starter garage budget and early reputation so vehicle switching, upgrades, freight racing, farm racing, and Tokyo-style routes are available quickly instead of feeling locked.
+- Race routes now run almost six times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.
 
 Visual direction references:
 
