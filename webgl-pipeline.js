@@ -229,6 +229,31 @@
       box(x, 0.68, z, 0.18, 0.08, 3.0, shade(accent, 0.9));
     }
 
+    function groundContactPad(type, x, z, scale, paint) {
+      const air = type === "airplane" || type === "helicopter";
+      const water = type === "boat";
+      const wide = type === "semi" || type === "monster" || type === "tank" || type === "truck";
+      const shadow = water ? [0.02, 0.18, 0.22, 1] : [0.006, 0.008, 0.007, 1];
+      const dust = water ? [0.1, 0.5, 0.62, 1] : shade(paint, 0.24);
+      const padW = (air ? 1.65 : wide ? 2.45 : 1.95) * scale;
+      const padD = (air ? 2.1 : wide ? 3.2 : 2.75) * scale;
+      box(x, 0.018 * scale, z, padW, 0.026 * scale, padD, shadow);
+      box(x, 0.032 * scale, z + 0.42 * scale, padW * 0.72, 0.018 * scale, padD * 0.32, shade(shadow, 1.4));
+      if (air || water) {
+        box(x, 0.045 * scale, z + 0.88 * scale, padW * 0.58, 0.018 * scale, 0.36 * scale, dust);
+        return;
+      }
+      const tireX = wide ? 0.86 : 0.64;
+      const rearZ = wide ? 1.0 : 0.78;
+      const frontZ = wide ? -0.95 : -0.82;
+      box(x - tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
+      box(x + tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
+      box(x - tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
+      box(x + tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
+      box(x - tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
+      box(x + tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
+    }
+
     function wrapZ(index, spacing, offset, speed = 0.07) {
       const total = spacing * 22;
       let z = index * spacing - ((offset * speed) % total);
@@ -400,6 +425,7 @@
       const blue = [0.1, 0.55, 1, 1];
       const glass = [0.52, 0.72, 0.78, 1];
       const chrome = [0.76, 0.82, 0.78, 1];
+      groundContactPad(type, x, z, scale, paint);
       if (type === "semi") {
         taperedBox(x, 0.8 * scale, z + 0.95 * scale, 1.75 * scale, 1.25 * scale, 1.2 * scale, 1.6 * scale, paint);
         taperedBox(x, 0.95 * scale, z - 1.25 * scale, 2.05 * scale, 1.78 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
@@ -464,14 +490,14 @@
         if (damage > 52) box(x - 0.1 * scale, 0.72 * scale, z + 0.9 * scale, 0.36 * scale, 0.06 * scale, 0.1 * scale, [1, 0.18, 0.16, 1]);
         if (damage > 76) box(x + 0.18 * scale, 1.2 * scale, z - 0.86 * scale, 0.28 * scale, 0.08 * scale, 0.18 * scale, [0.05, 0.05, 0.045, 1]);
       }
-      box(x - 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
-      box(x + 0.64 * scale, 0.24 * scale, z + 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
-      box(x - 0.64 * scale, 0.24 * scale, z - 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
-      box(x + 0.64 * scale, 0.24 * scale, z - 0.72 * scale, 0.22 * scale, 0.32 * scale, 0.46 * scale, dark);
-      box(x - 0.64 * scale, 0.28 * scale, z + 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
-      box(x + 0.64 * scale, 0.28 * scale, z + 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
-      box(x - 0.64 * scale, 0.28 * scale, z - 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
-      box(x + 0.64 * scale, 0.28 * scale, z - 0.72 * scale, 0.09 * scale, 0.05 * scale, 0.18 * scale, chrome);
+      box(x - 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x + 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x - 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x + 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x - 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x + 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x - 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x + 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
       box(x - 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? blue : red);
       box(x + 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? red : red);
     }

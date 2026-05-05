@@ -1755,6 +1755,7 @@ function drawFrame() {
     drawWebGLRouteAtmosphere(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
     drawPhoneAssetTexturePass(w, h, theme);
+    drawRoadWeightPass(w, h, theme);
     drawPhoneUltraGraphicsPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
@@ -1787,6 +1788,7 @@ function drawFrame() {
   drawRoad(w, h, theme);
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
+  drawRoadWeightPass(w, h, theme);
   drawPhoneUltraGraphicsPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
@@ -2879,22 +2881,22 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
   const water = vehicleType === "boat";
   const snow = vehicleType === "snowmobile";
   ctx.save();
-  const contactY = h * (air ? 0.42 : water ? 0.52 : 0.64);
-  const contact = ctx.createRadialGradient(0, contactY - h * 0.03, w * 0.08, 0, contactY + h * 0.02, w * 0.74);
-  contact.addColorStop(0, air ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.68)");
+  const contactY = h * (air ? 0.58 : water ? 0.76 : 0.92);
+  const contact = ctx.createRadialGradient(0, contactY - h * 0.05, w * 0.08, 0, contactY, w * 0.82);
+  contact.addColorStop(0, air ? "rgba(0,0,0,0.34)" : "rgba(0,0,0,0.82)");
   contact.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = contact;
   ctx.beginPath();
-  ctx.ellipse(0, contactY, w * 0.72, h * (air ? 0.1 : 0.18), 0, 0, Math.PI * 2);
+  ctx.ellipse(0, contactY, w * 0.78, h * (air ? 0.1 : 0.2), 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (!air && !water) {
-    ctx.fillStyle = snow ? "rgba(244,251,248,0.36)" : "rgba(3,5,5,0.86)";
+    ctx.fillStyle = snow ? "rgba(244,251,248,0.54)" : "rgba(0,0,0,0.96)";
     ctx.beginPath();
-    ctx.ellipse(-w * 0.32, h * 0.36, w * 0.12, h * 0.045, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.32, h * 0.36, w * 0.12, h * 0.045, 0, 0, Math.PI * 2);
-    ctx.ellipse(-w * 0.33, h * 0.68, w * 0.16, h * 0.065, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.33, h * 0.68, w * 0.16, h * 0.065, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.34, h * 0.58, w * 0.14, h * 0.052, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.34, h * 0.58, w * 0.14, h * 0.052, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.35, h * 0.91, w * 0.19, h * 0.082, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.35, h * 0.91, w * 0.19, h * 0.082, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -2903,10 +2905,10 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
   ctx.lineWidth = Math.max(1.2, w * 0.018);
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(-w * 0.3, contactY - h * 0.05);
-  ctx.lineTo(-w * (0.34 + speed * 0.22), contactY + h * 0.22);
-  ctx.moveTo(w * 0.3, contactY - h * 0.05);
-  ctx.lineTo(w * (0.34 + speed * 0.22), contactY + h * 0.22);
+  ctx.moveTo(-w * 0.32, contactY - h * 0.05);
+  ctx.lineTo(-w * (0.4 + speed * 0.24), contactY + h * 0.24);
+  ctx.moveTo(w * 0.32, contactY - h * 0.05);
+  ctx.lineTo(w * (0.4 + speed * 0.24), contactY + h * 0.24);
   ctx.stroke();
   ctx.restore();
 }
@@ -2917,27 +2919,31 @@ function drawVehicleRoadLock(w, h, vehicleType = "car", speedFactor = 0.5) {
   const snow = vehicleType === "snowmobile";
   const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
   ctx.save();
-  ctx.globalAlpha = air ? 0.26 : 0.82;
-  ctx.fillStyle = water ? "rgba(70,217,255,0.48)" : snow ? "rgba(244,251,248,0.58)" : "rgba(2,4,4,0.92)";
+  ctx.globalAlpha = air ? 0.3 : 0.94;
+  ctx.fillStyle = water ? "rgba(70,217,255,0.56)" : snow ? "rgba(244,251,248,0.7)" : "rgba(0,0,0,0.98)";
   if (air || water) {
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.64, w * 0.38, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, h * 0.78, w * 0.42, h * 0.06, 0, 0, Math.PI * 2);
     ctx.fill();
   } else {
+    roundRect(-w * 0.52, h * 0.55, w * 0.18, h * 0.5, Math.max(4, w * 0.04));
+    roundRect(w * 0.34, h * 0.55, w * 0.18, h * 0.5, Math.max(4, w * 0.04));
+    ctx.fill();
+    ctx.fillStyle = snow ? "rgba(244,251,248,0.78)" : "rgba(0,0,0,1)";
     ctx.beginPath();
-    ctx.ellipse(-w * 0.36, h * 0.62, w * 0.105, h * 0.04, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.36, h * 0.62, w * 0.105, h * 0.04, 0, 0, Math.PI * 2);
-    ctx.ellipse(-w * 0.34, h * 0.75, w * 0.13, h * 0.055, 0, 0, Math.PI * 2);
-    ctx.ellipse(w * 0.34, h * 0.75, w * 0.13, h * 0.055, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.38, h * 0.74, w * 0.12, h * 0.046, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.38, h * 0.74, w * 0.12, h * 0.046, 0, 0, Math.PI * 2);
+    ctx.ellipse(-w * 0.36, h * 0.98, w * 0.18, h * 0.072, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.36, h * 0.98, w * 0.18, h * 0.072, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  ctx.globalAlpha = air ? 0.16 : 0.42;
+  ctx.globalAlpha = air ? 0.18 : 0.54;
   ctx.strokeStyle = water ? "rgba(70,217,255,0.65)" : snow ? "rgba(244,251,248,0.72)" : "rgba(1,2,2,0.72)";
   ctx.lineWidth = Math.max(1.4, w * 0.02);
   ctx.lineCap = "round";
   ctx.beginPath();
-  const trailY = air || water ? h * 0.66 : h * 0.78;
+  const trailY = air || water ? h * 0.78 : h * 1.0;
   ctx.moveTo(-w * 0.28, trailY);
   ctx.lineTo(-w * (0.32 + speed * 0.2), trailY + h * 0.2);
   ctx.moveTo(w * 0.28, trailY);
@@ -2959,7 +2965,7 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   drawVehicleGroundContact(w, h, type, Math.abs(raceState.speed || 0) / 220);
-  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.46, spriteW, spriteH);
+  ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.3, spriteW, spriteH);
   drawVehicleRoadLock(w, h, type, Math.abs(raceState.speed || 0) / 220);
   ctx.restore();
   return true;
@@ -2986,6 +2992,38 @@ function drawPhoneAssetTexturePass(w, h, theme) {
   bloom.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = bloom;
   ctx.fillRect(0, h * 0.34, w, h * 0.66);
+  ctx.restore();
+}
+
+function drawRoadWeightPass(w, h, theme) {
+  const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadTop * 0.88, horizon);
+  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
+  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.closePath();
+  ctx.clip();
+
+  const asphaltWeight = ctx.createLinearGradient(0, horizon, 0, h);
+  asphaltWeight.addColorStop(0, "rgba(0,0,0,0)");
+  asphaltWeight.addColorStop(0.55, "rgba(0,0,0,0.2)");
+  asphaltWeight.addColorStop(1, "rgba(0,0,0,0.64)");
+  ctx.fillStyle = asphaltWeight;
+  ctx.fillRect(0, horizon, w, h - horizon);
+
+  ctx.globalAlpha = 0.32;
+  ctx.strokeStyle = "rgba(0,0,0,0.86)";
+  ctx.lineWidth = Math.max(2, w * 0.004);
+  for (let lane = -1.5; lane <= 1.5; lane += 1) {
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5 + lane * laneWidth() * 0.23, horizon + h * 0.06);
+    ctx.lineTo(w * 0.5 + lane * laneWidth() * 1.26, h);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
