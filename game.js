@@ -1242,10 +1242,10 @@ function spawnRival() {
   const def = vehicleDefs.find((vehicle) => vehicle.type === type) || vehicleDefs[0];
   raceState.rivals.push({
     lane,
-    y: -120,
+    distance: roadSpawnDistance(0.34, 0.43),
     w: type === "semi" ? 82 : type === "tractor" ? 64 : type === "monster" || type === "truck" ? 68 : 54,
     h: type === "airplane" || type === "helicopter" ? 104 : 92,
-    speed: 210 + Math.random() * 130 * age.traffic * director.traffic,
+    speed: (38 + Math.random() * 58) * age.traffic * director.traffic,
     color: Math.random() > 0.45 ? def.color : (Math.random() > 0.5 ? "#ff5b6b" : "#ffd166"),
     type,
     passed: false,
@@ -1261,10 +1261,10 @@ function spawnPoliceUnit() {
   const lane = Math.floor(Math.random() * 5) - 2;
   raceState.police.push({
     lane,
-    y: -170,
+    distance: roadSpawnDistance(0.34, 0.42),
     w: 62,
     h: 112,
-    speed: 260 + Math.random() * 95 + raceState.heat * 0.9,
+    speed: 58 + Math.random() * 62 + raceState.heat * 0.26,
     passed: false,
     contactCooldown: 0,
     damage: 0,
@@ -1276,7 +1276,7 @@ function spawnPoliceUnit() {
 
 function spawnCoin() {
   const lane = Math.floor(Math.random() * 5) - 2;
-  raceState.coinsOnRoad.push({ lane, y: -60, r: 13, pulse: Math.random() * 10 });
+  raceState.coinsOnRoad.push({ lane, distance: roadSpawnDistance(0.35, 0.45), r: 13, pulse: Math.random() * 10 });
 }
 
 function tick(dt) {
@@ -1390,17 +1390,19 @@ function moveObjects(dt) {
   const carLane = raceState.lane;
   const vehicle = selectedVehicle();
   raceState.rivals.forEach((rival) => {
+    ensureRoadDistance(rival, -120);
     rival.damage = Math.max(0, Math.min(100, Number(rival.damage) || 0));
     rival.laneVelocity = Number(rival.laneVelocity) || 0;
     rival.spin = Number(rival.spin) || 0;
     rival.contactCooldown = Math.max(0, (rival.contactCooldown || 0) - dt);
     const damageDrag = Math.max(0.24, 1 - ((rival.damage || 0) / 100) * 0.66);
+    const beforeY = roadObjectY(rival);
     if (rival.wrecked) {
       rival.speed *= Math.max(0, 1 - dt * 1.65);
       rival.spin += dt * (2.2 + Math.abs(rival.laneVelocity || 0)) * Math.sign(rival.laneVelocity || 1);
     } else {
       rival.speed *= Math.max(0, 1 - dt * (1 - damageDrag) * 0.18);
-      const avoid = rival.y > canvas.height * 0.26 && rival.y < canvas.height * 0.7 && Math.abs(rival.lane - carLane) < 0.85
+      const avoid = beforeY > canvas.height * 0.34 && beforeY < canvas.height * 0.7 && Math.abs(rival.lane - carLane) < 0.85
         ? Math.sign(rival.lane - carLane || 1) * 0.55
         : 0;
       rival.laneVelocity += avoid * dt;
@@ -1408,14 +1410,15 @@ function moveObjects(dt) {
     rival.lane += (rival.laneVelocity || 0) * dt;
     rival.laneVelocity = (rival.laneVelocity || 0) * Math.max(0, 1 - dt * 1.2);
     rival.lane = Math.max(-2.24, Math.min(2.24, rival.lane));
-    rival.y += (Math.max(18, rival.speed * damageDrag) + Math.max(0, raceState.speed) * (rival.wrecked ? 0.24 : 0.18)) * dt;
-    if (!rival.passed && !rival.wrecked && rival.y > canvas.height * 0.72) {
+    rival.distance += Math.max(8, rival.speed * damageDrag) * dt;
+    const screenY = roadObjectY(rival);
+    if (!rival.passed && !rival.wrecked && screenY > canvas.height * 0.72) {
       rival.passed = true;
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.12);
     }
     const laneHit = Math.abs(rival.lane - carLane) < 0.52;
-    const yHit = rival.y > canvas.height * 0.64 && rival.y < canvas.height * 0.87;
+    const yHit = screenY > canvas.height * 0.64 && screenY < canvas.height * 0.87;
     if (laneHit && yHit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       rival.contactCooldown = 0.55;
       const shield = activeProfile.upgrades.shield;
@@ -1434,6 +1437,7 @@ function moveObjects(dt) {
     }
   });
   raceState.police.forEach((unit) => {
+    ensureRoadDistance(unit, -170);
     unit.damage = Math.max(0, Math.min(100, Number(unit.damage) || 0));
     unit.laneVelocity = Number(unit.laneVelocity) || 0;
     unit.spin = Number(unit.spin) || 0;
@@ -1449,8 +1453,9 @@ function moveObjects(dt) {
     unit.lane += (unit.laneVelocity || 0) * dt;
     unit.laneVelocity = (unit.laneVelocity || 0) * Math.max(0, 1 - dt * 1.05);
     unit.lane = Math.max(-2.2, Math.min(2.2, unit.lane));
-    unit.y += (Math.max(16, unit.speed * damageDrag) + Math.max(0, raceState.speed) * (unit.wrecked ? 0.22 : 0.12)) * dt;
-    if (!unit.passed && !unit.wrecked && unit.y > canvas.height * 0.72) {
+    unit.distance += Math.max(8, unit.speed * damageDrag) * dt;
+    const screenY = roadObjectY(unit);
+    if (!unit.passed && !unit.wrecked && screenY > canvas.height * 0.72) {
       unit.passed = true;
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.2);
@@ -1458,7 +1463,7 @@ function moveObjects(dt) {
       raceState.heat = Math.max(10, raceState.heat - 4);
     }
     const laneHit = Math.abs(unit.lane - carLane) < 0.56;
-    const yHit = unit.y > canvas.height * 0.61 && unit.y < canvas.height * 0.9;
+    const yHit = screenY > canvas.height * 0.61 && screenY < canvas.height * 0.9;
     if (laneHit && yHit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       unit.contactCooldown = 0.65;
       const shield = activeProfile.upgrades.shield;
@@ -1480,11 +1485,12 @@ function moveObjects(dt) {
   });
   const magnet = activeProfile.upgrades.magnet;
   raceState.coinsOnRoad.forEach((coin) => {
-    coin.y += (180 + Math.max(0, raceState.speed) * 0.34) * dt;
+    ensureRoadDistance(coin, -60);
+    const screenY = roadObjectY(coin);
     coin.pulse += dt * 8;
     const catchRange = 0.38 + magnet * 0.1;
     const laneHit = Math.abs(coin.lane - carLane) < catchRange;
-    const yHit = coin.y > canvas.height * 0.62 && coin.y < canvas.height * 0.9;
+    const yHit = screenY > canvas.height * 0.62 && screenY < canvas.height * 0.9;
     if (laneHit && yHit && !coin.hit) {
       coin.hit = true;
       raceState.coins += 1;
@@ -1494,10 +1500,10 @@ function moveObjects(dt) {
       playHitSound("coin");
     }
   });
-  raceState.rivals = raceState.rivals.filter((r) => r.y < canvas.height + 220);
-  raceState.police = raceState.police.filter((p) => p.y < canvas.height + 240);
+  raceState.rivals = raceState.rivals.filter((r) => roadObjectY(r) < canvas.height + 220 && r.distance > raceState.distance - 360);
+  raceState.police = raceState.police.filter((p) => roadObjectY(p) < canvas.height + 240 && p.distance > raceState.distance - 390);
   if (!raceState.police.length && raceState.heat < 16) raceState.chaseActive = false;
-  raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => c.y < canvas.height + 80 && !c.hit);
+  raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => roadObjectY(c) < canvas.height + 80 && !c.hit);
   raceState.particles.forEach((p) => {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -2787,25 +2793,68 @@ function objectPos(lane, y) {
   };
 }
 
+function roadSpawnDistance(minRatio = 0.34, maxRatio = 0.44) {
+  const h = Math.max(1, canvas.height || window.innerHeight || 720);
+  const ratio = minRatio + Math.random() * Math.max(0.01, maxRatio - minRatio);
+  return raceState.distance + (h * 0.68 - h * ratio) / 0.11;
+}
+
+function screenYFromRoadDistance(distance) {
+  return canvas.height * 0.68 - (distance - raceState.distance) * 0.11;
+}
+
+function roadDistanceFromScreenY(y) {
+  const h = Math.max(1, canvas.height || window.innerHeight || 720);
+  const clampedY = Math.max(h * 0.34, Math.min(h * 0.98, Number(y) || h * 0.34));
+  return raceState.distance + (h * 0.68 - clampedY) / 0.11;
+}
+
+function ensureRoadDistance(object, fallbackY = -100) {
+  if (!object) return raceState.distance;
+  const distance = Number(object.distance);
+  if (Number.isFinite(distance)) return distance;
+  object.distance = roadDistanceFromScreenY(Number.isFinite(Number(object.y)) ? Number(object.y) : fallbackY);
+  return object.distance;
+}
+
+function roadObjectY(object) {
+  const y = screenYFromRoadDistance(ensureRoadDistance(object));
+  object.y = y;
+  return y;
+}
+
+function roadObjectPos(lane, distance) {
+  return objectPos(lane, screenYFromRoadDistance(distance));
+}
+
+function isVehicleScreenYVisible(y) {
+  return y >= canvas.height * 0.32 && y <= canvas.height * 1.08;
+}
+
 function drawObjects() {
   raceState.opponents.forEach((opponent) => {
-    const delta = opponent.distance - raceState.distance;
-    const y = canvas.height * 0.68 - delta * 0.11;
-    if (y < canvas.height * 0.28 || y > canvas.height * 1.02) return;
-    const p = objectPos(opponent.lane, y);
+    const y = screenYFromRoadDistance(opponent.distance);
+    if (!isVehicleScreenYVisible(y)) return;
+    const p = roadObjectPos(opponent.lane, opponent.distance);
     const vehicle = vehicleById(opponent.vehicleId);
     drawTrafficRearCar(p.x, p.y, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0);
   });
   raceState.coinsOnRoad.forEach((coin) => {
-    const p = objectPos(coin.lane, coin.y);
+    const y = roadObjectY(coin);
+    if (y < canvas.height * 0.32 || y > canvas.height * 1.08) return;
+    const p = objectPos(coin.lane, y);
     drawRouteMarker(p.x, p.y, (coin.r * 2.8) * p.scale, coin.pulse);
   });
   raceState.rivals.forEach((rival) => {
-    const p = objectPos(rival.lane, rival.y);
+    const y = roadObjectY(rival);
+    if (!isVehicleScreenYVisible(y)) return;
+    const p = objectPos(rival.lane, y);
     drawTrafficRearCar(p.x, p.y, rival.w * p.scale * 1.1, rival.h * p.scale * 0.82, rival.color, false, rival.type || "car", "", rival.damage || 0, rival.wrecked, rival.spin || 0);
   });
   raceState.police.forEach((unit) => {
-    const p = objectPos(unit.lane, unit.y);
+    const y = roadObjectY(unit);
+    if (!isVehicleScreenYVisible(y)) return;
+    const p = objectPos(unit.lane, y);
     drawTrafficRearCar(p.x, p.y, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0);
   });
 }
@@ -2952,7 +3001,7 @@ function drawVehicleRoadLock(w, h, vehicleType = "car", speedFactor = 0.5) {
   ctx.restore();
 }
 
-function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = false, damage = 0) {
+function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = false, damage = 0, contactAnchored = false) {
   const assets = window.VelocityPhoneAssets;
   if (!assets || !assets.ready || typeof assets.getVehicleSprite !== "function") return false;
   const type = police ? "car" : vehicleType;
@@ -2964,6 +3013,7 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   const spriteH = h * (type === "semi" ? 1.66 : air ? 1.48 : 1.56);
   ctx.save();
   ctx.imageSmoothingEnabled = true;
+  if (contactAnchored) ctx.translate(0, -h * 0.92);
   drawVehicleGroundContact(w, h, type, Math.abs(raceState.speed || 0) / 220);
   ctx.drawImage(sprite, -spriteW / 2, -spriteH * 0.3, spriteW, spriteH);
   drawVehicleRoadLock(w, h, type, Math.abs(raceState.speed || 0) / 220);
@@ -3164,22 +3214,28 @@ function drawPhoneFilmicPost(w, h, theme) {
 function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleType = "car", label = "", damage = 0, wrecked = false, spin = 0) {
   ctx.save();
   ctx.translate(x, y);
-  if (wrecked || damage > 45) ctx.rotate(Math.max(-0.22, Math.min(0.22, (spin || 0) * 0.18)));
   const t = Math.max(0.3, Math.min(1.25, y / canvas.height));
   const w = width * (0.76 + t * 0.28);
   const h = height * (0.72 + t * 0.12);
 
   ctx.fillStyle = "rgba(0,0,0,0.38)";
   ctx.beginPath();
-  ctx.ellipse(0, h * 0.42, w * 0.62, h * 0.14, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, w * 0.62, h * 0.14, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (drawPhoneAssetVehicleSprite(w, h, color, vehicleType, police, damage)) {
+  if (wrecked || damage > 45) ctx.rotate(Math.max(-0.22, Math.min(0.22, (spin || 0) * 0.18)));
+
+  if (drawPhoneAssetVehicleSprite(w, h, color, vehicleType, police, damage, true)) {
+    ctx.save();
+    ctx.translate(0, -h * 0.92);
     drawTrafficLabel(w, h, label);
     drawTrafficDamageBadge(w, h, damage, wrecked);
     ctx.restore();
+    ctx.restore();
     return;
   }
+
+  ctx.translate(0, -h * 0.92);
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(w, h, color, vehicleType, false);
@@ -3622,18 +3678,20 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   const bodyYaw = Math.max(-0.12, Math.min(0.12, (raceState.steerAngle || 0) * 0.055 + (raceState.lateralVelocity || 0) * 0.018));
   ctx.rotate(bodyYaw);
 
-  const shadow = ctx.createRadialGradient(0, height * 0.38, width * 0.08, 0, height * 0.42, width * 0.72);
+  const shadow = ctx.createRadialGradient(0, -height * 0.04, width * 0.08, 0, 0, width * 0.72);
   shadow.addColorStop(0, "rgba(0,0,0,0.54)");
   shadow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = shadow;
   ctx.beginPath();
-  ctx.ellipse(0, height * 0.42, width * 0.74, height * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, width * 0.74, height * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, false, raceState.damage || 0)) {
+  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, false, raceState.damage || 0, true)) {
     ctx.restore();
     return;
   }
+
+  ctx.translate(0, -height * 0.92);
 
   if (vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, true);
@@ -4099,13 +4157,15 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.translate(x, y);
   ctx.fillStyle = "rgba(0,0,0,0.46)";
   ctx.beginPath();
-  ctx.ellipse(0, height * 0.42, width * 0.68, height * 0.18, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, width * 0.68, height * 0.18, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, police, player ? raceState.damage || 0 : 0)) {
+  if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, police, player ? raceState.damage || 0 : 0, true)) {
     ctx.restore();
     return;
   }
+
+  ctx.translate(0, -height * 0.92);
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, player);

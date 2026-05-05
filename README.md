@@ -55,6 +55,8 @@ Real-world style visuals:
 - Phone mode has a separate in-game control dock that is fixed to the visible app window in both portrait and landscape. The default Mini layout is now one compact 4-way drive stick: push up for gas, down for brake/reverse, left/right for steering, and drag diagonally to accelerate while steering. Tapping `Full` expands the larger separate controls.
 - Generated vehicle sprites now draw with stronger tire contact shadows, dark tire contact patches, short road streaks, and lower pavement anchoring so cars, trucks, semis, tractors, and opponents read as driving on the road instead of floating above it.
 - Browser and phone vehicles now get heavier road grounding with lowered sprite anchoring, black tire sidewall pins, hard road-contact pads, and WebGL ground shadows under every moving vehicle.
+- Traffic, police, opponents, and route markers now use road-distance projection instead of raw screen-height movement, so vehicles enter from the road horizon and stay locked to the pavement instead of falling down from the sky.
+- Vehicle drawing now uses the tire/contact line as the screen anchor, so generated sprites grow upward from the pavement instead of hovering around a center point.
 - The Vehicles garage now paints real generated preview images for every vehicle class, including cars, F1, prototypes, trucks, semis, tractors, monster trucks, tanks, snowmobiles, boats, helicopters, and airplanes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 - Race routes now run almost three times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.

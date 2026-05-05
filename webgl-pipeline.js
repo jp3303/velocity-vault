@@ -506,28 +506,48 @@
       const defs = data.vehicleDefs || [];
       const getVehicle = (id) => defs.find((vehicle) => vehicle.id === id) || defs[0] || { type: "car", color: "#46d9ff" };
       const laneScale = 2.08;
+      const screenYFromRoadDistance = (distance) => data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
+      const distanceFromScreenY = (y) => {
+        const clampedY = Math.max(data.height * 0.34, Math.min(data.height * 0.98, Number(y) || data.height * 0.34));
+        return data.raceState.distance + (data.height * 0.68 - clampedY) / 0.11;
+      };
+      const zFromRoadDistance = (distance) => {
+        const y = screenYFromRoadDistance(distance);
+        const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
+        return 116 - t * 108;
+      };
+      const projectRoadObject = (object) => {
+        const distance = Number.isFinite(Number(object.distance)) ? Number(object.distance) : distanceFromScreenY(object.y);
+        const y = screenYFromRoadDistance(distance);
+        if (y < data.height * 0.32 || y > data.height * 1.08) return null;
+        return { distance, z: zFromRoadDistance(distance) };
+      };
       data.raceState.opponents.forEach((opponent) => {
-        const delta = opponent.distance - data.raceState.distance;
-        const z = 9 + delta * 0.08;
+        const projected = projectRoadObject(opponent);
+        if (!projected) return;
+        const z = projected.z;
         if (z < 4 || z > 132) return;
         const vehicle = getVehicle(opponent.vehicleId);
         addVehicle(vehicle.type, opponent.lane * laneScale, z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
       });
       data.raceState.rivals.forEach((rival) => {
-        const t = rival.y / Math.max(1, data.height);
-        const z = 112 - t * 115;
+        const projected = projectRoadObject(rival);
+        if (!projected) return;
+        const z = projected.z;
         if (z < 4 || z > 132) return;
         addVehicle(rival.type || "car", rival.lane * laneScale, z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
       });
       data.raceState.police.forEach((unit) => {
-        const t = unit.y / Math.max(1, data.height);
-        const z = 112 - t * 115;
+        const projected = projectRoadObject(unit);
+        if (!projected) return;
+        const z = projected.z;
         if (z < 4 || z > 132) return;
         addVehicle("car", unit.lane * laneScale, z, "#f4fbf8", 0.98, true, unit.damage || 0);
       });
       data.raceState.coinsOnRoad.forEach((coin) => {
-        const t = coin.y / Math.max(1, data.height);
-        const z = 106 - t * 110;
+        const projected = projectRoadObject(coin);
+        if (!projected) return;
+        const z = projected.z;
         if (z < 4 || z > 132) return;
         box(coin.lane * laneScale, 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
       });
