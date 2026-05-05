@@ -474,7 +474,7 @@
     const f1 = type === "f1" || type === "prototype";
     const snow = type === "snowmobile";
     const wide = semi || tractor || tank || monster || truck;
-    const groundY = h * (snow ? 0.88 : 0.9);
+    const groundY = h * (snow ? 0.94 : 0.955);
 
     ctx.save();
     const contact = ctx.createRadialGradient(w * 0.5, groundY - h * 0.025, w * 0.07, w * 0.5, groundY, w * 0.55);
@@ -604,6 +604,31 @@
     ctx.strokeStyle = "rgba(255,255,255,0.28)";
     ctx.lineWidth = Math.max(2, w * 0.012);
     ctx.stroke();
+
+    if (snow) {
+      ctx.strokeStyle = "rgba(244,251,248,0.92)";
+      ctx.lineWidth = Math.max(7, w * 0.034);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, groundY);
+      ctx.lineTo(w * 0.43, groundY - h * 0.01);
+      ctx.moveTo(w * 0.57, groundY - h * 0.01);
+      ctx.lineTo(w * 0.76, groundY);
+      ctx.stroke();
+    } else if (tank) {
+      ctx.fillStyle = "rgba(1,2,2,1)";
+      roundRect(ctx, w * 0.11, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
+      ctx.fill();
+      roundRect(ctx, w * 0.66, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
+      ctx.fill();
+    } else {
+      const rx = w * (monster ? 0.108 : semi || tractor ? 0.092 : f1 ? 0.078 : 0.086);
+      const ry = h * (monster ? 0.16 : semi || tractor ? 0.14 : f1 ? 0.092 : 0.128);
+      const left = w * (wide ? 0.2 : 0.24);
+      const right = w - left;
+      drawRearWheel(ctx, left, groundY, rx, ry, accent, true);
+      drawRearWheel(ctx, right, groundY, rx, ry, accent, true);
+    }
 
     ctx.fillStyle = "rgba(5,8,7,0.9)";
     roundRect(ctx, w * 0.31, h * (semi ? 0.46 : 0.32), w * 0.38, h * 0.13, 10);

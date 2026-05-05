@@ -3083,8 +3083,8 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
 function spriteContactRatio(vehicleType = "car") {
   if (vehicleType === "airplane" || vehicleType === "helicopter") return 0.68;
   if (vehicleType === "boat") return 0.78;
-  if (vehicleType === "snowmobile") return 0.88;
-  return 0.9;
+  if (vehicleType === "snowmobile") return 0.94;
+  return 0.955;
 }
 
 function spriteContactLift(h, vehicleType = "car") {
@@ -3203,6 +3203,17 @@ function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
   const tireW = w * (wide ? 0.18 : 0.15);
   const tireH = h * (wide ? 0.055 : 0.045);
   ctx.save();
+  ctx.globalAlpha = snow ? 0.56 : 0.88;
+  ctx.fillStyle = snow ? "rgba(244,251,248,0.72)" : "rgba(0,0,0,0.98)";
+  roundRect(-w * (wide ? 0.62 : 0.56), -h * 0.018, w * (wide ? 1.24 : 1.12), h * 0.046, Math.max(2, w * 0.02));
+  ctx.fill();
+  ctx.globalAlpha = 0.42;
+  ctx.strokeStyle = snow ? "rgba(244,251,248,0.82)" : "rgba(244,251,248,0.16)";
+  ctx.lineWidth = Math.max(1, w * 0.008);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.48, -h * 0.002);
+  ctx.lineTo(w * 0.48, -h * 0.002);
+  ctx.stroke();
   ctx.globalAlpha = 0.94;
   ctx.fillStyle = snow ? "rgba(244,251,248,0.86)" : "rgba(0,0,0,0.98)";
   ctx.beginPath();
