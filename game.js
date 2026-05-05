@@ -94,6 +94,7 @@ const input = {
   brake: false,
   boost: false,
   paused: false,
+  touchSteer: 0,
   gamepadSteer: 0,
   gamepadGas: false,
   gamepadBrake: false,
@@ -111,6 +112,7 @@ const controllerState = {
 const mobileTouchState = {
   active: new Map(),
   usingTouchEvents: false,
+  stickSteer: 0,
   driveStickActive: false,
   modeToggleAt: 0
 };
@@ -868,10 +870,12 @@ function setRendererMode(mode, quiet = false) {
 function clearTouchDriveInputs() {
   input.left = false;
   input.right = false;
+  input.touchSteer = 0;
   input.gas = false;
   input.brake = false;
   input.boost = false;
   mobileTouchState.active.clear();
+  mobileTouchState.stickSteer = 0;
   mobileTouchState.driveStickActive = false;
 }
 
@@ -952,15 +956,19 @@ function isDriveStickControl(control) {
 function driveStickControlAt(stick, clientX, clientY) {
   const rect = stick.getBoundingClientRect();
   if (!rect.width || !rect.height) return "";
-  const nx = (clientX - rect.left) / rect.width - 0.5;
-  const ny = (clientY - rect.top) / rect.height - 0.5;
-  const dead = 0.15;
+  const clampedX = Math.max(rect.left, Math.min(rect.right, clientX));
+  const clampedY = Math.max(rect.top, Math.min(rect.bottom, clientY));
+  const nx = (clampedX - rect.left) / rect.width - 0.5;
+  const ny = (clampedY - rect.top) / rect.height - 0.5;
+  const dead = 0.08;
   const controls = ["stick"];
   if (ny < -dead) controls.push("gas");
   if (ny > dead) controls.push("brake");
   if (nx < -dead) controls.push("left");
   if (nx > dead) controls.push("right");
   if (controls.length === 1) controls.push("neutral");
+  const steer = Math.max(-1, Math.min(1, nx / 0.42));
+  if (Math.abs(steer) > dead) controls.push(`steer=${steer.toFixed(2)}`);
   return controls.join(":");
 }
 
@@ -975,7 +983,33 @@ function addTouchControls(control, controls) {
   });
 }
 
+function driveStickSteerValue(control) {
+  if (!isDriveStickControl(control)) return 0;
+  const analog = control.split(":").find((part) => part.startsWith("steer="));
+  if (analog) {
+    const value = Number(analog.slice(6));
+    if (Number.isFinite(value)) return Math.max(-1, Math.min(1, value));
+  }
+  const parts = control.split(":");
+  const left = parts.includes("left");
+  const right = parts.includes("right");
+  return right && !left ? 1 : left && !right ? -1 : 0;
+}
+
 function mobileControlAt(clientX, clientY) {
+  if (document.body.classList.contains("control-mini")) {
+    const miniStick = $(".drive-stick");
+    if (miniStick) {
+      const rect = miniStick.getBoundingClientRect();
+      const margin = Math.max(24, Math.min(rect.width, rect.height) * 0.22);
+      const insideStick =
+        clientX >= rect.left - margin &&
+        clientX <= rect.right + margin &&
+        clientY >= rect.top - margin &&
+        clientY <= rect.bottom + margin;
+      if (insideStick) return driveStickControlAt(miniStick, clientX, clientY);
+    }
+  }
   const el = document.elementFromPoint(clientX, clientY);
   const stick = el && el.closest ? el.closest(".drive-stick") : null;
   if (stick && document.body.classList.contains("control-mini")) return driveStickControlAt(stick, clientX, clientY);
@@ -987,12 +1021,18 @@ function applyMobileTouchSnapshot() {
   const hadDriveStick = mobileTouchState.driveStickActive;
   const controls = new Set();
   let hasDriveStick = false;
+  let stickSteer = 0;
   mobileTouchState.active.forEach((control) => {
-    if (isDriveStickControl(control)) hasDriveStick = true;
+    if (isDriveStickControl(control)) {
+      hasDriveStick = true;
+      const value = driveStickSteerValue(control);
+      if (Math.abs(value) > Math.abs(stickSteer)) stickSteer = value;
+    }
     addTouchControls(control, controls);
   });
   if (touchDriveMode === "toggle" && !hasDriveStick && !hadDriveStick) return;
   mobileTouchState.driveStickActive = hasDriveStick;
+  mobileTouchState.stickSteer = hasDriveStick ? stickSteer : 0;
   const neutral = controls.has("neutral");
   const left = controls.has("left");
   const right = controls.has("right");
@@ -1000,6 +1040,7 @@ function applyMobileTouchSnapshot() {
   const brake = controls.has("brake");
   input.left = neutral ? false : left && !right;
   input.right = neutral ? false : right && !left;
+  input.touchSteer = neutral ? 0 : mobileTouchState.stickSteer;
   input.gas = gas && !brake;
   input.brake = brake && !gas;
   input.boost = controls.has("boost");
@@ -1324,7 +1365,9 @@ function tick(dt) {
   const handlingHealth = Math.max(0.48, 1 - damageRatio * 0.34);
   const maxSpeed = (245 + upgrades.engine * 26) * age.speed * vehicle.speed * surfaceBoost * performanceHealth;
   const keySteer = Number(input.right) - Number(input.left);
-  const steerInput = Math.abs(input.gamepadSteer) > Math.abs(keySteer) ? input.gamepadSteer : keySteer;
+  const touchSteer = Number(input.touchSteer) || 0;
+  const manualSteer = Math.abs(touchSteer) > Math.abs(keySteer) ? touchSteer : keySteer;
+  const steerInput = Math.abs(input.gamepadSteer) > Math.abs(manualSteer) ? input.gamepadSteer : manualSteer;
   const boostPower = boostInput && gasInput && raceState.focus > 2 ? (60 + upgrades.boost * 17) * performanceHealth : 0;
   const speedLimit = maxSpeed + boostPower;
   const forwardSpeed = Math.max(0, raceState.speed);
@@ -1350,13 +1393,16 @@ function tick(dt) {
   raceState.brakeHeat += ((brakeInput && Math.abs(raceState.speed) > 12 ? 1 : 0) - raceState.brakeHeat) * Math.min(1, dt * 5.2);
   if (boostInput && gasInput && raceState.focus > 2) raceState.focus -= dt * Math.max(4, 13 - upgrades.boost * 1.4);
 
-  const speedGrip = Math.max(0.28, Math.min(1.18, Math.abs(raceState.speed) / 120));
+  const speedGrip = Math.max(0.54, Math.min(1.18, Math.abs(raceState.speed) / 112));
   const steerTarget = steerInput * (0.92 + upgrades.tires * 0.045) * handlingHealth * (raceState.speed < -1 ? -0.62 : 1);
   raceState.steerAngle += (steerTarget - raceState.steerAngle) * Math.min(1, dt * (5.4 + vehicle.handling * 2.2) * handlingHealth);
   const lateralAccel = raceState.steerAngle * speedGrip * (4.2 + vehicle.handling * 1.35 + upgrades.tires * 0.28) * handlingHealth;
   raceState.lateralVelocity += lateralAccel * dt;
   const grip = (2.15 + vehicle.handling * 1.25 + upgrades.tires * 0.32 + (brakeInput ? 0.75 : 0)) * handlingHealth;
   raceState.lateralVelocity *= Math.max(0, 1 - dt * grip);
+  if (Math.abs(steerInput) > 0.05 && Math.abs(raceState.speed) < 46) {
+    raceState.lateralVelocity += steerInput * dt * (2.1 + vehicle.handling * 0.48) * handlingHealth;
+  }
   raceState.lane += raceState.lateralVelocity * dt;
   raceState.x = raceState.lane;
   const offRoad = Math.max(0, Math.abs(raceState.lane) - 2.04);
@@ -1721,9 +1767,10 @@ function updateRaceUi() {
   $("#boostBtn").classList.toggle("pressed", input.boost || input.gamepadBoost);
   $$(".mobile-control").forEach((button) => {
     const control = button.dataset.control;
-    const pressed = control === "left" ? input.left
-      : control === "right" ? input.right
-        : control === "neutral" ? !input.left && !input.right
+    const steer = Number(input.touchSteer) || 0;
+    const pressed = control === "left" ? input.left || steer < -0.08
+      : control === "right" ? input.right || steer > 0.08
+        : control === "neutral" ? !input.left && !input.right && Math.abs(steer) <= 0.08
           : control === "gas" ? input.gas || input.gamepadGas
             : control === "brake" ? input.brake || input.gamepadBrake
               : control === "boost" ? input.boost || input.gamepadBoost
@@ -2920,9 +2967,22 @@ function roadObjectPos(lane, distance) {
 function visibleRoadObjectPos(lane, distance) {
   const w = canvas.width;
   const h = canvas.height;
+  if (webglRenderer && typeof webglRenderer.projectRoadPoint === "function") {
+    const projected = webglRenderer.projectRoadPoint(lane, distance);
+    if (projected && Number.isFinite(projected.x) && Number.isFinite(projected.y)) {
+      const clampedY = Math.max(h * 0.34, Math.min(h * 1.06, projected.y));
+      const t = Math.max(0, Math.min(1, (clampedY - h * 0.34) / Math.max(1, h * 0.7)));
+      return {
+        x: projected.x,
+        y: clampedY,
+        scale: Math.max(0.34, Math.min(1.24, projected.scale || (0.36 + t * 0.78))),
+        depth: t
+      };
+    }
+  }
   const gap = Math.max(0, Number(distance) - raceState.distance);
   const horizon = cameraMode === "cockpit" ? h * 0.44 : cameraMode === "hood" ? h * 0.48 : h * 0.5;
-  const nearY = cameraMode === "cockpit" ? h * 0.8 : cameraMode === "hood" ? h * 0.86 : h * 0.82;
+  const nearY = cameraMode === "cockpit" ? h * 0.84 : cameraMode === "hood" ? h * 0.9 : h * 0.88;
   const depth = Math.max(0.18, Math.min(1, 1 / (1 + gap / 88)));
   const y = horizon + (nearY - horizon) * depth;
   const curveShift = (raceState.roadCurve || 0) * (1 - depth) * w * 0.16;
@@ -3083,8 +3143,8 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
 function spriteContactRatio(vehicleType = "car") {
   if (vehicleType === "airplane" || vehicleType === "helicopter") return 0.68;
   if (vehicleType === "boat") return 0.78;
-  if (vehicleType === "snowmobile") return 0.94;
-  return 0.955;
+  if (vehicleType === "snowmobile") return 0.9;
+  return 0.9;
 }
 
 function spriteContactLift(h, vehicleType = "car") {
@@ -3213,6 +3273,15 @@ function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
   ctx.beginPath();
   ctx.moveTo(-w * 0.48, -h * 0.002);
   ctx.lineTo(w * 0.48, -h * 0.002);
+  ctx.stroke();
+  ctx.globalAlpha = snow ? 0.44 : 0.72;
+  ctx.strokeStyle = snow ? "rgba(244,251,248,0.78)" : "rgba(0,0,0,0.78)";
+  ctx.lineWidth = Math.max(2, w * 0.028);
+  ctx.beginPath();
+  ctx.moveTo(-w * tireSpread, tireH * 0.24);
+  ctx.lineTo(-w * tireSpread, h * 0.26);
+  ctx.moveTo(w * tireSpread, tireH * 0.24);
+  ctx.lineTo(w * tireSpread, h * 0.26);
   ctx.stroke();
   ctx.globalAlpha = 0.94;
   ctx.fillStyle = snow ? "rgba(244,251,248,0.86)" : "rgba(0,0,0,0.98)";
@@ -3981,8 +4050,16 @@ function drawCar(w, h) {
   if (cameraMode === "cockpit") return;
   const vehicle = selectedVehicle();
   let x = w / 2 + raceState.lane * laneWidth();
-  let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.76 : h * 0.82;
+  let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.84 : h * 0.86;
   let projectionScale = 1;
+  if (useWebGLRenderer() && cameraMode === "chase" && webglRenderer && typeof webglRenderer.projectWorldRoadPoint === "function") {
+    const anchor = webglRenderer.projectWorldRoadPoint(raceState.lane, 5.2);
+    if (anchor && Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) {
+      x = anchor.x;
+      y = Math.max(h * 0.78, Math.min(h * 0.93, anchor.y + h * 0.02));
+      projectionScale = Math.max(0.92, Math.min(1.12, anchor.scale || 1));
+    }
+  }
   const sizeBoost = vehicle.type === "semi" ? 1.28 : vehicle.type === "monster" || vehicle.type === "tank" ? 1.18 : vehicle.type === "tractor" ? 1.08 : vehicle.type === "f1" || vehicle.type === "snowmobile" ? 0.9 : 1;
   const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost * projectionScale;
   const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale;
