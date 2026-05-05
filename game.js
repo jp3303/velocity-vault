@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 43;
+const starterGarageVersion = 46;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -2017,14 +2017,20 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
   ctx.fillRect(0, 0, w, h);
 
   if (place === "tokyo" || place === "city") {
-    ctx.globalAlpha = place === "tokyo" ? 0.22 : 0.1;
-    ctx.strokeStyle = place === "tokyo" ? "rgba(255,79,216,0.42)" : "rgba(244,251,248,0.16)";
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 9; i += 1) {
-      const x = (i * 97 + raceState.roadOffset * 0.18) % (w + 120) - 60;
+    ctx.globalAlpha = place === "tokyo" ? 0.18 : 0.08;
+    for (let i = 0; i < 14; i += 1) {
+      const x = (i * 83 + raceState.roadOffset * 0.07) % (w + 140) - 70;
+      const y = h * (0.25 + (i % 5) * 0.058);
+      const dashW = 24 + (i % 4) * 18;
+      const neon = ctx.createLinearGradient(x, y, x + dashW, y);
+      neon.addColorStop(0, "rgba(255,255,255,0)");
+      neon.addColorStop(0.5, place === "tokyo" ? "rgba(255,79,216,0.44)" : "rgba(244,251,248,0.18)");
+      neon.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = neon;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.moveTo(x, h * 0.16);
-      ctx.lineTo(x + 28, h * 0.58);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + dashW, y + 1);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -2074,6 +2080,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
   const wet = ["city", "tokyo", "coast", "harbor", "rainforest"].includes(place);
   const warm = ["desert", "canyon", "farm", "freight"].includes(place);
+  const webglActive = useWebGLRenderer();
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const roadCenter = (t) => {
     const clamped = Math.max(0, Math.min(1.08, t));
@@ -2091,6 +2098,10 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   ctx.fillRect(0, 0, w, horizon + h * 0.28);
 
   drawPhoneConsoleLandmarks(w, h, horizon, place, theme);
+  if (webglActive) {
+    ctx.restore();
+    return;
+  }
 
   ctx.beginPath();
   ctx.moveTo(roadCenter(0) - roadTop, horizon);
@@ -2151,22 +2162,30 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   for (let i = 0; i < 13; i += 1) {
     const y = horizon + (((i * 78 + motion) % (h - horizon + 120)) - 52);
     const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
-    paint(-0.5, y, 18 + t * 64, 1.2 + t * 5, 0.16 + t * 0.34);
-    paint(0.5, y + 12, 18 + t * 56, 1.2 + t * 5, 0.12 + t * 0.28);
+    paint(-0.5, y, 12 + t * 34, 1.1 + t * 4.2, 0.14 + t * 0.28);
+    paint(0.5, y + 12, 12 + t * 30, 1.1 + t * 4.2, 0.1 + t * 0.24);
   }
   ctx.globalAlpha = 1;
 
   for (let side = -1; side <= 1; side += 2) {
-    const shoulder = ctx.createLinearGradient(roadX(side * 2.15, 0.15), horizon, roadX(side * 2.15, 1), h);
-    shoulder.addColorStop(0, "rgba(255,255,255,0.05)");
-    shoulder.addColorStop(1, side < 0 ? "rgba(255,91,107,0.2)" : "rgba(70,217,255,0.18)");
-    ctx.strokeStyle = shoulder;
-    ctx.lineWidth = Math.max(4, w * 0.01);
-    ctx.beginPath();
-    ctx.moveTo(roadX(side * 1.55, 0), horizon);
-    ctx.lineTo(roadX(side * 2.42, 1), h);
-    ctx.stroke();
+    for (let i = 0; i < 12; i += 1) {
+      const y = horizon + (((i * 66 + motion * 0.74) % (h - horizon + 100)) - 28);
+      if (y < horizon || y > h) continue;
+      const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+      const x = roadX(side * (1.72 + t * 0.24), t);
+      const dashW = 10 + t * 46;
+      const dashH = 2 + t * 6;
+      ctx.globalAlpha = 0.1 + t * 0.34;
+      ctx.fillStyle = side < 0 ? "rgba(255,91,107,0.32)" : "rgba(70,217,255,0.28)";
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(side * turn * -0.08);
+      roundRect(-dashW / 2, -dashH / 2, dashW, dashH, 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
+  ctx.globalAlpha = 1;
 
   if (Math.abs(turn) > 0.22) {
     const side = turn > 0 ? 1 : -1;
@@ -2200,7 +2219,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
 
   if (speed > 90) {
     ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = Math.min(0.34, (speed - 80) / 520);
+    ctx.globalAlpha = Math.min(0.2, (speed - 80) / 700);
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < 7; i += 1) {
         const y = horizon + h * (0.12 + i * 0.11);
@@ -2208,7 +2227,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
         ctx.lineWidth = 1 + i * 0.35;
         ctx.beginPath();
         ctx.moveTo(side < 0 ? 0 : w, y);
-        ctx.lineTo(w * 0.5 + side * w * (0.12 + i * 0.025), y + h * 0.18);
+        ctx.lineTo(side < 0 ? w * 0.14 : w * 0.86, y + h * 0.015);
         ctx.stroke();
       }
     }
@@ -2345,62 +2364,45 @@ function drawPhoneConsolePostPass(w, h, theme) {
 
 function drawWebGLFlatPavementPass(w, h, theme) {
   const floorY = cameraMode === "cockpit" ? h * 0.54 : cameraMode === "hood" ? h * 0.58 : h * 0.6;
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(-w * 0.08, h);
-  ctx.lineTo(w * 0.29, floorY);
-  ctx.lineTo(w * 0.71, floorY);
-  ctx.lineTo(w * 1.08, h);
-  ctx.closePath();
-  ctx.clip();
-
-  const shade = ctx.createLinearGradient(0, floorY, 0, h);
-  shade.addColorStop(0, "rgba(18,24,22,0.46)");
-  shade.addColorStop(0.45, "rgba(15,19,18,0.76)");
-  shade.addColorStop(1, "rgba(6,8,8,0.92)");
-  ctx.fillStyle = shade;
-  ctx.fillRect(0, floorY, w, h - floorY);
-
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const speed = Math.max(0, Math.abs(raceState.speed || 0));
   const offset = raceState.roadOffset || 0;
-  for (let i = 0; i < 28; i += 1) {
-    const y = floorY + (((i * 30 + offset * (0.48 + speed / 520)) % (h - floorY + 84)) - 34);
+  ctx.save();
+
+  const bottomShade = ctx.createLinearGradient(0, floorY, 0, h);
+  bottomShade.addColorStop(0, "rgba(0,0,0,0)");
+  bottomShade.addColorStop(0.42, "rgba(0,0,0,0.12)");
+  bottomShade.addColorStop(1, "rgba(0,0,0,0.36)");
+  ctx.fillStyle = bottomShade;
+  ctx.fillRect(0, floorY, w, h - floorY);
+
+  for (let i = 0; i < 20; i += 1) {
+    const y = floorY + (((i * 32 + offset * (0.42 + speed / 650)) % (h - floorY + 72)) - 24);
     if (y < floorY || y > h) continue;
     const t = (y - floorY) / Math.max(1, h - floorY);
-    ctx.globalAlpha = 0.16 + t * 0.34;
-    ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.16)" : "rgba(180,192,188,0.12)";
-    ctx.lineWidth = 1 + t * 5;
+    ctx.globalAlpha = 0.08 + t * 0.2;
+    ctx.strokeStyle = i % 2 ? "rgba(244,251,248,0.14)" : "rgba(6,8,8,0.42)";
+    ctx.lineWidth = 1 + t * 3.5;
     ctx.beginPath();
-    ctx.moveTo(w * (0.3 - t * 0.34), y);
-    ctx.quadraticCurveTo(w * 0.5, y + 3 + t * 10, w * (0.7 + t * 0.34), y);
+    const center = w * 0.5 + turn * (1 - t) * (1 - t) * w * 0.12;
+    const half = w * (0.24 + t * 0.42);
+    ctx.moveTo(center - half, y);
+    ctx.lineTo(center + half, y + 1);
     ctx.stroke();
   }
 
-  ctx.globalAlpha = 0.52;
-  ctx.strokeStyle = "rgba(2,4,4,0.76)";
-  ctx.lineWidth = Math.max(2, w * 0.006);
   for (let side = -1; side <= 1; side += 2) {
-    const x = w * 0.5 + side * laneWidth() * 0.25;
-    ctx.beginPath();
-    ctx.moveTo(x, floorY + h * 0.05);
-    ctx.bezierCurveTo(
-      x + side * w * 0.02,
-      floorY + h * 0.12,
-      x + side * w * 0.06,
-      h * 0.9,
-      x + side * w * 0.1,
-      h
-    );
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 0.28;
-  ctx.strokeStyle = "rgba(244,251,248,0.18)";
-  ctx.lineWidth = Math.max(2, w * 0.005);
-  for (let side = -1; side <= 1; side += 2) {
-    ctx.beginPath();
-    ctx.moveTo(w * (0.31 + side * 0.02), floorY + 6);
-    ctx.lineTo(w * (0.08 + side * 0.12), h);
-    ctx.stroke();
+    for (let i = 0; i < 8; i += 1) {
+      const y = floorY + (((i * 58 + offset * 0.42) % (h - floorY + 80)) - 16);
+      if (y < floorY || y > h) continue;
+      const t = (y - floorY) / Math.max(1, h - floorY);
+      const center = w * 0.5 + turn * (1 - t) * (1 - t) * w * 0.1;
+      const roadHalf = w * (0.25 + t * 0.4);
+      ctx.globalAlpha = 0.1 + t * 0.18;
+      ctx.fillStyle = side < 0 ? "rgba(255,91,107,0.22)" : "rgba(70,217,255,0.2)";
+      roundRect(center + side * roadHalf - side * (14 + t * 24), y, 14 + t * 32, 2 + t * 4, 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -3804,13 +3806,16 @@ function drawRoadWeightPass(w, h, theme) {
   ctx.fillRect(0, horizon, w, h - horizon);
 
   ctx.globalAlpha = 0.32;
-  ctx.strokeStyle = "rgba(0,0,0,0.86)";
-  ctx.lineWidth = Math.max(2, w * 0.004);
   for (let lane = -1.5; lane <= 1.5; lane += 1) {
-    ctx.beginPath();
-    ctx.moveTo(w * 0.5 + lane * laneWidth() * 0.23, horizon + h * 0.06);
-    ctx.lineTo(w * 0.5 + lane * laneWidth() * 1.26, h);
-    ctx.stroke();
+    for (let i = 0; i < 7; i += 1) {
+      const y = horizon + (((i * 92 + raceState.roadOffset * 0.72) % (h - horizon + 110)) - 30);
+      if (y < horizon || y > h) continue;
+      const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+      const x = w * 0.5 + lane * laneWidth() * (0.28 + t * 1.1);
+      ctx.fillStyle = "rgba(0,0,0,0.56)";
+      roundRect(x - (4 + t * 7), y, 8 + t * 14, 2 + t * 5, 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -3877,13 +3882,13 @@ function drawRoadMotionPass(w, h, theme) {
       const y = horizon - 130 + loop(i * 128 + motion * 1.72, span);
       if (y < horizon || y > h + 70) continue;
       const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
-      const dashH = 28 + t * 96;
+      const dashH = 14 + t * 42;
       const x = roadX(lane, t);
       const dash = ctx.createLinearGradient(x, y, x, y + dashH);
       dash.addColorStop(0, "rgba(244,251,248,0)");
       dash.addColorStop(0.28, "rgba(244,251,248,0.78)");
       dash.addColorStop(1, "rgba(244,251,248,0.08)");
-      paintSegment(lane, y, dashH, 10 + t * 10, dash, dashAlpha * (0.38 + t * 0.64));
+      paintSegment(lane, y, dashH, 8 + t * 7, dash, dashAlpha * (0.32 + t * 0.5));
     }
   }
 
@@ -4920,7 +4925,7 @@ function drawRealisticDrivingPass(w, h, theme) {
   }
 
   if (speed > 105) {
-    const blur = Math.min(0.26, (speed - 105) / 720);
+    const blur = Math.min(0.18, (speed - 105) / 900);
     ctx.globalAlpha = blur;
     ctx.strokeStyle = "rgba(244,251,248,0.7)";
     ctx.lineWidth = 2;
@@ -4930,7 +4935,7 @@ function drawRealisticDrivingPass(w, h, theme) {
       const x0 = w * 0.5 + side * w * (0.18 + (i % 5) * 0.05);
       ctx.beginPath();
       ctx.moveTo(x0, y);
-      ctx.lineTo(x0 + side * w * 0.18, y + h * 0.22);
+      ctx.lineTo(x0 + side * w * 0.16, y + h * 0.018);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;

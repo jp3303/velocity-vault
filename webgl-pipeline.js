@@ -395,13 +395,17 @@
       }
       quad([roadWorldX(data, -8.7, 0), -0.02, 0], [roadWorldX(data, -5.9, 0), -0.02, 0], [roadWorldX(data, -7.7, 170), -0.02, 170], [roadWorldX(data, -10.2, 170), -0.02, 170], shade(groundColor, 0.72));
       quad([roadWorldX(data, 5.9, 0), -0.02, 0], [roadWorldX(data, 8.7, 0), -0.02, 0], [roadWorldX(data, 10.2, 170), -0.02, 170], [roadWorldX(data, 7.7, 170), -0.02, 170], shade(groundColor, 0.72));
-      box(roadWorldX(data, -6.25, 84), 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
-      box(roadWorldX(data, 6.25, 84), 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
       for (let i = 0; i < 42; i += 1) {
         const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
         const x = ((i * 1.37) % 10.6) - 5.3;
         const patch = i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18);
         box(roadWorldX(data, x, z), 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
+      }
+      for (let i = 0; i < 36; i += 1) {
+        const z = wrapZ(i, 5.1, data.raceState.roadOffset, 0.16);
+        const color = i % 2 ? roadMarkDim : shade(roadMarkDim, 0.72);
+        box(roadWorldX(data, -6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
+        box(roadWorldX(data, 6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
       }
       for (let i = 0; i < 34; i += 1) {
         const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
@@ -411,7 +415,7 @@
       for (let lane = -1; lane <= 1; lane += 1) {
         for (let i = 0; i < 24; i += 1) {
           const z = wrapZ(i, 7.2, data.raceState.roadOffset, 0.1);
-          box(roadWorldX(data, lane * 2.08, z), 0.034, z, 0.1, 0.018, 3.45, [0.86, 0.9, 0.86, 1]);
+          box(roadWorldX(data, lane * 2.08, z), 0.034, z, 0.1, 0.016, 1.55, [0.86, 0.9, 0.86, 1]);
         }
       }
       for (let i = 0; i < 28; i += 1) {
