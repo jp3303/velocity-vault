@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 41;
+const starterGarageVersion = 42;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -1216,17 +1216,25 @@ function installApp() {
 
 function makeOpponents(playerVehicle, age, director) {
   const pool = vehicleDefs.filter((vehicle) => vehicle.id !== playerVehicle.id);
-  const gridLanes = [-1.55, 1.45, -0.55, 0.58, 1.95];
+  const grid = [
+    { gap: 58, lane: -1.55, bias: 0.62, speed: 24 },
+    { gap: 176, lane: 1.25, bias: 0.69, speed: 34 },
+    { gap: 332, lane: -0.35, bias: 0.78, speed: 42 },
+    { gap: -220, lane: 1.82, bias: 0.72, speed: 30 },
+    { gap: -430, lane: -1.88, bias: 0.78, speed: 36 }
+  ];
   return opponentNames.map((name, index) => {
     const vehicle = pool[(index * 2 + selectedRace.id.length) % pool.length];
-    const startGap = 30 + index * 62 + Math.random() * 18;
+    const slot = grid[index % grid.length];
+    const startGap = slot.gap + (Math.random() - 0.5) * 18;
     return {
       name,
       vehicleId: vehicle.id,
-      lane: gridLanes[index % gridLanes.length],
+      lane: slot.lane,
+      homeLane: slot.lane,
       distance: startGap,
-      speed: 26 + index * 10,
-      targetBias: 0.72 + index * 0.075 + Math.random() * 0.06,
+      speed: slot.speed + index * 2,
+      targetBias: slot.bias + Math.random() * 0.035,
       focus: 100,
       damage: 0,
       wrecked: false,
@@ -1235,7 +1243,7 @@ function makeOpponents(playerVehicle, age, director) {
       surgePhase: Math.random() * Math.PI * 2,
       bumpCooldown: 0,
       passCooldown: 0,
-      wasAhead: true,
+      wasAhead: startGap > 0,
       laneVelocity: 0,
       spin: 0,
       finished: false,
@@ -1259,7 +1267,8 @@ function updateOpponents(dt, maxSpeed) {
     const vehicle = vehicleById(opponent.vehicleId);
     const routePush = routeVehicleBoost(selectedRace.place, vehicle.type, true);
     const gapToPlayer = opponent.distance - raceState.distance;
-    const racePressure = Math.max(-0.18, Math.min(0.27, -gapToPlayer / 720));
+    let racePressure = Math.max(-0.2, Math.min(0.18, -gapToPlayer / 760));
+    if (gapToPlayer < -20 && raceState.elapsed < 32) racePressure = Math.min(racePressure, 0.035);
     const duelSurge = Math.abs(gapToPlayer) < 150 ? Math.sin(raceState.elapsed * (1.18 + index * 0.08) + opponent.surgePhase) * 0.075 : 0;
     const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
     const vehiclePace = fieldSpeed * (0.78 + vehicle.speed * 0.24);
@@ -1270,9 +1279,12 @@ function updateOpponents(dt, maxSpeed) {
     opponent.speed += (target - opponent.speed) * Math.min(1, dt * (opponent.wrecked ? 0.45 : 0.85 + vehicle.handling * 0.35));
     opponent.distance = Math.min(length + 80, opponent.distance + Math.max(0, opponent.speed) * dt);
     opponent.wobble += dt * (0.85 + index * 0.08);
-    const flowLane = Math.sin(opponent.wobble) * 1.7 + Math.sin(opponent.wobble * 0.47 + index) * 0.34;
-    const passSide = index % 2 ? -1 : 1;
-    const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * (0.72 + (index % 3) * 0.18) + Math.sin(opponent.wobble * 1.6) * 0.18));
+    const homeLane = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : ((index % 5) - 2);
+    const flowLane = homeLane * 0.58 + Math.sin(opponent.wobble) * 0.88 + Math.sin(opponent.wobble * 0.47 + index) * 0.2;
+    const sideFromPlayer = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
+    const passSide = gapToPlayer > 0 && gapToPlayer < 95 ? sideFromPlayer : (index % 2 ? -1 : 1);
+    const clearance = gapToPlayer > 0 && gapToPlayer < 105 ? 1.34 : 0.92;
+    const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * clearance + Math.sin(opponent.wobble * 1.6) * 0.14));
     const laneTarget = Math.abs(gapToPlayer) < 135 && !opponent.wrecked ? duelLane : flowLane;
     if (!opponent.wrecked) {
       opponent.lane += (laneTarget - opponent.lane) * dt * 0.34 * vehicle.handling * Math.max(0.42, damageDrag);
@@ -1282,7 +1294,7 @@ function updateOpponents(dt, maxSpeed) {
     opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
     opponent.spin += (opponent.wrecked ? 1.8 : 0.2) * dt * Math.sign(opponent.laneVelocity || 1);
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
-    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < 18 && Math.abs(opponent.lane - raceState.lane) < 0.46;
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < 12 && Math.abs(opponent.lane - raceState.lane) < 0.34;
     if (wheelToWheel && opponent.bumpCooldown <= 0 && raceState.resetTimer <= 0) {
       opponent.bumpCooldown = 1.35;
       const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
@@ -1350,7 +1362,8 @@ function playerPosition() {
 function spawnRival() {
   const age = ageBands[activeProfile.age];
   const director = raceState.director || getDirector(activeProfile);
-  const lane = Math.floor(Math.random() * 5) - 2;
+  const laneOptions = [-2, -1, 0, 1, 2].filter((candidate) => Math.abs(candidate - raceState.lane) > 0.72);
+  const lane = laneOptions[Math.floor(Math.random() * laneOptions.length)] ?? (Math.floor(Math.random() * 5) - 2);
   const routeTypes = selectedRace.place === "harbor" ? ["boat", "car", "truck"]
     : selectedRace.place === "snow" ? ["snowmobile", "truck", "car"]
       : selectedRace.place === "airfield" ? ["airplane", "helicopter", "car", "truck"]
@@ -1493,9 +1506,9 @@ function tick(dt) {
   updateOpponents(dt, maxSpeed);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
-  if (raceState.spawnClock <= 0 && raceState.speed > 35) {
+  if (raceState.spawnClock <= 0 && raceState.speed > 45 && raceState.elapsed > 5) {
     spawnRival();
-    raceState.spawnClock = Math.max(0.48, 1.14 - age.traffic * director.traffic * 0.16 - raceState.elapsed * 0.004);
+    raceState.spawnClock = Math.max(1.15, 2.1 - age.traffic * director.traffic * 0.16 - raceState.elapsed * 0.002);
   }
   if (raceState.coinClock <= 0 && raceState.speed > 30) {
     spawnCoin();
@@ -1887,6 +1900,7 @@ function drawFrame() {
     ctx.save();
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake * 0.55);
     drawWebGLRouteAtmosphere(w, h, theme);
+    drawPhoneConsoleChasePass(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
     drawWebGLFlatPavementPass(w, h, theme);
     if (raceState.active) {
@@ -1901,6 +1915,7 @@ function drawFrame() {
     drawParticles();
     drawPhoneFilmicPost(w, h, theme);
     drawCinematicGrade(w, h, theme);
+    drawPhoneConsolePostPass(w, h, theme);
     if (!raceState.active) drawAttract(w, h);
     if (input.paused && raceState.active) drawPause(w, h);
     ctx.restore();
@@ -1918,6 +1933,7 @@ function drawFrame() {
   ctx.fillRect(0, 0, w, h);
   drawScenery(w, h, theme);
   drawRoad(w, h, theme);
+  drawPhoneConsoleChasePass(w, h, theme);
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
   drawRoadWeightPass(w, h, theme);
@@ -1932,6 +1948,7 @@ function drawFrame() {
   drawParticles();
   drawPhoneFilmicPost(w, h, theme);
   drawCinematicGrade(w, h, theme);
+  drawPhoneConsolePostPass(w, h, theme);
   if (!raceState.active) drawAttract(w, h);
   if (input.paused && raceState.active) drawPause(w, h);
   ctx.restore();
@@ -2000,6 +2017,213 @@ function drawWebGLRouteAtmosphere(w, h, theme) {
     ctx.fillRect(0, h * 0.55, w, h * 0.45);
     ctx.globalAlpha = 1;
   }
+  ctx.restore();
+}
+
+function drawPhoneConsoleChasePass(w, h, theme) {
+  if (!phoneGraphicsActive()) return;
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const speed = Math.max(0, raceState.speed || 0);
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
+  const wet = ["city", "tokyo", "coast", "harbor", "rainforest"].includes(place);
+  const warm = ["desert", "canyon", "farm", "freight"].includes(place);
+
+  ctx.save();
+  const skyWash = ctx.createLinearGradient(0, 0, 0, horizon + h * 0.24);
+  skyWash.addColorStop(0, `${theme[0]}d9`);
+  skyWash.addColorStop(0.54, warm ? "rgba(178,118,56,0.18)" : "rgba(70,217,255,0.11)");
+  skyWash.addColorStop(1, "rgba(5,8,7,0)");
+  ctx.fillStyle = skyWash;
+  ctx.fillRect(0, 0, w, horizon + h * 0.28);
+
+  drawPhoneConsoleLandmarks(w, h, horizon, place, theme);
+
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5 - roadTop, horizon);
+  ctx.lineTo(w * 0.5 + roadTop, horizon);
+  ctx.lineTo(w * 0.5 + roadBottom * 0.62, h + 8);
+  ctx.lineTo(w * 0.5 - roadBottom * 0.62, h + 8);
+  ctx.closePath();
+  ctx.clip();
+
+  const asphalt = ctx.createLinearGradient(0, horizon, 0, h);
+  asphalt.addColorStop(0, wet ? "rgba(42,55,56,0.34)" : "rgba(38,42,40,0.28)");
+  asphalt.addColorStop(0.36, "rgba(12,16,15,0.42)");
+  asphalt.addColorStop(1, "rgba(1,3,3,0.72)");
+  ctx.fillStyle = asphalt;
+  ctx.fillRect(0, horizon, w, h - horizon);
+
+  if (wet) {
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 12; i += 1) {
+      const y = horizon + (((i * 62 + raceState.roadOffset * (0.72 + speed / 380)) % (h - horizon + 90)) - 45);
+      if (y < horizon || y > h) continue;
+      const t = (y - horizon) / Math.max(1, h - horizon);
+      const ribbonW = w * (0.08 + t * 0.44);
+      const x = w * 0.5 + Math.sin(i * 1.9 + raceState.elapsed * 0.7) * w * 0.06;
+      const shine = ctx.createLinearGradient(x - ribbonW, y, x + ribbonW, y);
+      shine.addColorStop(0, "rgba(255,255,255,0)");
+      shine.addColorStop(0.5, `rgba(210,245,255,${0.08 + t * 0.18})`);
+      shine.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.strokeStyle = shine;
+      ctx.lineWidth = 1 + t * 6;
+      ctx.beginPath();
+      ctx.moveTo(x - ribbonW, y);
+      ctx.quadraticCurveTo(x, y + 3 + t * 12, x + ribbonW, y + 2);
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  const roadX = (lane, t) => w * 0.5 + lane * laneWidth() * (0.26 + t * 1.24) + (raceState.roadCurve || 0) * (1 - t) * w * 0.12;
+  const paint = (lane, y, length, width, alpha) => {
+    const t1 = Math.max(0, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const t2 = Math.max(0, Math.min(1.12, (y + length - horizon) / Math.max(1, h - horizon)));
+    if (t2 <= 0 || t1 >= 1.12) return;
+    const x1 = roadX(lane, t1);
+    const x2 = roadX(lane, t2);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(230,238,234,0.82)";
+    ctx.beginPath();
+    ctx.moveTo(x1 - width * (0.25 + t1), y);
+    ctx.lineTo(x1 + width * (0.25 + t1), y);
+    ctx.lineTo(x2 + width * (0.28 + t2 * 1.25), y + length);
+    ctx.lineTo(x2 - width * (0.28 + t2 * 1.25), y + length);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const motion = raceState.roadOffset * (0.96 + Math.min(1.8, speed / 130));
+  for (let i = 0; i < 13; i += 1) {
+    const y = horizon + (((i * 78 + motion) % (h - horizon + 120)) - 52);
+    const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    paint(-0.5, y, 18 + t * 64, 1.2 + t * 5, 0.16 + t * 0.34);
+    paint(0.5, y + 12, 18 + t * 56, 1.2 + t * 5, 0.12 + t * 0.28);
+  }
+  ctx.globalAlpha = 1;
+
+  for (let side = -1; side <= 1; side += 2) {
+    const shoulder = ctx.createLinearGradient(roadX(side * 2.15, 0.15), horizon, roadX(side * 2.15, 1), h);
+    shoulder.addColorStop(0, "rgba(255,255,255,0.05)");
+    shoulder.addColorStop(1, side < 0 ? "rgba(255,91,107,0.2)" : "rgba(70,217,255,0.18)");
+    ctx.strokeStyle = shoulder;
+    ctx.lineWidth = Math.max(4, w * 0.01);
+    ctx.beginPath();
+    ctx.moveTo(roadX(side * 1.55, 0), horizon);
+    ctx.lineTo(roadX(side * 2.42, 1), h);
+    ctx.stroke();
+  }
+
+  if (speed > 90) {
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.34, (speed - 80) / 520);
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 7; i += 1) {
+        const y = horizon + h * (0.12 + i * 0.11);
+        ctx.strokeStyle = i % 2 ? "rgba(255,255,255,0.22)" : `${theme[1]}66`;
+        ctx.lineWidth = 1 + i * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(side < 0 ? 0 : w, y);
+        ctx.lineTo(w * 0.5 + side * w * (0.12 + i * 0.025), y + h * 0.18);
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
+  ctx.save();
+  ctx.globalAlpha = 0.52;
+  const baseY = horizon + h * 0.05;
+  const offset = (raceState.roadOffset * 0.025) % 180;
+  for (let i = 0; i < 18; i += 1) {
+    const side = i % 2 ? -1 : 1;
+    const x = side < 0 ? (i * 74 - offset) % (w * 0.48) : w - ((i * 78 + offset) % (w * 0.48));
+    if (place === "city" || place === "tokyo") {
+      const bw = 20 + (i % 4) * 9;
+      const bh = h * (0.14 + (i % 5) * 0.035);
+      ctx.fillStyle = place === "tokyo" ? "rgba(18,14,36,0.82)" : "rgba(14,20,23,0.86)";
+      roundRect(x, baseY - bh, bw, bh, 2);
+      ctx.fill();
+      ctx.fillStyle = i % 2 ? `${theme[1]}66` : `${theme[2]}55`;
+      ctx.fillRect(x + bw * 0.22, baseY - bh + 8, bw * 0.12, bh * 0.62);
+      ctx.fillRect(x + bw * 0.62, baseY - bh + 18, bw * 0.12, bh * 0.48);
+    } else if (place === "coast" || place === "harbor") {
+      ctx.fillStyle = "rgba(8,38,43,0.72)";
+      ctx.beginPath();
+      ctx.ellipse(x, baseY + 8, 48 + (i % 3) * 12, 12 + (i % 4) * 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.18)";
+      ctx.beginPath();
+      ctx.moveTo(x - 18, baseY - 4);
+      ctx.lineTo(x, baseY - 28 - (i % 3) * 6);
+      ctx.lineTo(x + 18, baseY - 4);
+      ctx.stroke();
+    } else if (place === "desert" || place === "canyon") {
+      ctx.fillStyle = "rgba(132,72,38,0.58)";
+      ctx.beginPath();
+      ctx.moveTo(x - 68, baseY + 14);
+      ctx.quadraticCurveTo(x, baseY - 26 - (i % 3) * 12, x + 74, baseY + 16);
+      ctx.closePath();
+      ctx.fill();
+    } else if (place === "snow" || place === "alpine" || place === "europe") {
+      ctx.fillStyle = "rgba(150,174,174,0.46)";
+      ctx.beginPath();
+      ctx.moveTo(x - 72, baseY + 12);
+      ctx.lineTo(x - 10, baseY - 70 - (i % 3) * 18);
+      ctx.lineTo(x + 68, baseY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.42)";
+      ctx.fill();
+    } else {
+      ctx.fillStyle = place === "farm" ? "rgba(60,92,42,0.58)" : "rgba(24,78,52,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(x, baseY + 8, 44 + (i % 4) * 12, 20 + (i % 3) * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(10,28,18,0.64)";
+      ctx.fillRect(x - 2, baseY - 40, 4, 50);
+    }
+  }
+  ctx.restore();
+}
+
+function drawPhoneConsolePostPass(w, h, theme) {
+  if (!phoneGraphicsActive()) return;
+  const speed = Math.max(0, raceState.speed || 0);
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  const headlight = ctx.createRadialGradient(w * 0.5, h * 0.76, w * 0.04, w * 0.5, h * 0.76, w * 0.55);
+  headlight.addColorStop(0, "rgba(244,251,248,0.12)");
+  headlight.addColorStop(0.55, `${theme[1]}12`);
+  headlight.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = headlight;
+  ctx.fillRect(0, h * 0.35, w, h * 0.65);
+  ctx.restore();
+
+  if (speed > 110) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.24, (speed - 100) / 520);
+    const blur = ctx.createLinearGradient(0, 0, w, 0);
+    blur.addColorStop(0, "rgba(244,251,248,0.18)");
+    blur.addColorStop(0.18, "rgba(244,251,248,0)");
+    blur.addColorStop(0.82, "rgba(244,251,248,0)");
+    blur.addColorStop(1, "rgba(244,251,248,0.18)");
+    ctx.fillStyle = blur;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+
+  ctx.save();
+  const cinematic = ctx.createLinearGradient(0, 0, 0, h);
+  cinematic.addColorStop(0, "rgba(0,0,0,0.24)");
+  cinematic.addColorStop(0.5, "rgba(0,0,0,0)");
+  cinematic.addColorStop(1, "rgba(0,0,0,0.36)");
+  ctx.fillStyle = cinematic;
+  ctx.fillRect(0, 0, w, h);
   ctx.restore();
 }
 
@@ -3083,9 +3307,11 @@ function drawObjects() {
     if (!isVehicleScreenYVisible(p.y)) return;
     const vehicle = vehicleById(opponent.vehicleId);
     const groundY = p.y + roadContactSink(p.scale, vehicle.type);
+    const gap = opponent.distance - raceState.distance;
+    const label = phoneGraphicsActive() && gap > 115 ? "" : opponent.name;
     draws.push({
       y: groundY,
-      draw: () => drawTrafficRearCar(p.x, groundY, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, opponent.name, opponent.damage || 0, opponent.wrecked, opponent.spin || 0)
+      draw: () => drawTrafficRearCar(p.x, groundY, 70 * p.scale, 112 * p.scale, opponent.color, false, vehicle.type, label, opponent.damage || 0, opponent.wrecked, opponent.spin || 0)
     });
   });
   raceState.coinsOnRoad.forEach((coin) => {
@@ -4144,10 +4370,12 @@ function drawCar(w, h) {
     }
   }
   const sizeBoost = vehicle.type === "semi" ? 1.28 : vehicle.type === "monster" || vehicle.type === "tank" ? 1.18 : vehicle.type === "tractor" ? 1.08 : vehicle.type === "f1" || vehicle.type === "snowmobile" ? 0.9 : 1;
-  const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost * projectionScale;
-  const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale;
+  const phoneChaseScale = phoneGraphicsActive() && cameraMode === "chase" ? 0.66 : 1;
+  const carWidth = (cameraMode === "hood" ? 220 : 118) * sizeBoost * projectionScale * phoneChaseScale;
+  const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale * phoneChaseScale;
   if (cameraMode === "chase") {
-    drawPlayerChaseCar(x, y + 18 + roadContactSink(projectionScale, vehicle.type), carWidth * 1.26, carHeight * 1.02, vehicle.color, vehicle.type);
+    const phoneLift = phoneGraphicsActive() ? h * 0.065 : 0;
+    drawPlayerChaseCar(x, y + phoneLift + 18 + roadContactSink(projectionScale, vehicle.type), carWidth * 1.26, carHeight * 1.02, vehicle.color, vehicle.type);
   } else {
     drawVehicle(x, y, carWidth, carHeight, vehicle.color, true, false, vehicle.type);
   }

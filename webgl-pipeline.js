@@ -131,17 +131,19 @@
       const shake = data.raceState.cameraShake || 0;
       const curve = data.raceState.roadCurve || 0;
       const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
-      let eye = [laneX * 0.58 - curve * 0.9 + jitter, 2.1, -14.6];
-      let target = [laneX * 0.16 + curve * 3.4, 1.96, 50];
+      const phoneFrame = data.width <= 940 || data.height <= 540;
+      let eye = phoneFrame ? [laneX * 0.5 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.58 - curve * 0.9 + jitter, 2.1, -14.6];
+      let target = phoneFrame ? [laneX * 0.14 + curve * 3.45, 1.24, 62] : [laneX * 0.16 + curve * 3.4, 1.96, 50];
       if (data.cameraMode === "hood") {
-        eye = [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
-        target = [laneX * 0.1 + curve * 3.6, 1.38, 52];
+        eye = phoneFrame ? [laneX * 0.3 - curve * 0.56 + jitter, 1.18, -7.8] : [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
+        target = phoneFrame ? [laneX * 0.08 + curve * 3.65, 1.02, 64] : [laneX * 0.1 + curve * 3.6, 1.38, 52];
       } else if (data.cameraMode === "cockpit") {
         eye = [laneX * 0.2 - curve * 0.5 + jitter, 1.58, -3.8];
         target = [laneX * 0.05 + curve * 3.8, 1.52, 56];
       }
       const view = lookAt(eye, target, [0, 1, 0]);
-      const proj = perspective(Math.PI / (data.cameraMode === "cockpit" ? 2.25 : 2.55), data.width / Math.max(1, data.height), 0.1, 220);
+      const fov = phoneFrame && data.cameraMode !== "cockpit" ? 2.28 : data.cameraMode === "cockpit" ? 2.25 : 2.55;
+      const proj = perspective(Math.PI / fov, data.width / Math.max(1, data.height), 0.1, 220);
       return {
         mvp: multiply(proj, view),
         width: data.width,
