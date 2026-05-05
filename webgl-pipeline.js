@@ -124,6 +124,65 @@
     const aColor = gl.getAttribLocation(program, "aColor");
     const uMvp = gl.getUniformLocation(program, "uMvp");
     let vertices = [];
+    let lastProjection = null;
+
+    function cameraProjection(data) {
+      const laneX = data.raceState.lane * 2.08;
+      const shake = data.raceState.cameraShake || 0;
+      const curve = data.raceState.roadCurve || 0;
+      const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
+      let eye = [laneX * 0.65 - curve * 1.2 + jitter, 3.2, -9.8];
+      let target = [laneX * 0.22 + curve * 4.2, 0.85, 18];
+      if (data.cameraMode === "hood") {
+        eye = [laneX * 0.42 - curve * 0.8 + jitter, 2.1, -4.2];
+        target = [laneX * 0.15 + curve * 4.6, 0.75, 26];
+      } else if (data.cameraMode === "cockpit") {
+        eye = [laneX * 0.25 - curve * 0.65 + jitter, 2.25, -2.1];
+        target = [laneX * 0.08 + curve * 4.8, 0.85, 32];
+      }
+      const view = lookAt(eye, target, [0, 1, 0]);
+      const proj = perspective(Math.PI / (data.cameraMode === "cockpit" ? 2.25 : 2.55), data.width / Math.max(1, data.height), 0.1, 220);
+      return {
+        mvp: multiply(proj, view),
+        width: data.width,
+        height: data.height,
+        raceDistance: data.raceState.distance,
+        cameraMode: data.cameraMode
+      };
+    }
+
+    function projectPoint(projection, x, y, z) {
+      const m = projection.mvp;
+      const clipX = m[0] * x + m[4] * y + m[8] * z + m[12];
+      const clipY = m[1] * x + m[5] * y + m[9] * z + m[13];
+      const clipW = m[3] * x + m[7] * y + m[11] * z + m[15];
+      if (!Number.isFinite(clipW) || clipW <= 0.02) return null;
+      const ndcX = clipX / clipW;
+      const ndcY = clipY / clipW;
+      if (!Number.isFinite(ndcX) || !Number.isFinite(ndcY)) return null;
+      const screenY = (0.5 - ndcY * 0.5) * projection.height;
+      const t = Math.max(0, Math.min(1.16, screenY / Math.max(1, projection.height)));
+      return {
+        x: (ndcX * 0.5 + 0.5) * projection.width,
+        y: screenY,
+        scale: Math.max(0.34, Math.min(1.24, 0.42 + t * 0.78)),
+        clipW,
+        z
+      };
+    }
+
+    function screenYFromRoadDistance(data, distance) {
+      return data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
+    }
+
+    function zFromRoadScreenY(data, y) {
+      const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
+      return 116 - t * 108;
+    }
+
+    function zFromRoadDistance(data, distance) {
+      return zFromRoadScreenY(data, screenYFromRoadDistance(data, distance));
+    }
 
     function addVertex(point, color) {
       vertices.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3]);
@@ -569,22 +628,12 @@
       gl.enable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
 
-      const laneX = data.raceState.lane * 2.08;
-      const shake = data.raceState.cameraShake || 0;
-      const curve = data.raceState.roadCurve || 0;
-      const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
-      let eye = [laneX * 0.65 - curve * 1.2 + jitter, 3.2, -9.8];
-      let target = [laneX * 0.22 + curve * 4.2, 0.85, 18];
-      if (data.cameraMode === "hood") {
-        eye = [laneX * 0.42 - curve * 0.8 + jitter, 2.1, -4.2];
-        target = [laneX * 0.15 + curve * 4.6, 0.75, 26];
-      } else if (data.cameraMode === "cockpit") {
-        eye = [laneX * 0.25 - curve * 0.65 + jitter, 2.25, -2.1];
-        target = [laneX * 0.08 + curve * 4.8, 0.85, 32];
-      }
-      const view = lookAt(eye, target, [0, 1, 0]);
-      const proj = perspective(Math.PI / (data.cameraMode === "cockpit" ? 2.25 : 2.55), data.width / Math.max(1, data.height), 0.1, 220);
-      const mvp = multiply(proj, view);
+      const projection = cameraProjection(data);
+      const mvp = projection.mvp;
+      lastProjection = {
+        ...projection,
+        data
+      };
 
       addRoad(data);
       addScenery(data);
@@ -605,10 +654,24 @@
       if (canvas.height !== height) canvas.height = height;
     }
 
+    function projectRoadPoint(lane, distance) {
+      if (!lastProjection || !lastProjection.data) return null;
+      const data = lastProjection.data;
+      const z = zFromRoadDistance(data, Number(distance));
+      return projectPoint(lastProjection, lane * 2.08, 0, z);
+    }
+
+    function projectWorldRoadPoint(lane, z) {
+      if (!lastProjection) return null;
+      return projectPoint(lastProjection, lane * 2.08, 0, z);
+    }
+
     return {
       ready: true,
       render,
-      resize
+      resize,
+      projectRoadPoint,
+      projectWorldRoadPoint
     };
   }
 
