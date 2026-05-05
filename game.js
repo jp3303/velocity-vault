@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 42;
+const starterGarageVersion = 43;
 const raceDistanceMultiplier = 5.8;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
@@ -141,6 +141,7 @@ const raceState = {
   resetReason: "",
   crashCooldown: 0,
   roadCurve: 0,
+  roadTurn: 0,
   roadOffset: 0,
   spawnClock: 0,
   coinClock: 0,
@@ -184,6 +185,44 @@ function vehicleById(id) {
 function raceLength(race = selectedRace) {
   const baseLength = race && race.length ? race.length : races[0].length;
   return Math.round(baseLength * raceDistanceMultiplier);
+}
+
+const routeWorlds = {
+  coast: { country: "USA", scene: "Pacific Coast", cue: "ocean cliffs", turn: 1.05, seed: 1.2 },
+  city: { country: "USA", scene: "Chicago Loop", cue: "wet downtown", turn: 0.95, seed: 2.4 },
+  canyon: { country: "USA", scene: "Sedona Canyon", cue: "red rock sweepers", turn: 1.24, seed: 3.6 },
+  alpine: { country: "USA", scene: "Rocky Mountain Pass", cue: "storm pass", turn: 1.32, seed: 4.8 },
+  harbor: { country: "USA", scene: "Miami Harbor", cue: "bridge run", turn: 0.92, seed: 5.7 },
+  snow: { country: "USA", scene: "Aspen Snowfields", cue: "ice bends", turn: 1.08, seed: 6.9 },
+  airfield: { country: "USA", scene: "Nevada Airfield", cue: "runway chicanes", turn: 0.72, seed: 7.4 },
+  freight: { country: "USA", scene: "Texas Freightway", cue: "wide interstate", turn: 0.82, seed: 8.1 },
+  farm: { country: "USA", scene: "Iowa Backroads", cue: "rolling farm roads", turn: 0.88, seed: 8.9 },
+  tokyo: { country: "Japan", scene: "Tokyo Expressway", cue: "neon overpasses", turn: 1.18, seed: 9.6 },
+  desert: { country: "Morocco", scene: "Sahara Rally", cue: "sand ridges", turn: 1.12, seed: 10.5 },
+  rainforest: { country: "Brazil", scene: "Amazon Rainforest", cue: "jungle tunnels", turn: 1.02, seed: 11.4 },
+  europe: { country: "Switzerland", scene: "Swiss Alps Tour", cue: "village switchbacks", turn: 1.36, seed: 12.2 }
+};
+
+function routeWorldInfo(place = "city") {
+  return routeWorlds[place] || routeWorlds.city;
+}
+
+function roadTurnAt(distance, race = selectedRace) {
+  const info = routeWorldInfo(race && race.place ? race.place : "city");
+  const d = Number(distance) || 0;
+  const longSweep = Math.sin(d * 0.00034 + info.seed) * 0.82;
+  const countryBend = Math.sin(d * 0.00072 + info.seed * 1.9) * 0.42;
+  const shortSet = Math.sin(d * 0.00118 + info.seed * 0.58) * 0.18;
+  const scenicSettle = Math.sin(d * 0.00009 + info.seed * 3.4) * 0.22;
+  return Math.max(-1.32, Math.min(1.32, (longSweep + countryBend + shortSet + scenicSettle) * info.turn));
+}
+
+function routeTurnName(turn) {
+  if (turn > 0.58) return "Right sweep";
+  if (turn < -0.58) return "Left sweep";
+  if (turn > 0.24) return "Right bend";
+  if (turn < -0.24) return "Left bend";
+  return "Fast straight";
 }
 
 function loadSavedRace() {
@@ -644,6 +683,7 @@ function launchRace() {
     resetReason: "",
     crashCooldown: 0,
     roadCurve: 0,
+    roadTurn: 0,
     roadOffset: 0,
     spawnClock: 0,
     coinClock: 0,
@@ -662,8 +702,9 @@ function launchRace() {
     director
   });
   $("#raceTitle").textContent = selectedRace.name;
-  $("#raceBrief").textContent = selectedRace.target;
-  $("#modeChip").textContent = selectedRace.name;
+  const route = routeWorldInfo(selectedRace.place);
+  $("#raceBrief").textContent = `${selectedRace.target} | ${route.country}: ${route.scene}`;
+  $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = `${vehicle.name} | ${selectedRace.target}`;
   showView("race");
   showToast(`${vehicle.name} on grid. Race the pack to the finish.`);
@@ -707,6 +748,7 @@ function saveRace() {
       resetReason: raceState.resetReason,
       crashCooldown: raceState.crashCooldown,
       roadCurve: raceState.roadCurve,
+      roadTurn: raceState.roadTurn,
       roadOffset: raceState.roadOffset,
       spawnClock: raceState.spawnClock,
       coinClock: raceState.coinClock,
@@ -757,6 +799,7 @@ function resumeSavedRace() {
   raceState.resetReason = saved.state.resetReason || "";
   raceState.crashCooldown = Math.max(0, Number(saved.state.crashCooldown) || 0);
   raceState.roadCurve = Number(saved.state.roadCurve) || 0;
+  raceState.roadTurn = Number(saved.state.roadTurn) || raceState.roadCurve || 0;
   raceState.overtakes = Number(saved.state.overtakes) || 0;
   raceState.passesAgainst = Number(saved.state.passesAgainst) || 0;
   raceState.opponents.forEach((opponent) => {
@@ -768,8 +811,9 @@ function resumeSavedRace() {
   input.paused = Boolean(saved.inputPaused);
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
-  $("#raceBrief").textContent = selectedRace.target;
-  $("#modeChip").textContent = selectedRace.name;
+  const route = routeWorldInfo(selectedRace.place);
+  $("#raceBrief").textContent = `${selectedRace.target} | ${route.country}: ${route.scene}`;
+  $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = raceState.chaseActive ? `Police heat ${Math.round(raceState.heat)}% | Escape clean` : `${selectedRace.target} | ${director.event.name}`;
   startAudio();
   if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
@@ -840,9 +884,10 @@ function updateHud() {
   if (raceState.active) {
     const pos = playerPosition();
     const leader = raceRankings()[0];
+    const turnName = routeTurnName(raceState.roadTurn || raceState.roadCurve || 0);
     $("#missionChip").textContent = raceState.chaseActive
-      ? `P${pos}/6 | Overtakes ${raceState.overtakes} | Police heat ${Math.round(raceState.heat)}%`
-      : `P${pos}/6 | Overtakes ${raceState.overtakes} | Leader ${leader.name}`;
+      ? `P${pos}/6 | ${turnName} | Heat ${Math.round(raceState.heat)}%`
+      : `P${pos}/6 | ${turnName} | Leader ${leader.name}`;
     if (raceState.speed < 8) $("#missionChip").textContent = "Hold Gas to accelerate | Brake to stop/reverse";
     if (raceState.resetTimer > 0) $("#missionChip").textContent = `Vehicle reset in ${Math.ceil(raceState.resetTimer)} | ${raceState.resetReason}`;
   }
@@ -1495,9 +1540,9 @@ function tick(dt) {
   raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
   raceState.roadOffset += raceState.speed * dt;
   raceState.elapsed += dt;
-  const curveSeed = selectedRace ? selectedRace.id.length * 0.43 : 1;
-  const curveTarget = Math.sin(raceState.distance * 0.00034 + curveSeed) * 0.72 + Math.sin(raceState.distance * 0.00012 + curveSeed * 2.7) * 0.34;
-  raceState.roadCurve += (curveTarget - (raceState.roadCurve || 0)) * Math.min(1, dt * 0.55);
+  const turnTarget = roadTurnAt(raceState.distance);
+  raceState.roadTurn += (turnTarget - (raceState.roadTurn || 0)) * Math.min(1, dt * 0.72);
+  raceState.roadCurve += ((raceState.roadTurn || 0) - (raceState.roadCurve || 0)) * Math.min(1, dt * 0.65);
   raceState.score += dt * Math.max(0, raceState.speed) * raceState.combo * 0.32;
   raceState.heat = Math.min(100, raceState.heat + dt * (gasInput ? 0.8 + Math.max(0, raceState.speed) / 185 : 0.1) + (boostInput && gasInput ? dt * 2.4 : 0));
   raceState.heatClock -= dt;
@@ -2029,6 +2074,13 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
   const wet = ["city", "tokyo", "coast", "harbor", "rainforest"].includes(place);
   const warm = ["desert", "canyon", "farm", "freight"].includes(place);
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const roadCenter = (t) => {
+    const clamped = Math.max(0, Math.min(1.08, t));
+    const farPull = (1 - clamped) * (1 - clamped);
+    const roadWave = Math.sin(clamped * 4.2 + (raceState.roadOffset || 0) * 0.004) * Math.abs(turn) * w * 0.018;
+    return w * 0.5 + turn * farPull * w * 0.26 + roadWave;
+  };
 
   ctx.save();
   const skyWash = ctx.createLinearGradient(0, 0, 0, horizon + h * 0.24);
@@ -2041,10 +2093,10 @@ function drawPhoneConsoleChasePass(w, h, theme) {
   drawPhoneConsoleLandmarks(w, h, horizon, place, theme);
 
   ctx.beginPath();
-  ctx.moveTo(w * 0.5 - roadTop, horizon);
-  ctx.lineTo(w * 0.5 + roadTop, horizon);
-  ctx.lineTo(w * 0.5 + roadBottom * 0.62, h + 8);
-  ctx.lineTo(w * 0.5 - roadBottom * 0.62, h + 8);
+  ctx.moveTo(roadCenter(0) - roadTop, horizon);
+  ctx.lineTo(roadCenter(0) + roadTop, horizon);
+  ctx.lineTo(roadCenter(1) + roadBottom * 0.62, h + 8);
+  ctx.lineTo(roadCenter(1) - roadBottom * 0.62, h + 8);
   ctx.closePath();
   ctx.clip();
 
@@ -2062,7 +2114,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
       if (y < horizon || y > h) continue;
       const t = (y - horizon) / Math.max(1, h - horizon);
       const ribbonW = w * (0.08 + t * 0.44);
-      const x = w * 0.5 + Math.sin(i * 1.9 + raceState.elapsed * 0.7) * w * 0.06;
+      const x = roadCenter(t) + Math.sin(i * 1.9 + raceState.elapsed * 0.7) * w * 0.06;
       const shine = ctx.createLinearGradient(x - ribbonW, y, x + ribbonW, y);
       shine.addColorStop(0, "rgba(255,255,255,0)");
       shine.addColorStop(0.5, `rgba(210,245,255,${0.08 + t * 0.18})`);
@@ -2077,7 +2129,7 @@ function drawPhoneConsoleChasePass(w, h, theme) {
     ctx.globalCompositeOperation = "source-over";
   }
 
-  const roadX = (lane, t) => w * 0.5 + lane * laneWidth() * (0.26 + t * 1.24) + (raceState.roadCurve || 0) * (1 - t) * w * 0.12;
+  const roadX = (lane, t) => roadCenter(t) + lane * laneWidth() * (0.26 + t * 1.24);
   const paint = (lane, y, length, width, alpha) => {
     const t1 = Math.max(0, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
     const t2 = Math.max(0, Math.min(1.12, (y + length - horizon) / Math.max(1, h - horizon)));
@@ -2116,6 +2168,36 @@ function drawPhoneConsoleChasePass(w, h, theme) {
     ctx.stroke();
   }
 
+  if (Math.abs(turn) > 0.22) {
+    const side = turn > 0 ? 1 : -1;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 8; i += 1) {
+      const y = horizon + (((i * 74 + motion * 0.82) % (h - horizon + 120)) - 36);
+      const t = Math.max(0.04, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+      const x = roadX(side * 2.72, t);
+      const boardW = 16 + t * 42;
+      const boardH = 5 + t * 11;
+      ctx.globalAlpha = 0.18 + t * 0.42;
+      ctx.fillStyle = side > 0 ? `${theme[2]}aa` : `${theme[1]}aa`;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(side * -0.34);
+      roundRect(-boardW / 2, -boardH / 2, boardW, boardH, 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.7)";
+      ctx.lineWidth = Math.max(1, t * 2.5);
+      ctx.beginPath();
+      ctx.moveTo(-boardW * 0.18, -boardH * 0.3);
+      ctx.lineTo(side * boardW * 0.18, 0);
+      ctx.lineTo(-boardW * 0.18, boardH * 0.3);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   if (speed > 90) {
     ctx.globalCompositeOperation = "screen";
     ctx.globalAlpha = Math.min(0.34, (speed - 80) / 520);
@@ -2139,6 +2221,7 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
   ctx.globalAlpha = 0.52;
   const baseY = horizon + h * 0.05;
   const offset = (raceState.roadOffset * 0.025) % 180;
+  const route = routeWorldInfo(place);
   for (let i = 0; i < 18; i += 1) {
     const side = i % 2 ? -1 : 1;
     const x = side < 0 ? (i * 74 - offset) % (w * 0.48) : w - ((i * 78 + offset) % (w * 0.48));
@@ -2188,12 +2271,30 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.fillRect(x - 2, baseY - 40, 4, 50);
     }
   }
+  const signSide = Math.sin((raceState.roadOffset || 0) * 0.002 + route.seed) > 0 ? 1 : -1;
+  const signX = signSide > 0 ? w * 0.82 : w * 0.18;
+  const signY = horizon + h * 0.08;
+  ctx.globalAlpha = 0.74;
+  ctx.fillStyle = "rgba(4,9,9,0.68)";
+  roundRect(signX - w * 0.095, signY - h * 0.035, w * 0.19, h * 0.07, 4);
+  ctx.fill();
+  ctx.strokeStyle = `${theme[1]}88`;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.fillStyle = "rgba(244,251,248,0.9)";
+  ctx.font = `700 ${Math.max(8, Math.min(13, w * 0.014))}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.fillText(route.country.toUpperCase(), signX, signY - h * 0.005);
+  ctx.font = `600 ${Math.max(7, Math.min(11, w * 0.012))}px Inter, system-ui, sans-serif`;
+  ctx.fillStyle = `${theme[2]}dd`;
+  ctx.fillText(route.scene.toUpperCase(), signX, signY + h * 0.018);
   ctx.restore();
 }
 
 function drawPhoneConsolePostPass(w, h, theme) {
   if (!phoneGraphicsActive()) return;
   const speed = Math.max(0, raceState.speed || 0);
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
   ctx.save();
   ctx.globalCompositeOperation = "screen";
   const headlight = ctx.createRadialGradient(w * 0.5, h * 0.76, w * 0.04, w * 0.5, h * 0.76, w * 0.55);
@@ -2203,6 +2304,21 @@ function drawPhoneConsolePostPass(w, h, theme) {
   ctx.fillStyle = headlight;
   ctx.fillRect(0, h * 0.35, w, h * 0.65);
   ctx.restore();
+
+  if (Math.abs(turn) > 0.08) {
+    ctx.save();
+    const leanSide = turn > 0 ? 1 : -1;
+    const pull = Math.min(0.26, Math.abs(turn) * 0.11 + speed / 1800);
+    const turnGlow = ctx.createLinearGradient(leanSide > 0 ? w : 0, 0, leanSide > 0 ? w * 0.45 : w * 0.55, 0);
+    turnGlow.addColorStop(0, `${theme[1]}33`);
+    turnGlow.addColorStop(0.42, "rgba(244,251,248,0.04)");
+    turnGlow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = pull;
+    ctx.fillStyle = turnGlow;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
 
   if (speed > 110) {
     ctx.save();
@@ -3210,7 +3326,9 @@ function drawHeadlightBeams(w, h, theme, horizon) {
 function objectPos(lane, y) {
   const h = canvas.height;
   const t = Math.max(0, y / h);
-  const curveShift = (raceState.roadCurve || 0) * (1 - Math.min(1, t)) * canvas.width * 0.18;
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const phoneCurve = phoneGraphicsActive() ? 0.29 : 0.19;
+  const curveShift = turn * (1 - Math.min(1, t)) * (1 - Math.min(1, t) * 0.24) * canvas.width * phoneCurve;
   return {
     x: canvas.width / 2 + curveShift + lane * laneWidth() * (0.42 + t * 0.72),
     y,
@@ -3286,7 +3404,9 @@ function visibleRoadObjectPos(lane, distance) {
   const y = gap >= 0
     ? horizon + (nearY - horizon) * depth
     : nearY + Math.min(h * 0.2, Math.abs(gap) * 0.18);
-  const curveShift = (raceState.roadCurve || 0) * (1 - depth) * w * 0.16;
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const phoneCurve = phoneGraphicsActive() ? 0.27 : 0.17;
+  const curveShift = turn * (1 - depth) * (1 - depth * 0.22) * w * phoneCurve;
   const laneSpread = laneWidth() * (0.32 + depth * 1.08);
   return {
     x: w / 2 + curveShift + lane * laneSpread,

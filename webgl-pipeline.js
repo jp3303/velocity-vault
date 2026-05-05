@@ -129,7 +129,7 @@
     function cameraProjection(data) {
       const laneX = data.raceState.lane * 2.08;
       const shake = data.raceState.cameraShake || 0;
-      const curve = data.raceState.roadCurve || 0;
+      const curve = roadCurveValue(data);
       const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
       const phoneFrame = data.width <= 940 || data.height <= 540;
       let eye = phoneFrame ? [laneX * 0.5 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.58 - curve * 0.9 + jitter, 2.1, -14.6];
@@ -149,6 +149,8 @@
         width: data.width,
         height: data.height,
         raceDistance: data.raceState.distance,
+        roadTurn: curve,
+        roadOffset: data.raceState.roadOffset || 0,
         cameraMode: data.cameraMode
       };
     }
@@ -322,10 +324,28 @@
       return z + 8;
     }
 
+    function roadCurveValue(data) {
+      const state = data && data.raceState ? data.raceState : {};
+      return Math.max(-1.34, Math.min(1.34, Number(state.roadTurn || state.roadCurve || 0)));
+    }
+
+    function roadWorldXFor(turn, offset, x, z) {
+      const depth = Math.max(0, Math.min(1.12, Number(z) / 150));
+      const sweep = turn * depth * depth * 8.4;
+      const surfaceWave = Math.sin((Number(z) || 0) * 0.035 + (Number(offset) || 0) * 0.0028) * Math.abs(turn) * depth * 0.72;
+      return x + sweep + surfaceWave;
+    }
+
+    function roadWorldX(data, x, z) {
+      return roadWorldXFor(roadCurveValue(data), data.raceState.roadOffset || 0, x, z);
+    }
+
     function addRoad(data) {
       const place = data.selectedRace.place;
       const theme = data.selectedRace.theme || ["#09100f", "#46d9ff", "#ffd166"];
       const accent = hexToRgba(theme[1], 1);
+      const accent2 = hexToRgba(theme[2], 1);
+      const turn = roadCurveValue(data);
       const roadColors = {
         snow: [0.34, 0.42, 0.41, 1],
         harbor: [0.12, 0.25, 0.3, 1],
@@ -356,47 +376,72 @@
       const roadMark = [0.78, 0.82, 0.78, 1];
       const roadMarkDim = [0.48, 0.52, 0.5, 1];
       quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColor);
-      quad([-5.8, 0, 0], [5.8, 0, 0], [7.4, 0, 170], [-7.4, 0, 170], roadColor);
-      quad([-8.7, -0.02, 0], [-5.9, -0.02, 0], [-7.7, -0.02, 170], [-10.2, -0.02, 170], shade(groundColor, 0.72));
-      quad([5.9, -0.02, 0], [8.7, -0.02, 0], [10.2, -0.02, 170], [7.7, -0.02, 170], shade(groundColor, 0.72));
-      box(-6.25, 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
-      box(6.25, 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
+      quad([roadWorldX(data, -5.8, 0), 0, 0], [roadWorldX(data, 5.8, 0), 0, 0], [roadWorldX(data, 7.4, 170), 0, 170], [roadWorldX(data, -7.4, 170), 0, 170], roadColor);
+      for (let segment = 0; segment < 12; segment += 1) {
+        const z0 = segment * 14.2;
+        const z1 = (segment + 1) * 14.2;
+        const t0 = z0 / 170;
+        const t1 = z1 / 170;
+        const half0 = 5.8 + t0 * 1.6;
+        const half1 = 5.8 + t1 * 1.6;
+        const tone = segment % 2 ? 0.98 : 1.06;
+        quad(
+          [roadWorldX(data, -half0, z0), 0.006, z0],
+          [roadWorldX(data, half0, z0), 0.006, z0],
+          [roadWorldX(data, half1, z1), 0.006, z1],
+          [roadWorldX(data, -half1, z1), 0.006, z1],
+          shade(roadColor, tone)
+        );
+      }
+      quad([roadWorldX(data, -8.7, 0), -0.02, 0], [roadWorldX(data, -5.9, 0), -0.02, 0], [roadWorldX(data, -7.7, 170), -0.02, 170], [roadWorldX(data, -10.2, 170), -0.02, 170], shade(groundColor, 0.72));
+      quad([roadWorldX(data, 5.9, 0), -0.02, 0], [roadWorldX(data, 8.7, 0), -0.02, 0], [roadWorldX(data, 10.2, 170), -0.02, 170], [roadWorldX(data, 7.7, 170), -0.02, 170], shade(groundColor, 0.72));
+      box(roadWorldX(data, -6.25, 84), 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
+      box(roadWorldX(data, 6.25, 84), 0.08, 84, 0.18, 0.05, 168, roadMarkDim);
       for (let i = 0; i < 42; i += 1) {
         const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
         const x = ((i * 1.37) % 10.6) - 5.3;
         const patch = i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18);
-        box(x, 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
+        box(roadWorldX(data, x, z), 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
       }
       for (let i = 0; i < 34; i += 1) {
         const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
-        box(-5.45, 0.04, z, 0.14, 0.018, 0.24, roadMark);
-        box(5.45, 0.04, z, 0.14, 0.018, 0.24, roadMark);
+        box(roadWorldX(data, -5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
+        box(roadWorldX(data, 5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
       }
       for (let lane = -1; lane <= 1; lane += 1) {
         for (let i = 0; i < 24; i += 1) {
           const z = wrapZ(i, 7.2, data.raceState.roadOffset, 0.1);
-          box(lane * 2.08, 0.034, z, 0.1, 0.018, 3.45, [0.86, 0.9, 0.86, 1]);
+          box(roadWorldX(data, lane * 2.08, z), 0.034, z, 0.1, 0.018, 3.45, [0.86, 0.9, 0.86, 1]);
         }
       }
       for (let i = 0; i < 28; i += 1) {
         const z = wrapZ(i, 6.5, data.raceState.roadOffset, 0.13);
         const side = i % 2 ? -1 : 1;
-        barrierRun(side * 8.4, z, i % 3 ? roadMark : roadMarkDim);
-        box(side * 6.55, 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
-        box(side * 6.55, 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
+        barrierRun(roadWorldX(data, side * 8.4, z), z, i % 3 ? roadMark : roadMarkDim);
+        box(roadWorldX(data, side * 6.55, z + 1.9), 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
+        box(roadWorldX(data, side * 6.55, z - 1.9), 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
+      }
+      if (Math.abs(turn) > 0.22) {
+        const side = turn > 0 ? 1 : -1;
+        for (let i = 0; i < 12; i += 1) {
+          const z = wrapZ(i, 9.2, data.raceState.roadOffset, 0.14);
+          box(roadWorldX(data, side * 7.25, z), 0.75, z, 0.18, 1.0, 0.12, roadMarkDim);
+          box(roadWorldX(data, side * 7.05, z - 0.18), 1.32, z - 0.18, 1.2, 0.34, 0.12, i % 2 ? accent : accent2);
+          box(roadWorldX(data, side * 7.05, z - 0.34), 1.32, z - 0.34, 0.48, 0.08, 0.14, [0.9, 0.94, 0.88, 1]);
+        }
       }
       if (place === "city" || place === "tokyo") {
         for (let i = 0; i < 10; i += 1) {
           const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
           for (let stripe = -2; stripe <= 2; stripe += 1) {
-            box(stripe * 1.15, 0.034, z, 0.72, 0.018, 1.2, [0.85, 0.86, 0.82, 1]);
+            box(roadWorldX(data, stripe * 1.15, z), 0.034, z, 0.72, 0.018, 1.2, [0.85, 0.86, 0.82, 1]);
           }
         }
       }
       if (["city", "tokyo", "coast", "harbor", "rainforest"].includes(place)) {
         for (let i = 0; i < 22; i += 1) {
           const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
-          box(Math.sin(i * 1.7) * 1.6, 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
+          box(roadWorldX(data, Math.sin(i * 1.7) * 1.6, z), 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
         }
       }
       if (["city", "tokyo", "europe", "freight"].includes(place)) {
@@ -420,7 +465,7 @@
       for (let i = 0; i < 30; i += 1) {
         const z = wrapZ(i, 8.4, offset, 0.045);
         const side = i % 2 ? -1 : 1;
-        const x = side * (11 + (i % 5) * 3.4);
+        const x = roadWorldX(data, side * (11 + (i % 5) * 3.4), z);
         if (place === "city" || place === "tokyo") {
           const height = 5 + (i % 7) * 2.2;
           taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
@@ -591,34 +636,35 @@
         const z = projected.z;
         if (z < 4 || z > 132) return;
         const vehicle = getVehicle(opponent.vehicleId);
-        addVehicle(vehicle.type, opponent.lane * laneScale, z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
+        addVehicle(vehicle.type, roadWorldX(data, opponent.lane * laneScale, z), z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
       });
       data.raceState.rivals.forEach((rival) => {
         const projected = projectRoadObject(rival);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        addVehicle(rival.type || "car", rival.lane * laneScale, z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
+        addVehicle(rival.type || "car", roadWorldX(data, rival.lane * laneScale, z), z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
       });
       data.raceState.police.forEach((unit) => {
         const projected = projectRoadObject(unit);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        addVehicle("car", unit.lane * laneScale, z, "#f4fbf8", 0.98, true, unit.damage || 0);
+        addVehicle("car", roadWorldX(data, unit.lane * laneScale, z), z, "#f4fbf8", 0.98, true, unit.damage || 0);
       });
       data.raceState.coinsOnRoad.forEach((coin) => {
         const projected = projectRoadObject(coin);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        box(coin.lane * laneScale, 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
+        box(roadWorldX(data, coin.lane * laneScale, z), 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
       });
       if (data.cameraMode === "chase") {
-        addVehicle(data.selectedVehicle.type, data.raceState.lane * laneScale, 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false, data.raceState.damage || 0);
+        addVehicle(data.selectedVehicle.type, roadWorldX(data, data.raceState.lane * laneScale, 5.2), 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false, data.raceState.damage || 0);
       } else if (data.cameraMode === "hood") {
-        box(data.raceState.lane * laneScale, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
-        if ((data.raceState.damage || 0) > 25) box(data.raceState.lane * laneScale - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
+        const hoodX = roadWorldX(data, data.raceState.lane * laneScale, 1.2);
+        box(hoodX, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
+        if ((data.raceState.damage || 0) > 25) box(hoodX - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
       }
     }
 
@@ -662,12 +708,12 @@
       if (!lastProjection || !lastProjection.data) return null;
       const data = lastProjection.data;
       const z = zFromRoadDistance(data, Number(distance));
-      return projectPoint(lastProjection, lane * 2.08, 0, z);
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, lane * 2.08, z), 0, z);
     }
 
     function projectWorldRoadPoint(lane, z) {
       if (!lastProjection) return null;
-      return projectPoint(lastProjection, lane * 2.08, 0, z);
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, lane * 2.08, z), 0, z);
     }
 
     return {
