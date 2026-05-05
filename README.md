@@ -58,6 +58,8 @@ Real-world style visuals:
 - Traffic, police, opponents, and route markers now use road-distance projection instead of raw screen-height movement, so vehicles enter from the road horizon and stay locked to the pavement instead of falling down from the sky.
 - Vehicle drawing now uses the tire/contact line as the screen anchor, so generated sprites grow upward from the pavement instead of hovering around a center point.
 - Road motion now has an explicit speed-linked pass with moving asphalt bands, lane dashes, shoulder streaks, texture drift, and faster WebGL track markers so the pavement visibly moves when the player accelerates.
+- Road paint now uses flat perspective quads and lower WebGL ground markers, while vehicle sprites use a lower tire-contact anchor and stronger contact shadows so tires and road lines sit on the pavement instead of floating above it.
+- WebGL mode now keeps road paint in the 3D ground layer and draws the high-detail vehicle sprites on top, preventing 2D road streaks or duplicate low-poly vehicles from appearing to float in front of the race.
 - The Vehicles garage now paints real generated preview images for every vehicle class, including cars, F1, prototypes, trucks, semis, tractors, monster trucks, tanks, snowmobiles, boats, helicopters, and airplanes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 - Race routes now run almost three times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.

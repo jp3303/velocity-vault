@@ -237,8 +237,8 @@
       const dust = water ? [0.1, 0.5, 0.62, 1] : shade(paint, 0.24);
       const padW = (air ? 1.65 : wide ? 2.45 : 1.95) * scale;
       const padD = (air ? 2.1 : wide ? 3.2 : 2.75) * scale;
-      box(x, 0.018 * scale, z, padW, 0.026 * scale, padD, shadow);
-      box(x, 0.032 * scale, z + 0.42 * scale, padW * 0.72, 0.018 * scale, padD * 0.32, shade(shadow, 1.4));
+      box(x, 0.012 * scale, z, padW, 0.024 * scale, padD, shadow);
+      box(x, 0.018 * scale, z + 0.42 * scale, padW * 0.72, 0.014 * scale, padD * 0.32, shade(shadow, 1.4));
       if (air || water) {
         box(x, 0.045 * scale, z + 0.88 * scale, padW * 0.58, 0.018 * scale, 0.36 * scale, dust);
         return;
@@ -302,17 +302,17 @@
         const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
         const x = ((i * 1.37) % 10.6) - 5.3;
         const patch = i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18);
-        box(x, 0.055, z, 0.38 + (i % 4) * 0.18, 0.025, 1.1 + (i % 5) * 0.28, patch);
+        box(x, 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
       }
       for (let i = 0; i < 34; i += 1) {
         const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
-        box(-5.45, 0.09, z, 0.16, 0.06, 0.28, [0.94, 0.72, 0.34, 1]);
-        box(5.45, 0.09, z, 0.16, 0.06, 0.28, [0.94, 0.72, 0.34, 1]);
+        box(-5.45, 0.04, z, 0.16, 0.022, 0.28, [0.94, 0.72, 0.34, 1]);
+        box(5.45, 0.04, z, 0.16, 0.022, 0.28, [0.94, 0.72, 0.34, 1]);
       }
       for (let lane = -1; lane <= 1; lane += 1) {
         for (let i = 0; i < 24; i += 1) {
           const z = wrapZ(i, 7.2, data.raceState.roadOffset, 0.1);
-          box(lane * 2.08, 0.07, z, 0.08, 0.05, 3.2, [0.86, 0.9, 0.86, 1]);
+          box(lane * 2.08, 0.034, z, 0.1, 0.018, 3.45, [0.86, 0.9, 0.86, 1]);
         }
       }
       for (let i = 0; i < 28; i += 1) {
@@ -326,14 +326,14 @@
         for (let i = 0; i < 10; i += 1) {
           const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
           for (let stripe = -2; stripe <= 2; stripe += 1) {
-            box(stripe * 1.15, 0.09, z, 0.72, 0.05, 1.2, [0.85, 0.86, 0.82, 1]);
+            box(stripe * 1.15, 0.034, z, 0.72, 0.018, 1.2, [0.85, 0.86, 0.82, 1]);
           }
         }
       }
       if (["city", "tokyo", "coast", "harbor", "rainforest"].includes(place)) {
         for (let i = 0; i < 22; i += 1) {
           const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
-          box(Math.sin(i * 1.7) * 1.6, 0.095, z, 1.15 + (i % 4) * 0.55, 0.025, 0.18, shade(accent, i % 2 ? 0.76 : 1.12));
+          box(Math.sin(i * 1.7) * 1.6, 0.032, z, 1.15 + (i % 4) * 0.55, 0.014, 0.18, shade(accent, i % 2 ? 0.76 : 1.12));
         }
       }
       if (["city", "tokyo", "europe", "freight"].includes(place)) {
@@ -588,7 +588,6 @@
 
       addRoad(data);
       addScenery(data);
-      addMovingObjects(data);
 
       gl.useProgram(program);
       gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
