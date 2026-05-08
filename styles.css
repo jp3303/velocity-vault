@@ -898,7 +898,7 @@ input:focus {
     display: block;
     width: var(--vvw, 100dvw);
     height: var(--vvh, 100dvh);
-    pointer-events: none;
+    pointer-events: auto;
   }
 
   body.race-live .direction-pad,
@@ -1225,7 +1225,7 @@ input:focus {
     inset: 0;
     z-index: 8;
     display: block;
-    pointer-events: none;
+    pointer-events: auto;
   }
 
   body.race-live .direction-pad,

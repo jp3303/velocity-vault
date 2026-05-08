@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 54;
+const starterGarageVersion = 55;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -936,12 +936,16 @@ function setCameraMode(mode, quiet = false) {
 }
 
 function applyPhoneGraphicsDefaults() {
-  const key = "velocityVaultPhoneGraphicsDefaultsV50";
+  const key = "velocityVaultPhoneGraphicsDefaultsV55";
   if (!phoneGraphicsActive() || localStorage.getItem(key)) return;
   rendererMode = "canvas";
   if (cameraMode === "chase") cameraMode = "hood";
+  touchDriveMode = "hold";
+  touchControlSize = "mini";
   localStorage.setItem("velocityVaultRendererMode", rendererMode);
   localStorage.setItem("velocityVaultCameraMode", cameraMode);
+  localStorage.setItem("velocityVaultTouchDriveMode", touchDriveMode);
+  localStorage.setItem("velocityVaultTouchControlSize", touchControlSize);
   localStorage.setItem(key, "applied");
 }
 
@@ -1032,7 +1036,7 @@ function floatingStickControlAt(clientX, clientY) {
   setFloatingStickVisual(true, mobileTouchState.floatingStickOriginX, mobileTouchState.floatingStickOriginY, knobX, knobY);
   const steer = Math.max(-1, Math.min(1, dx / radius));
   const controls = ["stick"];
-  if (dy > radius * 0.48) {
+  if (dy > radius * 0.72) {
     controls.push("brake");
   } else {
     controls.push("gas");
@@ -1159,8 +1163,13 @@ function driveStickControlAt(stick, clientX, clientY) {
   const ny = (clampedY - rect.top) / rect.height - 0.5;
   const dead = 0.08;
   const controls = ["stick"];
-  if (ny < -dead) controls.push("gas");
-  if (ny > dead) controls.push("brake");
+  if (touchControlSize === "mini") {
+    if (ny > 0.34) controls.push("brake");
+    else controls.push("gas");
+  } else {
+    if (ny < -dead) controls.push("gas");
+    if (ny > dead) controls.push("brake");
+  }
   if (nx < -dead) controls.push("left");
   if (nx > dead) controls.push("right");
   if (controls.length === 1) controls.push("neutral");
@@ -1257,6 +1266,10 @@ function handleMobileTouchStart(event) {
   if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
   Array.from(event.changedTouches).forEach((touch) => {
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (useFloatingStickControls() && !(el && el.closest && el.closest(".mobile-control:not(.stick-up):not(.stick-left):not(.stick-center):not(.stick-right):not(.stick-down)"))) {
+      beginFloatingStick(touch.identifier, touch.clientX, touch.clientY);
+      return;
+    }
     if (useFloatingStickControls() && el && el.closest && el.closest(".drive-stick")) {
       beginFloatingStick(touch.identifier, touch.clientX, touch.clientY);
       return;
@@ -1378,9 +1391,12 @@ function floatingStickPointerAllowed(event) {
 
 function bindFloatingPhoneJoystick() {
   const stick = $(".drive-stick");
-  const targets = [canvas, stick].filter(Boolean);
+  const layer = $(".mobile-drive-controls");
+  const targets = [canvas, stick, layer].filter(Boolean);
   const start = (event) => {
     if (!floatingStickPointerAllowed(event)) return;
+    const target = event.target;
+    if (target && target.closest && target.closest(".mobile-control:not(.stick-up):not(.stick-left):not(.stick-center):not(.stick-right):not(.stick-down)")) return;
     event.preventDefault();
     startAudio();
     if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
@@ -3038,6 +3054,7 @@ function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed)
 
 function drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, design, seed) {
   ctx.save();
+  const phoneMode = phoneGraphicsActive();
   const laneX = (lane, t) => perspectiveRoadCenter(w, t) + lane * laneWidth() * (0.34 + t * 1.05);
   ctx.beginPath();
   ctx.moveTo(perspectiveRoadCenter(w, 0) - roadTop, horizon);
@@ -3054,18 +3071,19 @@ function drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, desi
   ctx.fillRect(0, horizon, w, h - horizon);
   const speed = Math.max(0, raceState.speed || 0);
   const motion = (raceState.roadOffset || 0) * (1.2 + Math.min(1.4, speed / 180));
-  for (let i = 0; i < 42; i += 1) {
+  const grimeCount = phoneMode ? 0 : 42;
+  for (let i = 0; i < grimeCount; i += 1) {
     const y = horizon + (((i * 47 + motion * (0.54 + seededUnit(seed, i) * 0.28)) % (h - horizon + 150)) - 42);
     if (y < horizon || y > h + 20) continue;
     const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
     const x = laneX(-2 + seededUnit(seed, i + 20) * 4, t);
-    const len = 10 + t * 70;
-    ctx.globalAlpha = 0.08 + t * 0.18;
-    ctx.strokeStyle = seededUnit(seed, i + 30) > 0.54 ? "rgba(244,251,248,0.34)" : "rgba(0,0,0,0.78)";
-    ctx.lineWidth = 1 + t * 3.5;
+    const len = phoneMode ? 5 + t * 20 : 10 + t * 70;
+    ctx.globalAlpha = phoneMode ? 0.035 + t * 0.045 : 0.08 + t * 0.18;
+    ctx.strokeStyle = phoneMode ? "rgba(244,251,248,0.22)" : (seededUnit(seed, i + 30) > 0.54 ? "rgba(244,251,248,0.34)" : "rgba(0,0,0,0.78)");
+    ctx.lineWidth = phoneMode ? 0.7 + t * 1.1 : 1 + t * 3.5;
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.sin(i) * len * 0.4, y + len * 0.24);
+    ctx.lineTo(x + Math.sin(i) * len * 0.18, y + len * 0.16);
     ctx.stroke();
   }
   const racingLine = ctx.createLinearGradient(0, horizon, 0, h);
@@ -3074,7 +3092,7 @@ function drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, desi
   racingLine.addColorStop(1, "rgba(255,255,255,0)");
   ctx.strokeStyle = racingLine;
   ctx.lineWidth = Math.max(4, w * 0.006);
-  ctx.globalAlpha = 0.42;
+  ctx.globalAlpha = phoneMode ? 0.18 : 0.42;
   ctx.beginPath();
   for (let step = 0; step <= 18; step += 1) {
     const t = step / 18;
@@ -4437,11 +4455,11 @@ function drawPhoneOpponentGapCue(x, y, scale, gap, lane, damage = 0, wrecked = f
   const ahead = gap >= 0;
   const label = ahead ? `${Math.round(Math.max(0, gap))}m` : "PASS";
   const laneName = lane < -0.7 ? "L" : lane > 0.7 ? "R" : "MID";
-  const badgeW = Math.max(46, Math.min(78, 44 + scale * 34));
-  const badgeH = Math.max(15, Math.min(21, 13 + scale * 8));
-  const badgeY = y - Math.max(58, 92 * scale);
+  const badgeW = Math.max(40, Math.min(62, 38 + scale * 24));
+  const badgeH = Math.max(13, Math.min(18, 12 + scale * 6));
+  const badgeY = y - Math.max(34, 52 * scale);
   ctx.save();
-  ctx.globalAlpha = wrecked ? 0.62 : 0.92;
+  ctx.globalAlpha = wrecked ? 0.54 : 0.78;
   ctx.fillStyle = damage > 60 ? "rgba(255,91,107,0.78)" : "rgba(5,8,7,0.76)";
   roundRect(x - badgeW / 2, badgeY - badgeH / 2, badgeW, badgeH, 5);
   ctx.fill();
@@ -4456,13 +4474,6 @@ function drawPhoneOpponentGapCue(x, y, scale, gap, lane, damage = 0, wrecked = f
   ctx.fillStyle = "rgba(244,251,248,0.72)";
   ctx.font = `800 ${Math.max(6, Math.min(8, 6 + scale * 2))}px Inter, system-ui, sans-serif`;
   ctx.fillText(laneName, x, badgeY + badgeH * 0.34);
-  ctx.globalAlpha = 0.42;
-  ctx.strokeStyle = ahead ? "rgba(70,217,255,0.62)" : "rgba(187,242,74,0.62)";
-  ctx.lineWidth = Math.max(1, scale * 1.8);
-  ctx.beginPath();
-  ctx.moveTo(x, badgeY + badgeH * 0.55);
-  ctx.lineTo(x, y - Math.max(18, scale * 26));
-  ctx.stroke();
   ctx.restore();
 }
 
@@ -4992,22 +5003,6 @@ function drawPhoneUltraGraphicsPass(w, h, theme) {
     ctx.beginPath();
     ctx.moveTo(x - spread, y);
     ctx.quadraticCurveTo(x, y + 5 + t * 18, x + spread, y + 2);
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = 0.22;
-  ctx.strokeStyle = place === "snow" ? "rgba(244,251,248,0.72)" : "rgba(2,4,4,0.86)";
-  ctx.lineWidth = 1.2;
-  for (let i = 0; i < 42; i += 1) {
-    const y = ((i * 53 + raceState.roadOffset * 1.48) % (h + 120)) - 40;
-    if (y < horizon) continue;
-    const t = Math.max(0, (y - horizon) / (h - horizon));
-    const x = w * 0.5 + Math.sin(i * 8.7) * roadBottom * 0.48 * t;
-    const crack = 10 + t * 42;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.sin(i) * crack, y + 4 + t * 18);
-    ctx.lineTo(x + Math.cos(i * 1.7) * crack * 0.7, y + 10 + t * 24);
     ctx.stroke();
   }
 
