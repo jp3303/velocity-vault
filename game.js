@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 53;
+const starterGarageVersion = 54;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -212,8 +212,28 @@ const routeWorlds = {
   europe: { country: "Switzerland", scene: "Swiss Alps Tour", cue: "village switchbacks", turn: 1.36, seed: 12.2 }
 };
 
+const genAiSceneDesigns = {
+  coast: { style: "coastal grand tour", surface: "#1b2424", accent: "#46d9ff", light: "#ffd166", props: ["surf", "cliff", "camera", "crowd", "brake"] },
+  city: { style: "downtown street circuit", surface: "#151b1d", accent: "#46d9ff", light: "#f4fbf8", props: ["tower", "barrier", "crowd", "crosswalk", "brake"] },
+  canyon: { style: "red-rock drift course", surface: "#2a1c14", accent: "#ff5b6b", light: "#ffd166", props: ["rock", "dust", "camera", "barrier", "brake"] },
+  alpine: { style: "mountain pass race", surface: "#1b2727", accent: "#bbf24a", light: "#dce8ef", props: ["pine", "snowcap", "crowd", "guard", "brake"] },
+  harbor: { style: "waterfront tunnel sprint", surface: "#14242a", accent: "#46d9ff", light: "#ffd166", props: ["crane", "boat", "barrier", "camera", "brake"] },
+  snow: { style: "winter rally stage", surface: "#344141", accent: "#f4fbf8", light: "#46d9ff", props: ["snowbank", "pine", "flag", "crowd", "brake"] },
+  airfield: { style: "runway speed trial", surface: "#252723", accent: "#ffd166", light: "#ff5b6b", props: ["hangar", "beacon", "plane", "barrier", "brake"] },
+  freight: { style: "freightway endurance race", surface: "#22241d", accent: "#ffd166", light: "#46d9ff", props: ["trailer", "gantry", "crowd", "barrier", "brake"] },
+  farm: { style: "rural rally festival", surface: "#3d3424", accent: "#bbf24a", light: "#ffd166", props: ["barn", "field", "tractor", "crowd", "brake"] },
+  tokyo: { style: "neon expressway battle", surface: "#151424", accent: "#ff4fd8", light: "#46d9ff", props: ["neon", "tunnel", "tower", "crowd", "brake"] },
+  desert: { style: "open desert rally", surface: "#4b3321", accent: "#ffb74a", light: "#f4fbf8", props: ["dune", "dust", "camera", "barrier", "brake"] },
+  rainforest: { style: "jungle wet rally", surface: "#17241e", accent: "#36d98a", light: "#ffd166", props: ["canopy", "rain", "bridge", "crowd", "brake"] },
+  europe: { style: "euro alpine tour", surface: "#263235", accent: "#dce8ef", light: "#46d9ff", props: ["village", "snowcap", "guard", "crowd", "brake"] }
+};
+
 function routeWorldInfo(place = "city") {
   return routeWorlds[place] || routeWorlds.city;
+}
+
+function genAiSceneDesign(place = "city") {
+  return genAiSceneDesigns[place] || genAiSceneDesigns.city;
 }
 
 function roadTurnAt(distance, race = selectedRace) {
@@ -2118,6 +2138,22 @@ function emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput) {
       color: brakeInput ? "rgba(190,205,205,0.42)" : "rgba(120,134,128,0.32)"
     });
   }
+  const driftPower = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.24) * 1.6 + Math.abs(raceState.lateralVelocity || 0) * 0.055));
+  if (driftPower > 0.12 && speed > 42 && Math.random() < dt * (14 + driftPower * 28)) {
+    const side = Math.sign(raceState.lateralVelocity || raceState.steerAngle || (Math.random() - 0.5)) || 1;
+    const life = 0.42 + Math.random() * 0.38;
+    const dusty = selectedRace.place === "desert" || selectedRace.place === "canyon" || selectedRace.place === "farm";
+    raceState.particles.push({
+      x: x - side * laneWidth() * (0.18 + Math.random() * 0.18),
+      y: baseY + 8 + Math.random() * 18,
+      vx: -side * (34 + Math.random() * 72) - raceState.lateralVelocity * 18,
+      vy: -18 - Math.random() * 44,
+      life,
+      maxLife: life,
+      radius: 16 + Math.random() * 34,
+      color: dusty ? "rgba(255,183,74,0.28)" : "rgba(205,218,214,0.34)"
+    });
+  }
   if (boostInput && gasInput && raceState.focus > 2 && Math.random() < dt * 22) {
     const life = 0.25 + Math.random() * 0.18;
     raceState.particles.push({
@@ -2230,12 +2266,14 @@ function drawFrame() {
     drawPhoneConsoleChasePass(w, h, theme);
     drawRealisticDrivingPass(w, h, theme);
     drawWebGLFlatPavementPass(w, h, theme);
+    drawGenAiRacingScenePass(w, h, theme);
     if (raceState.active) {
       drawObjects();
       drawCar(w, h);
     } else {
       drawDemoPursuitTraffic(w, h);
     }
+    drawDriftStylePass(w, h, theme);
     drawCameraOverlay(w, h, theme);
     drawDamageOverlay(w, h, theme);
     if (raceState.active) drawRaceStandings(w, h);
@@ -2272,9 +2310,11 @@ function drawFrame() {
   drawRoadWeightPass(w, h, theme);
   drawRoadMotionPass(w, h, theme);
   drawPhoneUltraGraphicsPass(w, h, theme);
+  drawGenAiRacingScenePass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
+  drawDriftStylePass(w, h, theme);
   drawCameraOverlay(w, h, theme);
   drawDamageOverlay(w, h, theme);
   if (raceState.active) drawRaceStandings(w, h);
@@ -2303,9 +2343,11 @@ function drawPhoneCanvasFrame(w, h, theme, shake) {
   drawRealisticDrivingPass(w, h, theme);
   drawPhoneAssetTexturePass(w, h, theme);
   drawPhoneRoadContrastPass(w, h, theme);
+  drawGenAiRacingScenePass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
+  drawDriftStylePass(w, h, theme);
   drawCameraOverlay(w, h, theme);
   drawDamageOverlay(w, h, theme);
   if (raceState.active) drawRaceStandings(w, h);
@@ -2820,6 +2862,379 @@ function drawPhoneConsolePostPass(w, h, theme) {
   cinematic.addColorStop(1, "rgba(0,0,0,0.36)");
   ctx.fillStyle = cinematic;
   ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
+function hashText(value = "") {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededUnit(seed, salt = 0) {
+  const n = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+function perspectiveRoadCenter(w, t) {
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const clamped = Math.max(0, Math.min(1.08, t));
+  const farPull = (1 - clamped) * (1 - clamped);
+  return w * 0.5 + turn * farPull * w * 0.27 + Math.sin(clamped * 4.1 + (raceState.roadOffset || 0) * 0.003) * Math.abs(turn) * w * 0.015;
+}
+
+function drawGenAiRacingScenePass(w, h, theme) {
+  if (!raceState.active && view !== "race") return;
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const design = genAiSceneDesign(place);
+  const route = routeWorldInfo(place);
+  const phoneMode = phoneGraphicsActive();
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
+  const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
+  const seed = hashText(`${selectedRace ? selectedRace.id : "race"}:${design.style}`);
+  drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed);
+  drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, design, seed);
+  ctx.save();
+  const count = phoneMode ? 20 : 30;
+  const offset = (raceState.roadOffset || 0) * (phoneMode ? 1.08 : 0.84);
+  for (let i = 0; i < count; i += 1) {
+    const side = i % 2 ? -1 : 1;
+    const loopSpan = h - horizon + 240;
+    const raw = ((i * 76 + offset * (0.52 + seededUnit(seed, i) * 0.34)) % loopSpan) - 92;
+    const y = horizon + raw;
+    if (y < horizon - 18 || y > h + 70) continue;
+    const t = Math.max(0.02, Math.min(1.05, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t);
+    const roadHalf = roadTop * 0.82 + (roadBottom * 0.58 - roadTop * 0.82) * t;
+    const x = center + side * (roadHalf + w * (0.05 + seededUnit(seed, i + 4) * 0.11) * (0.42 + t));
+    const scale = 0.36 + t * 1.06;
+    const prop = design.props[i % design.props.length];
+    drawGenAiTrackProp(prop, x, y, scale, side, design, theme, route, seed + i * 13);
+  }
+  drawGenAiCrowdAndCameras(w, h, horizon, roadTop, roadBottom, design);
+  ctx.restore();
+}
+
+function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed) {
+  ctx.save();
+  const phoneMode = phoneGraphicsActive();
+  const alpha = phoneMode ? 0.58 : 0.72;
+  ctx.globalAlpha = alpha;
+  const farBase = horizon + h * 0.025;
+  if (place === "city" || place === "tokyo") {
+    for (let i = 0; i < 18; i += 1) {
+      const bw = w * (0.025 + seededUnit(seed, i) * 0.035);
+      const bh = h * (0.16 + seededUnit(seed, i + 11) * 0.22);
+      const x = ((i * w * 0.078 - (raceState.roadOffset || 0) * 0.018) % (w + 140)) - 70;
+      const tower = ctx.createLinearGradient(x, farBase - bh, x + bw, farBase);
+      tower.addColorStop(0, place === "tokyo" ? "rgba(255,79,216,0.18)" : "rgba(70,217,255,0.12)");
+      tower.addColorStop(0.32, "rgba(15,25,28,0.72)");
+      tower.addColorStop(1, "rgba(5,8,7,0.92)");
+      ctx.fillStyle = tower;
+      roundRect(x, farBase - bh, bw, bh, 3);
+      ctx.fill();
+      ctx.fillStyle = i % 2 ? `${design.accent}66` : `${design.light}55`;
+      for (let yy = 12; yy < bh - 8; yy += 22) ctx.fillRect(x + bw * 0.24, farBase - bh + yy, bw * 0.52, 3);
+    }
+  } else if (place === "coast" || place === "harbor") {
+    const water = ctx.createLinearGradient(0, horizon - h * 0.01, 0, horizon + h * 0.19);
+    water.addColorStop(0, "rgba(70,217,255,0.22)");
+    water.addColorStop(1, "rgba(4,22,26,0.54)");
+    ctx.fillStyle = water;
+    ctx.fillRect(0, horizon - h * 0.01, w, h * 0.22);
+    for (let i = 0; i < 7; i += 1) {
+      const x = ((i * w * 0.18 - (raceState.roadOffset || 0) * 0.026) % (w + 160)) - 80;
+      ctx.fillStyle = place === "harbor" ? "rgba(10,42,46,0.78)" : "rgba(35,54,45,0.72)";
+      ctx.beginPath();
+      ctx.ellipse(x, horizon + h * 0.085, w * 0.08, h * 0.028, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (place === "harbor") {
+        ctx.strokeStyle = `${design.light}88`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, horizon + h * 0.07);
+        ctx.lineTo(x + w * 0.035, horizon - h * 0.09);
+        ctx.lineTo(x + w * 0.09, horizon - h * 0.085);
+        ctx.stroke();
+      }
+    }
+  } else if (place === "canyon" || place === "desert") {
+    for (let i = 0; i < 8; i += 1) {
+      const x = ((i * w * 0.16 - (raceState.roadOffset || 0) * 0.014) % (w + 180)) - 90;
+      const ridgeH = h * (0.09 + seededUnit(seed, i + 3) * 0.12);
+      ctx.fillStyle = place === "desert" ? "rgba(255,183,74,0.24)" : "rgba(255,91,107,0.22)";
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.08, farBase + h * 0.03);
+      ctx.quadraticCurveTo(x, farBase - ridgeH, x + w * 0.12, farBase + h * 0.035);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (place === "alpine" || place === "snow" || place === "europe") {
+    for (let i = 0; i < 6; i += 1) {
+      const x = i * w * 0.2 - ((raceState.roadOffset || 0) * 0.01 % (w * 0.2));
+      const peak = h * (0.18 + seededUnit(seed, i) * 0.13);
+      ctx.fillStyle = "rgba(130,160,160,0.36)";
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.16, farBase + h * 0.05);
+      ctx.lineTo(x, farBase - peak);
+      ctx.lineTo(x + w * 0.18, farBase + h * 0.05);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.42)";
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.035, farBase - peak * 0.58);
+      ctx.lineTo(x, farBase - peak);
+      ctx.lineTo(x + w * 0.045, farBase - peak * 0.56);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (place === "farm" || place === "freight") {
+    for (let i = 0; i < 8; i += 1) {
+      const x = ((i * w * 0.15 - (raceState.roadOffset || 0) * 0.02) % (w + 140)) - 70;
+      ctx.fillStyle = place === "farm" ? "rgba(95,70,42,0.7)" : "rgba(30,34,30,0.78)";
+      roundRect(x, farBase - h * 0.08, w * 0.075, h * 0.08, 4);
+      ctx.fill();
+      ctx.fillStyle = place === "farm" ? "rgba(160,40,31,0.72)" : `${design.light}66`;
+      ctx.beginPath();
+      ctx.moveTo(x - w * 0.01, farBase - h * 0.08);
+      ctx.lineTo(x + w * 0.037, farBase - h * 0.13);
+      ctx.lineTo(x + w * 0.085, farBase - h * 0.08);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (place === "rainforest") {
+    for (let i = 0; i < 16; i += 1) {
+      const x = ((i * w * 0.08 - (raceState.roadOffset || 0) * 0.025) % (w + 120)) - 60;
+      const treeH = h * (0.13 + seededUnit(seed, i) * 0.12);
+      ctx.strokeStyle = "rgba(24,78,52,0.72)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x, farBase + h * 0.07);
+      ctx.lineTo(x, farBase - treeH);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(54,217,138,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(x, farBase - treeH, w * 0.045, h * 0.035, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = alpha * 0.82;
+  ctx.fillStyle = "rgba(5,8,7,0.74)";
+  roundRect(w * 0.39, horizon - h * 0.055, w * 0.22, h * 0.045, 6);
+  ctx.fill();
+  ctx.strokeStyle = `${design.accent}77`;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${Math.max(8, Math.min(13, w * 0.013))}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.fillText(route.scene.toUpperCase(), w * 0.5, horizon - h * 0.026);
+  ctx.restore();
+}
+
+function drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, design, seed) {
+  ctx.save();
+  const laneX = (lane, t) => perspectiveRoadCenter(w, t) + lane * laneWidth() * (0.34 + t * 1.05);
+  ctx.beginPath();
+  ctx.moveTo(perspectiveRoadCenter(w, 0) - roadTop, horizon);
+  ctx.lineTo(perspectiveRoadCenter(w, 0) + roadTop, horizon);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) + roadBottom * 0.63, h + 10);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) - roadBottom * 0.63, h + 10);
+  ctx.closePath();
+  ctx.clip();
+  const tint = ctx.createLinearGradient(0, horizon, 0, h);
+  tint.addColorStop(0, `${design.surface}11`);
+  tint.addColorStop(0.5, `${design.surface}42`);
+  tint.addColorStop(1, "rgba(0,0,0,0.42)");
+  ctx.fillStyle = tint;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  const speed = Math.max(0, raceState.speed || 0);
+  const motion = (raceState.roadOffset || 0) * (1.2 + Math.min(1.4, speed / 180));
+  for (let i = 0; i < 42; i += 1) {
+    const y = horizon + (((i * 47 + motion * (0.54 + seededUnit(seed, i) * 0.28)) % (h - horizon + 150)) - 42);
+    if (y < horizon || y > h + 20) continue;
+    const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const x = laneX(-2 + seededUnit(seed, i + 20) * 4, t);
+    const len = 10 + t * 70;
+    ctx.globalAlpha = 0.08 + t * 0.18;
+    ctx.strokeStyle = seededUnit(seed, i + 30) > 0.54 ? "rgba(244,251,248,0.34)" : "rgba(0,0,0,0.78)";
+    ctx.lineWidth = 1 + t * 3.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.sin(i) * len * 0.4, y + len * 0.24);
+    ctx.stroke();
+  }
+  const racingLine = ctx.createLinearGradient(0, horizon, 0, h);
+  racingLine.addColorStop(0, "rgba(255,255,255,0)");
+  racingLine.addColorStop(0.42, `${design.accent}28`);
+  racingLine.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.strokeStyle = racingLine;
+  ctx.lineWidth = Math.max(4, w * 0.006);
+  ctx.globalAlpha = 0.42;
+  ctx.beginPath();
+  for (let step = 0; step <= 18; step += 1) {
+    const t = step / 18;
+    const y = horizon + (h - horizon) * t;
+    const lane = Math.sin((raceState.distance || 0) * 0.0009 + t * 3.5) * 0.72;
+    const x = laneX(lane, t);
+    if (step === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawGenAiTrackProp(prop, x, y, scale, side, design, theme, route, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = Math.max(0.25, Math.min(0.9, 0.34 + scale * 0.28));
+  const accent = design.accent;
+  const light = design.light;
+  if (prop === "tower" || prop === "neon" || prop === "village") {
+    const bw = 24 + seededUnit(seed, 1) * 26;
+    const bh = 70 + seededUnit(seed, 2) * 90;
+    ctx.fillStyle = prop === "neon" ? "rgba(14,10,30,0.82)" : "rgba(12,18,20,0.8)";
+    roundRect(-bw / 2, -bh, bw, bh, 3);
+    ctx.fill();
+    ctx.fillStyle = prop === "neon" ? `${accent}aa` : `${light}77`;
+    for (let i = 0; i < 5; i += 1) ctx.fillRect(-bw * 0.32, -bh + 10 + i * 15, bw * 0.64, 4);
+  } else if (prop === "cliff" || prop === "rock" || prop === "dune" || prop === "snowcap") {
+    ctx.fillStyle = prop === "snowcap" ? "rgba(220,232,239,0.48)" : prop === "dune" ? "rgba(255,183,74,0.38)" : "rgba(132,72,38,0.52)";
+    ctx.beginPath();
+    ctx.moveTo(-54, 12);
+    ctx.quadraticCurveTo(-10, -42 - seededUnit(seed, 3) * 26, 58, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.25)";
+    ctx.fillRect(-18, -8, 38, 5);
+  } else if (prop === "crowd" || prop === "camera") {
+    ctx.fillStyle = "rgba(5,8,7,0.74)";
+    roundRect(-45, -22, 90, 22, 4);
+    ctx.fill();
+    for (let i = 0; i < 9; i += 1) {
+      ctx.fillStyle = i % 3 === 0 ? accent : i % 3 === 1 ? light : "#f4fbf8";
+      ctx.beginPath();
+      ctx.arc(-34 + i * 8, -26 - (i % 2) * 3, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (prop === "camera") {
+      ctx.strokeStyle = "rgba(244,251,248,0.42)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(30, -20);
+      ctx.lineTo(42, -42);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(5,8,7,0.9)";
+      roundRect(35, -48, 20, 12, 3);
+      ctx.fill();
+    }
+  } else if (prop === "barrier" || prop === "guard" || prop === "brake") {
+    const text = prop === "brake" ? "100" : route.country.toUpperCase();
+    ctx.fillStyle = "rgba(5,8,7,0.76)";
+    roundRect(-42, -30, 84, 24, 4);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 12px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(text, 0, -14);
+  } else if (prop === "crane" || prop === "gantry" || prop === "hangar" || prop === "tunnel" || prop === "bridge") {
+    ctx.strokeStyle = `${light}88`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-55, -8);
+    ctx.lineTo(-55, -72);
+    ctx.lineTo(52, -72);
+    ctx.lineTo(52, -8);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.62)";
+    roundRect(-35, -58, 70, 18, 3);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = `${accent}66`;
+    ctx.beginPath();
+    ctx.ellipse(0, -14, 34, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.28)";
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(side * 6, 32);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawGenAiCrowdAndCameras(w, h, horizon, roadTop, roadBottom, design) {
+  const phoneMode = phoneGraphicsActive();
+  const bands = phoneMode ? 2 : 3;
+  ctx.save();
+  for (let side = -1; side <= 1; side += 2) {
+    for (let band = 0; band < bands; band += 1) {
+      const t = 0.18 + band * 0.18;
+      const y = horizon + (h - horizon) * t + Math.sin(raceState.elapsed + band) * 2;
+      const center = perspectiveRoadCenter(w, t);
+      const roadHalf = roadTop * 0.92 + (roadBottom * 0.58 - roadTop * 0.92) * t;
+      const x = center + side * (roadHalf + w * (0.05 + band * 0.025));
+      const standW = w * (0.12 + band * 0.03);
+      const standH = h * (0.025 + band * 0.012);
+      ctx.globalAlpha = 0.18 + band * 0.09;
+      ctx.fillStyle = "rgba(5,8,7,0.78)";
+      roundRect(x - standW / 2, y - standH, standW, standH, 4);
+      ctx.fill();
+      for (let i = 0; i < 16; i += 1) {
+        ctx.fillStyle = i % 4 === 0 ? design.accent : i % 4 === 1 ? design.light : "rgba(244,251,248,0.76)";
+        ctx.fillRect(x - standW * 0.42 + i * standW * 0.052, y - standH - 3 - (i % 2) * 2, 2 + band, 5 + band);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawDriftStylePass(w, h, theme) {
+  if (!raceState.active || raceState.resetTimer > 0) return;
+  const speed = Math.abs(raceState.speed || 0);
+  const drift = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.2) * 1.55 + Math.abs(raceState.lateralVelocity || 0) * 0.05));
+  if (drift <= 0.04 || speed < 34) return;
+  const vehicle = selectedVehicle();
+  const carX = w / 2 + raceState.lane * laneWidth();
+  const baseY = cameraMode === "cockpit" ? h * 0.78 : cameraMode === "hood" ? h * 0.91 : h * 0.87;
+  const steer = raceState.steerAngle || 0;
+  const slide = raceState.lateralVelocity || 0;
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.72, 0.22 + drift * 0.5);
+  ctx.strokeStyle = "rgba(1,2,2,0.72)";
+  ctx.lineWidth = Math.max(2, w * 0.005 + drift * 4);
+  ctx.lineCap = "round";
+  for (let side = -1; side <= 1; side += 2) {
+    const tireX = carX + side * laneWidth() * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(tireX, baseY + h * 0.02);
+    ctx.bezierCurveTo(tireX - slide * 18 - steer * 30, baseY + h * 0.08, tireX - slide * 34 - steer * 55, baseY + h * 0.2, tireX - slide * 50 - steer * 78, h + 22);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "screen";
+  const smoke = ctx.createRadialGradient(carX, baseY + h * 0.02, 4, carX - slide * 35, baseY + h * 0.04, w * (0.12 + drift * 0.14));
+  const smokeColor = vehicle.type === "snowmobile" ? "rgba(244,251,248," : selectedRace.place === "desert" || selectedRace.place === "canyon" ? "rgba(255,183,74," : "rgba(190,205,205,";
+  smoke.addColorStop(0, `${smokeColor}${0.12 + drift * 0.18})`);
+  smoke.addColorStop(0.5, `${smokeColor}${0.06 + drift * 0.1})`);
+  smoke.addColorStop(1, `${smokeColor}0)`);
+  ctx.fillStyle = smoke;
+  ctx.fillRect(0, h * 0.48, w, h * 0.52);
+  if (drift > 0.5 && cameraMode !== "cockpit") {
+    ctx.fillStyle = theme[1];
+    ctx.font = `900 ${Math.max(13, Math.min(20, w * 0.018))}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.globalAlpha = Math.min(0.62, drift);
+    ctx.fillText("DRIFT", carX + Math.sign(slide || steer || 1) * laneWidth() * 0.55, baseY - h * 0.18);
+  }
   ctx.restore();
 }
 
@@ -4714,6 +5129,7 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   if (drawPhoneAssetVehicleSprite(w, h, color, vehicleType, police, damage, true)) {
     ctx.save();
     ctx.translate(0, -spriteContactLift(h, vehicleType));
+    drawOpponentRaceIdentity(w, h, label, police, vehicleType, damage, wrecked);
     drawTrafficLabel(w, h, label);
     drawTrafficDamageBadge(w, h, damage, wrecked);
     ctx.restore();
@@ -4725,6 +5141,7 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(w, h, color, vehicleType, false);
+    drawOpponentRaceIdentity(w, h, label, false, vehicleType, damage, wrecked);
     drawVehicleDamageMarks(w, h, damage);
     drawTrafficDamageBadge(w, h, damage, wrecked);
     drawTrafficLabel(w, h, label);
@@ -4760,6 +5177,7 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.lineWidth = Math.max(1, w * 0.016);
   ctx.stroke();
   drawVehicleTrimDetails(w, h, color, police);
+  drawOpponentRaceIdentity(w, h, label, police, vehicleType, damage, wrecked);
 
   ctx.fillStyle = "rgba(5,8,7,0.86)";
   roundRect(-w * 0.28, -h * 0.35, w * 0.56, h * 0.2, 7);
@@ -4809,6 +5227,63 @@ function drawTrafficRearCar(x, y, width, height, color, police = false, vehicleT
   ctx.fill();
   drawVehicleDamageMarks(w, h, damage);
   drawTrafficDamageBadge(w, h, damage, wrecked);
+  ctx.restore();
+}
+
+function drawOpponentRaceIdentity(w, h, label = "", police = false, vehicleType = "car", damage = 0, wrecked = false) {
+  if (!label && !police) return;
+  const seed = hashText(`${label || "traffic"}:${vehicleType}`);
+  const number = String((seed % 89) + 10);
+  const stripe = seededUnit(seed, 2) > 0.5 ? 1 : -1;
+  const accent = police ? "#46d9ff" : (seededUnit(seed, 3) > 0.5 ? "#ffd166" : "#46d9ff");
+  ctx.save();
+  ctx.globalAlpha = wrecked ? 0.48 : 0.82;
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = Math.max(2, w * 0.028);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.32 * stripe, -h * 0.42);
+  ctx.lineTo(w * 0.34 * stripe, h * 0.36);
+  ctx.stroke();
+  ctx.globalAlpha = wrecked ? 0.36 : 0.68;
+  ctx.strokeStyle = "rgba(244,251,248,0.58)";
+  ctx.lineWidth = Math.max(1, w * 0.012);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.2 * stripe, -h * 0.46);
+  ctx.lineTo(w * 0.44 * stripe, h * 0.24);
+  ctx.stroke();
+  ctx.globalAlpha = 0.86;
+  ctx.fillStyle = police ? "rgba(5,8,7,0.78)" : "rgba(5,8,7,0.66)";
+  roundRect(-w * 0.16, h * 0.08, w * 0.32, h * 0.13, 4);
+  ctx.fill();
+  ctx.strokeStyle = police ? "#ff3348" : accent;
+  ctx.lineWidth = Math.max(1, w * 0.01);
+  ctx.stroke();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${Math.max(8, w * 0.15)}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.fillText(police ? "HEAT" : number, 0, h * 0.18);
+  if (label) {
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = "rgba(222,249,255,0.32)";
+    ctx.beginPath();
+    ctx.arc(-w * 0.07, -h * 0.23, w * 0.045, 0, Math.PI * 2);
+    ctx.arc(w * 0.07, -h * 0.23, w * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(5,8,7,0.72)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.1, -h * 0.18);
+    ctx.lineTo(w * 0.1, -h * 0.18);
+    ctx.stroke();
+  }
+  if (damage > 55) {
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.55, damage / 150);
+    ctx.fillStyle = "#ff5b6b";
+    ctx.beginPath();
+    ctx.ellipse(stripe * w * 0.24, h * 0.3, w * 0.12, h * 0.035, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -5280,6 +5755,7 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   ctx.lineWidth = Math.max(2, width * 0.018);
   ctx.stroke();
   drawVehicleTrimDetails(width, height, color, false);
+  drawOpponentRaceIdentity(width, height, activeProfile ? activeProfile.name : "Driver", false, vehicleType, raceState.damage || 0, false);
 
   const windshield = ctx.createLinearGradient(0, -height * 0.46, 0, height * 0.08);
   windshield.addColorStop(0, "rgba(222,249,255,0.72)");

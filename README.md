@@ -27,11 +27,25 @@ Driver views:
 - `Windshield`: cockpit-style view looking out through the windshield with dashboard framing.
 - `WebGL 3D`: hardware-accelerated 3D racing pipeline with a classic 2D fallback button for older browsers.
 
+## How To Play
+
+1. Choose `Quick Play` to start immediately, or `Enter Garage` to pick a vehicle, route, upgrades, and missions.
+2. Read the goal card at the start of each race. Goals can ask you to collect route markers, keep focus high, dodge rivals, or reach a target score.
+3. Hold gas to build speed. On phones, use Mini mode by touching the driving screen; the floating joystick appears under your thumb and keeps gas active while you drag left or right.
+4. Steer smoothly to pass opponents. Watch the lane radar, distance badges, and opponent names to see where rivals are sitting on the road.
+5. Pull the phone joystick down, press `Down/S`, or use controller LT to brake. Once stopped, brake becomes reverse.
+6. Use boost only while accelerating. Boost helps pass rivals, escape police heat, and recover speed after corners.
+7. Crashes do not end the race. Heavy damage starts a reset countdown, then the car is stabilized so you can continue.
+8. Save a race from the live race controls, then use `Resume Saved Race` in the Race Hub to continue that driver profile later.
+
 Real-world style visuals:
 
 - Race routes use real-world inspired locations across the country and world: Pacific Coast Highway, Chicago lakefront skyline, Sedona red rock canyon, Rocky Mountain pass, Miami harbor, Aspen snowfields, Nevada airfield, Texas freight interstate, Iowa farm roads, Tokyo expressway, Sahara desert, Amazon rainforest, and Swiss Alps.
 - Scenery includes skyline buildings, bridge cables, water, canyon walls, mountain silhouettes, street lamps, wet asphalt glare, roadside route signs, farmland, big-rig freight stops, neon towers, desert dunes, rainforest canopy, alpine villages, and pass-specific colors.
+- The v54 local GenAI scene director adds original route-specific racing scenes at runtime: trackside crowds, camera crews, brake boards, barriers, gantries, cranes, hangars, barns, cliffs, dunes, snowbanks, neon towers, tunnel frames, racing-line glow, tar cracks, road grime, rubber streaks, and wet reflections.
+- Drifting now has stronger style cues with tire smoke, dust or snow wash by surface, darker skid arcs, racing-line marks, and a `DRIFT` callout during bigger slides.
 - Vehicles are original generic classes with shaded 3D-style silhouettes: street supercars, F1 open-wheel racers, grand prix prototypes, performance trucks, semi truck racers, racing tractors, monster trucks, armored tanks, snowmobiles, race boats, helicopters, and sport airplanes. No real automaker, military, or aircraft trademarks or licensed models are used.
+- Opponents now get generated race identity overlays with invented race numbers, livery stripes, driver/helmet silhouettes in glass areas, damage glow, and clearer name/position cues so rivals feel more like named racers instead of anonymous traffic.
 - Engine, tire, boost, shield, and magnet upgrades apply across the whole roster, so semis and tractors can be upgraded into faster and more agile racing builds too.
 - A local WebGL game-engine-style renderer (`webgl-pipeline.js`) draws the 3D road, route scenery, opponents, traffic, and vehicle models. It uses browser WebGL directly so the app stays standalone and secure without CDN scripts.
 - A phone-focused local asset pipeline (`phone-asset-pipeline.js`) now generates cached high-resolution vehicle sprites, road texture maps, paint grain, glass, rim detail, light clusters, damage marks, and bloom overlays directly on the device. This gives the installed phone app richer assets without downloading licensed models or relying on remote servers.
