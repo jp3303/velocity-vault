@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 55;
+const starterGarageVersion = 56;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -936,7 +936,7 @@ function setCameraMode(mode, quiet = false) {
 }
 
 function applyPhoneGraphicsDefaults() {
-  const key = "velocityVaultPhoneGraphicsDefaultsV55";
+  const key = "velocityVaultPhoneGraphicsDefaultsV56";
   if (!phoneGraphicsActive() || localStorage.getItem(key)) return;
   rendererMode = "canvas";
   if (cameraMode === "chase") cameraMode = "hood";
@@ -1558,18 +1558,19 @@ function updateOpponents(dt, maxSpeed) {
     opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
     opponent.spin += (opponent.wrecked ? 1.8 : 0.2) * dt * Math.sign(opponent.laneVelocity || 1);
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
-    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < 12 && Math.abs(opponent.lane - raceState.lane) < 0.34;
+    const phoneMode = phoneGraphicsActive();
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < (phoneMode ? 8 : 12) && Math.abs(opponent.lane - raceState.lane) < (phoneMode ? 0.26 : 0.34);
     if (wheelToWheel && opponent.bumpCooldown <= 0 && raceState.resetTimer <= 0) {
-      opponent.bumpCooldown = 1.35;
+      opponent.bumpCooldown = phoneMode ? 2.1 : 1.35;
       const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-      opponent.speed *= 0.78;
-      opponent.laneVelocity += side * 1.15;
-      opponent.focus = Math.max(0, opponent.focus - 22);
-      raceState.speed *= 0.82;
-      raceState.lateralVelocity -= side * 0.95;
-      raceState.cameraShake = Math.max(raceState.cameraShake, 9);
-      applyVehicleDamage(12 / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
-      applyOpponentDamage(opponent, 22 / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
+      opponent.speed *= phoneMode ? 0.86 : 0.78;
+      opponent.laneVelocity += side * (phoneMode ? 1.75 : 1.15);
+      opponent.focus = Math.max(0, opponent.focus - (phoneMode ? 14 : 22));
+      raceState.speed *= phoneMode ? 0.9 : 0.82;
+      raceState.lateralVelocity -= side * (phoneMode ? 0.62 : 0.95);
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 5 : 9);
+      applyVehicleDamage((phoneMode ? 4.5 : 12) / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
+      applyOpponentDamage(opponent, (phoneMode ? 16 : 22) / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       playHitSound("impact");
     }
@@ -1680,6 +1681,32 @@ function choosePhoneSpawnLane() {
     });
   };
   return slots.find((lane) => !busy(lane)) ?? slots.find((lane) => Math.abs(lane - raceState.lane) > 1.05) ?? -1.95;
+}
+
+function playerVehicleContact(object, kind = "traffic") {
+  const objectLane = Number(object && object.lane) || 0;
+  const laneGap = Math.abs(objectLane - raceState.lane);
+  if (phoneGraphicsActive()) {
+    const gap = ensureRoadDistance(object) - raceState.distance;
+    const laneLimit = kind === "police" ? 0.4 : 0.38;
+    const aheadLimit = kind === "police" ? 62 : 56;
+    const behindLimit = kind === "police" ? 24 : 20;
+    return {
+      laneHit: laneGap < laneLimit,
+      yHit: gap > -behindLimit && gap < aheadLimit,
+      gap,
+      laneGap
+    };
+  }
+  const screenY = roadObjectY(object);
+  return {
+    laneHit: laneGap < (kind === "police" ? 0.56 : 0.52),
+    yHit: kind === "police"
+      ? screenY > canvas.height * 0.61 && screenY < canvas.height * 0.9
+      : screenY > canvas.height * 0.64 && screenY < canvas.height * 0.87,
+    screenY,
+    laneGap
+  };
 }
 
 function routeVehicleBoost(place, vehicleType, rival = false) {
@@ -1920,21 +1947,21 @@ function moveObjects(dt) {
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.12);
     }
-    const laneHit = Math.abs(rival.lane - carLane) < 0.52;
-    const yHit = screenY > canvas.height * 0.64 && screenY < canvas.height * 0.87;
-    if (laneHit && yHit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
-      rival.contactCooldown = 0.55;
+    const contact = playerVehicleContact(rival, "traffic");
+    if (contact.laneHit && contact.yHit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+      const phoneMode = phoneGraphicsActive();
+      rival.contactCooldown = phoneMode ? 1.35 : 0.55;
       const shield = activeProfile.upgrades.shield;
-      const impact = Math.max(8, (28 - shield * 2.7) / Math.max(0.72, vehicle.mass));
+      const impact = Math.max(phoneMode ? 3.2 : 8, ((28 - shield * 2.7) * (phoneMode ? 0.28 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(rival.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
-      applyVehicleDamage(impact, "Traffic impact");
+      applyVehicleDamage(impact, "Traffic lane contact");
       applyTrafficDamage(rival, impact * 1.65, "Traffic disabled", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, rival.color || "#ff5b6b");
       raceState.combo = 1;
-      raceState.cameraShake = Math.max(raceState.cameraShake, 7);
-      raceState.speed *= Math.max(0.42, 0.78 - impact * 0.007);
-      raceState.lateralVelocity -= side * 1.05;
-      rival.laneVelocity += side * 1.35;
-      rival.speed *= Math.max(0.24, 0.62 - impact * 0.006);
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 4 : 7);
+      raceState.speed *= Math.max(phoneMode ? 0.68 : 0.42, (phoneMode ? 0.88 : 0.78) - impact * 0.007);
+      raceState.lateralVelocity -= side * (phoneMode ? 0.62 : 1.05);
+      rival.laneVelocity += side * (phoneMode ? 1.75 : 1.35);
+      rival.speed *= Math.max(phoneMode ? 0.42 : 0.24, (phoneMode ? 0.72 : 0.62) - impact * 0.006);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, "#ff5b6b");
       playHitSound("impact");
     }
@@ -1965,22 +1992,22 @@ function moveObjects(dt) {
       raceState.score += 180;
       raceState.heat = Math.max(10, raceState.heat - 4);
     }
-    const laneHit = Math.abs(unit.lane - carLane) < 0.56;
-    const yHit = screenY > canvas.height * 0.61 && screenY < canvas.height * 0.9;
-    if (laneHit && yHit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
-      unit.contactCooldown = 0.65;
+    const contact = playerVehicleContact(unit, "police");
+    if (contact.laneHit && contact.yHit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+      const phoneMode = phoneGraphicsActive();
+      unit.contactCooldown = phoneMode ? 1.45 : 0.65;
       const shield = activeProfile.upgrades.shield;
-      const impact = Math.max(12, (38 - shield * 2.5) / Math.max(0.72, vehicle.mass));
+      const impact = Math.max(phoneMode ? 4.5 : 12, ((38 - shield * 2.5) * (phoneMode ? 0.26 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(unit.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
-      applyVehicleDamage(impact, "Police contact");
+      applyVehicleDamage(impact, "Police lane contact");
       applyTrafficDamage(unit, impact * 1.25, "Interceptor damaged", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       raceState.combo = 1;
-      raceState.cameraShake = Math.max(raceState.cameraShake, 12);
-      raceState.heat = Math.min(100, raceState.heat + 12);
-      raceState.speed *= Math.max(0.36, 0.72 - impact * 0.006);
-      raceState.lateralVelocity -= side * 1.3;
-      unit.laneVelocity += side * 1.5;
-      unit.speed *= Math.max(0.22, 0.58 - impact * 0.004);
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 6 : 12);
+      raceState.heat = Math.min(100, raceState.heat + (phoneMode ? 7 : 12));
+      raceState.speed *= Math.max(phoneMode ? 0.62 : 0.36, (phoneMode ? 0.84 : 0.72) - impact * 0.006);
+      raceState.lateralVelocity -= side * (phoneMode ? 0.72 : 1.3);
+      unit.laneVelocity += side * (phoneMode ? 1.8 : 1.5);
+      unit.speed *= Math.max(phoneMode ? 0.38 : 0.22, (phoneMode ? 0.7 : 0.58) - impact * 0.004);
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#ff3348");
       playHitSound("police");
