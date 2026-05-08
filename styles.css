@@ -1654,3 +1654,92 @@ input:focus {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 146px);
   }
 }
+
+@media (max-width: 980px), (pointer: coarse) {
+  body.race-live.control-mini .drive-stick {
+    --stick-origin-x: 68px;
+    --stick-origin-y: calc(var(--vvh, 100dvh) - 68px);
+    --stick-knob-x: 0px;
+    --stick-knob-y: 0px;
+    display: block;
+    width: 112px;
+    height: 112px;
+    padding: 0;
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    grid-template-columns: none;
+    grid-template-rows: none;
+    overflow: visible;
+    opacity: 0.78;
+    transition: opacity 140ms ease, filter 140ms ease;
+  }
+
+  body.race-live.control-mini .drive-stick.floating-stick-active {
+    left: var(--stick-origin-x);
+    top: var(--stick-origin-y);
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    opacity: 0.96;
+    filter: brightness(1.12);
+  }
+
+  body.race-live.control-mini .drive-stick .mobile-control {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  body.race-live.control-mini .drive-stick::before,
+  body.race-live.control-mini .drive-stick::after {
+    position: absolute;
+    content: "";
+    pointer-events: none;
+    border-radius: 999px;
+  }
+
+  body.race-live.control-mini .drive-stick::before {
+    inset: 0;
+    border: 1px solid rgba(244, 251, 248, 0.28);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(187, 242, 74, 0.18), rgba(70, 217, 255, 0.1) 28%, rgba(5, 8, 7, 0.5) 66%),
+      linear-gradient(135deg, rgba(255,255,255,0.12), rgba(5,8,7,0.18));
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36), inset 0 0 26px rgba(70, 217, 255, 0.12);
+  }
+
+  body.race-live.control-mini .drive-stick::after {
+    left: 50%;
+    top: 50%;
+    width: 46px;
+    height: 46px;
+    transform: translate(calc(-50% + var(--stick-knob-x)), calc(-50% + var(--stick-knob-y)));
+    border: 1px solid rgba(244, 251, 248, 0.42);
+    background:
+      radial-gradient(circle at 36% 28%, rgba(255,255,255,0.72), rgba(255,255,255,0.14) 28%, rgba(187,242,74,0.72) 54%, rgba(70,217,255,0.72));
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.36), 0 0 18px rgba(70, 217, 255, 0.24);
+  }
+
+  body.race-live.control-mini .control-size {
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + 120px);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 760px), (orientation: landscape) and (pointer: coarse) {
+  body.race-live.control-mini .drive-stick {
+    width: 96px;
+    height: 96px;
+    left: max(10px, env(safe-area-inset-left));
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  body.race-live.control-mini .drive-stick::after {
+    width: 38px;
+    height: 38px;
+  }
+
+  body.race-live.control-mini .control-size {
+    bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px);
+  }
+}

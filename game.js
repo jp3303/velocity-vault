@@ -9,8 +9,9 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 52;
-const raceDistanceMultiplier = 5.8;
+const starterGarageVersion = 53;
+const raceDistanceMultiplier = 7.4;
+const minimumRaceSeconds = 72;
 const ageBands = {
   rookie: { label: "Rookie 5-8", help: "Wide lanes, bigger coin streaks, cheerful missions.", speed: 0.86, traffic: 0.72, rewards: 1.18 },
   prodigy: { label: "Prodigy 9-12", help: "Sharper goals, more traffic, better rewards.", speed: 1, traffic: 1, rewards: 1 },
@@ -116,7 +117,13 @@ const mobileTouchState = {
   stickSteer: 0,
   driveStickActive: false,
   latchedStickControl: "",
-  modeToggleAt: 0
+  modeToggleAt: 0,
+  floatingStickId: null,
+  floatingStickKey: "",
+  floatingStickOriginX: 0,
+  floatingStickOriginY: 0,
+  floatingStickKnobX: 0,
+  floatingStickKnobY: 0
 };
 
 const raceState = {
@@ -157,6 +164,7 @@ const raceState = {
   chaseActive: false,
   cameraShake: 0,
   countdown: 0,
+  goalIntroTimer: 0,
   finished: false,
   director: null
 };
@@ -699,12 +707,13 @@ function launchRace() {
     chaseActive: false,
     cameraShake: 0,
     countdown: 0,
+    goalIntroTimer: 5.8,
     finished: false,
     director
   });
   $("#raceTitle").textContent = selectedRace.name;
   const route = routeWorldInfo(selectedRace.place);
-  $("#raceBrief").textContent = `${selectedRace.target} | ${route.country}: ${route.scene}`;
+  $("#raceBrief").textContent = `Goal: ${selectedRace.target} | ${route.country}: ${route.scene} | Longer route`;
   $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = `${vehicle.name} | ${selectedRace.target}`;
   showView("race");
@@ -763,6 +772,7 @@ function saveRace() {
       chaseActive: raceState.chaseActive,
       cameraShake: 0,
       countdown: 0,
+      goalIntroTimer: 0,
       finished: false
     }
   };
@@ -799,6 +809,7 @@ function resumeSavedRace() {
   raceState.resetTimer = Math.max(0, Number(saved.state.resetTimer) || 0);
   raceState.resetReason = saved.state.resetReason || "";
   raceState.crashCooldown = Math.max(0, Number(saved.state.crashCooldown) || 0);
+  raceState.goalIntroTimer = Math.max(0, Number(saved.state.goalIntroTimer) || 0);
   raceState.roadCurve = Number(saved.state.roadCurve) || 0;
   raceState.roadTurn = Number(saved.state.roadTurn) || raceState.roadCurve || 0;
   raceState.overtakes = Number(saved.state.overtakes) || 0;
@@ -813,7 +824,7 @@ function resumeSavedRace() {
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
   const route = routeWorldInfo(selectedRace.place);
-  $("#raceBrief").textContent = `${selectedRace.target} | ${route.country}: ${route.scene}`;
+  $("#raceBrief").textContent = `Goal: ${selectedRace.target} | ${route.country}: ${route.scene} | Longer route`;
   $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = raceState.chaseActive ? `Police heat ${Math.round(raceState.heat)}% | Escape clean` : `${selectedRace.target} | ${director.event.name}`;
   startAudio();
@@ -958,6 +969,91 @@ function clearTouchDriveInputs() {
   mobileTouchState.stickSteer = 0;
   mobileTouchState.driveStickActive = false;
   mobileTouchState.latchedStickControl = "";
+  mobileTouchState.floatingStickId = null;
+  mobileTouchState.floatingStickKey = "";
+  mobileTouchState.floatingStickOriginX = 0;
+  mobileTouchState.floatingStickOriginY = 0;
+  mobileTouchState.floatingStickKnobX = 0;
+  mobileTouchState.floatingStickKnobY = 0;
+  setFloatingStickVisual(false);
+}
+
+function useFloatingStickControls() {
+  return document.body.classList.contains("race-live") && touchControlSize === "mini";
+}
+
+function floatingStickRadius() {
+  const stick = $(".drive-stick");
+  if (!stick) return 58;
+  const rect = stick.getBoundingClientRect();
+  return Math.max(42, Math.min(72, Math.min(rect.width || 116, rect.height || 116) * 0.44));
+}
+
+function setFloatingStickVisual(active, originX = mobileTouchState.floatingStickOriginX, originY = mobileTouchState.floatingStickOriginY, knobX = 0, knobY = 0) {
+  const stick = $(".drive-stick");
+  if (!stick) return;
+  stick.classList.toggle("floating-stick-active", Boolean(active));
+  stick.style.setProperty("--stick-origin-x", `${Math.round(originX)}px`);
+  stick.style.setProperty("--stick-origin-y", `${Math.round(originY)}px`);
+  stick.style.setProperty("--stick-knob-x", `${Math.round(knobX)}px`);
+  stick.style.setProperty("--stick-knob-y", `${Math.round(knobY)}px`);
+}
+
+function floatingStickControlAt(clientX, clientY) {
+  const radius = floatingStickRadius();
+  const dx = clientX - mobileTouchState.floatingStickOriginX;
+  const dy = clientY - mobileTouchState.floatingStickOriginY;
+  const distance = Math.hypot(dx, dy);
+  const limit = distance > radius ? radius / distance : 1;
+  const knobX = dx * limit;
+  const knobY = dy * limit;
+  mobileTouchState.floatingStickKnobX = knobX;
+  mobileTouchState.floatingStickKnobY = knobY;
+  setFloatingStickVisual(true, mobileTouchState.floatingStickOriginX, mobileTouchState.floatingStickOriginY, knobX, knobY);
+  const steer = Math.max(-1, Math.min(1, dx / radius));
+  const controls = ["stick"];
+  if (dy > radius * 0.48) {
+    controls.push("brake");
+  } else {
+    controls.push("gas");
+  }
+  if (steer < -0.07) controls.push("left");
+  if (steer > 0.07) controls.push("right");
+  if (Math.abs(steer) > 0.035) controls.push(`steer=${steer.toFixed(2)}`);
+  return controls.join(":");
+}
+
+function beginFloatingStick(id, clientX, clientY) {
+  if (!useFloatingStickControls()) return false;
+  if (mobileTouchState.floatingStickId !== null && mobileTouchState.floatingStickId !== id) return false;
+  const key = `floating-stick-${id}`;
+  mobileTouchState.floatingStickId = id;
+  mobileTouchState.floatingStickKey = key;
+  mobileTouchState.floatingStickOriginX = clientX;
+  mobileTouchState.floatingStickOriginY = clientY;
+  mobileTouchState.latchedStickControl = "";
+  mobileTouchState.active.set(key, floatingStickControlAt(clientX, clientY));
+  applyMobileTouchSnapshot();
+  return true;
+}
+
+function moveFloatingStick(id, clientX, clientY) {
+  if (mobileTouchState.floatingStickId !== id) return false;
+  mobileTouchState.active.set(mobileTouchState.floatingStickKey, floatingStickControlAt(clientX, clientY));
+  applyMobileTouchSnapshot();
+  return true;
+}
+
+function endFloatingStick(id) {
+  if (mobileTouchState.floatingStickId !== id) return false;
+  mobileTouchState.active.delete(mobileTouchState.floatingStickKey);
+  mobileTouchState.floatingStickId = null;
+  mobileTouchState.floatingStickKey = "";
+  mobileTouchState.floatingStickKnobX = 0;
+  mobileTouchState.floatingStickKnobY = 0;
+  setFloatingStickVisual(false);
+  applyMobileTouchSnapshot();
+  return true;
 }
 
 function setTouchDriveMode(mode, quiet = false) {
@@ -989,7 +1085,7 @@ function setTouchControlSize(size, quiet = false) {
   if (!quiet) {
     clearTouchDriveInputs();
     updateRaceUi();
-    showToast(touchControlSize === "mini" ? "Mini one-thumb drive stick on. Drag diagonally to steer while accelerating." : "Full controls on. Tap Mini for more screen space.");
+    showToast(touchControlSize === "mini" ? "Floating one-thumb joystick on. Drag anywhere on the driving screen." : "Full controls on. Tap Mini for more screen space.");
   }
 }
 
@@ -1140,6 +1236,11 @@ function handleMobileTouchStart(event) {
   startAudio();
   if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
   Array.from(event.changedTouches).forEach((touch) => {
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (useFloatingStickControls() && el && el.closest && el.closest(".drive-stick")) {
+      beginFloatingStick(touch.identifier, touch.clientX, touch.clientY);
+      return;
+    }
     const control = mobileControlAt(touch.clientX, touch.clientY);
     if (!control) return;
     if (control === "size") {
@@ -1172,6 +1273,7 @@ function handleMobileTouchStart(event) {
 function handleMobileTouchMove(event) {
   event.preventDefault();
   Array.from(event.changedTouches).forEach((touch) => {
+    if (moveFloatingStick(touch.identifier, touch.clientX, touch.clientY)) return;
     const previous = mobileTouchState.active.get(touch.identifier);
     const control = mobileControlAt(touch.clientX, touch.clientY);
     if (touchDriveMode === "toggle") {
@@ -1194,7 +1296,10 @@ function handleMobileTouchMove(event) {
 
 function handleMobileTouchEnd(event) {
   event.preventDefault();
-  Array.from(event.changedTouches).forEach((touch) => mobileTouchState.active.delete(touch.identifier));
+  Array.from(event.changedTouches).forEach((touch) => {
+    if (endFloatingStick(touch.identifier)) return;
+    mobileTouchState.active.delete(touch.identifier);
+  });
   applyMobileTouchSnapshot();
 }
 
@@ -1204,6 +1309,7 @@ function bindDriveStickPointerControl() {
   const pointerKey = "drive-stick-pointer";
   const applyStick = (event) => {
     if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (useFloatingStickControls()) return;
     if (touchControlSize !== "mini") return;
     event.preventDefault();
     const control = driveStickControlAt(stick, event.clientX, event.clientY);
@@ -1241,6 +1347,57 @@ function bindDriveStickPointerControl() {
   stick.addEventListener("pointerup", stopStick);
   stick.addEventListener("pointercancel", stopStick);
   stick.addEventListener("lostpointercapture", stopStick);
+}
+
+function floatingStickPointerAllowed(event) {
+  if (!useFloatingStickControls()) return false;
+  if (event.pointerType === "touch" || event.pointerType === "pen") return true;
+  const compactViewport = window.matchMedia && window.matchMedia("(max-width: 980px)").matches;
+  return phoneGraphicsActive() || compactViewport;
+}
+
+function bindFloatingPhoneJoystick() {
+  const stick = $(".drive-stick");
+  const targets = [canvas, stick].filter(Boolean);
+  const start = (event) => {
+    if (!floatingStickPointerAllowed(event)) return;
+    event.preventDefault();
+    startAudio();
+    if (audioSystem && audioSystem.ctx.state === "suspended") audioSystem.ctx.resume();
+    const id = `pointer-${event.pointerId}`;
+    if (!beginFloatingStick(id, event.clientX, event.clientY)) return;
+    if (event.currentTarget.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Synthetic pointer events may not allow capture.
+      }
+    }
+  };
+  const move = (event) => {
+    const id = `pointer-${event.pointerId}`;
+    if (!moveFloatingStick(id, event.clientX, event.clientY)) return;
+    event.preventDefault();
+  };
+  const stop = (event) => {
+    const id = `pointer-${event.pointerId}`;
+    if (!endFloatingStick(id)) return;
+    event.preventDefault();
+    if (event.currentTarget.releasePointerCapture && event.pointerId !== undefined) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // Capture may already be gone.
+      }
+    }
+  };
+  targets.forEach((target) => {
+    target.addEventListener("pointerdown", start);
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", stop);
+    target.addEventListener("pointercancel", stop);
+    target.addEventListener("lostpointercapture", stop);
+  });
 }
 
 function registerOfflineApp() {
@@ -1582,6 +1739,7 @@ function tick(dt) {
   const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
   raceState.crashCooldown = Math.max(0, raceState.crashCooldown - dt);
+  raceState.goalIntroTimer = Math.max(0, (raceState.goalIntroTimer || 0) - dt);
   if (raceState.resetTimer > 0) {
     raceState.resetTimer = Math.max(0, raceState.resetTimer - dt);
     raceState.speed *= Math.max(0, 1 - dt * 5.6);
@@ -1685,7 +1843,12 @@ function tick(dt) {
     showToast(raceState.heat > 65 ? "High heat pursuit. Watch for interceptors." : "Police chase started.");
   }
   moveObjects(dt);
-  if (raceState.focus <= 0 || raceState.distance >= raceLength()) endRace(false);
+  if (raceState.focus <= 0) {
+    raceState.focus = 18;
+    raceState.damage = Math.max(raceState.damage || 0, 82);
+    triggerVehicleReset("Focus recovered");
+  }
+  if (raceState.distance >= raceLength() && raceState.elapsed >= minimumRaceSeconds) endRace(false);
   updateRaceUi();
   updateAudio();
 }
@@ -2081,6 +2244,7 @@ function drawFrame() {
     drawCinematicGrade(w, h, theme);
     drawPhoneConsolePostPass(w, h, theme);
     if (!raceState.active) drawAttract(w, h);
+    drawRaceGoalIntro(w, h, theme);
     if (input.paused && raceState.active) drawPause(w, h);
     ctx.restore();
     requestAnimationFrame(loop);
@@ -2120,6 +2284,7 @@ function drawFrame() {
   drawCinematicGrade(w, h, theme);
   drawPhoneConsolePostPass(w, h, theme);
   if (!raceState.active) drawAttract(w, h);
+  drawRaceGoalIntro(w, h, theme);
   if (input.paused && raceState.active) drawPause(w, h);
   ctx.restore();
   requestAnimationFrame(loop);
@@ -2150,6 +2315,7 @@ function drawPhoneCanvasFrame(w, h, theme, shake) {
   drawCinematicGrade(w, h, theme);
   drawPhoneConsolePostPass(w, h, theme);
   if (!raceState.active) drawAttract(w, h);
+  drawRaceGoalIntro(w, h, theme);
   if (input.paused && raceState.active) drawPause(w, h);
   ctx.restore();
 }
@@ -5383,6 +5549,41 @@ function drawDamageOverlay(w, h, theme) {
   ctx.restore();
 }
 
+function drawRaceGoalIntro(w, h, theme) {
+  if (!raceState.active || raceState.goalIntroTimer <= 0) return;
+  const phoneMode = phoneGraphicsActive();
+  const total = 5.8;
+  const fadeIn = Math.min(1, (total - raceState.goalIntroTimer) / 0.45);
+  const fadeOut = Math.min(1, raceState.goalIntroTimer / 0.85);
+  const alpha = Math.max(0, Math.min(1, fadeIn, fadeOut));
+  if (alpha <= 0) return;
+  const route = routeWorldInfo(selectedRace && selectedRace.place ? selectedRace.place : "city");
+  const panelW = Math.min(phoneMode ? 390 : 560, w - 28);
+  const panelH = phoneMode ? 92 : 108;
+  const x = (w - panelW) / 2;
+  const y = Math.max(phoneMode ? 48 : 72, h * (phoneMode ? 0.15 : 0.18));
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(5,8,7,0.8)";
+  roundRect(x, y, panelW, panelH, 8);
+  ctx.fill();
+  ctx.strokeStyle = `${theme[1]}aa`;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = theme[1];
+  ctx.font = `900 ${phoneMode ? 12 : 14}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.fillText("RACE GOAL", w / 2, y + (phoneMode ? 22 : 26));
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${phoneMode ? 18 : 24}px system-ui`;
+  const goal = selectedRace ? selectedRace.target : "Finish the race";
+  ctx.fillText(goal, w / 2, y + (phoneMode ? 48 : 58));
+  ctx.fillStyle = "#a9bbb5";
+  ctx.font = `800 ${phoneMode ? 11 : 13}px system-ui`;
+  ctx.fillText(`${route.country}: ${route.scene} | 1-3 min route | Crash recovery on`, w / 2, y + (phoneMode ? 72 : 84));
+  ctx.restore();
+}
+
 function drawCinematicGrade(w, h, theme) {
   const speedLines = Math.max(0, (raceState.speed - 190) / 150);
   if (speedLines > 0) {
@@ -5853,6 +6054,7 @@ function bindEvents() {
   bindHold($("#boostBtn"), "boost");
   $$(".mobile-control").forEach((button) => bindMobileControl(button));
   bindDriveStickPointerControl();
+  bindFloatingPhoneJoystick();
   const mobileLayer = $(".mobile-drive-controls");
   mobileLayer.addEventListener("touchstart", handleMobileTouchStart, { passive: false });
   mobileLayer.addEventListener("touchmove", handleMobileTouchMove, { passive: false });
@@ -5982,6 +6184,7 @@ function bindDriveStickButtonFallback(button, stick) {
   const readControl = (event) => driveStickControlAt(stick, event.clientX, event.clientY) || directStickControl(button.dataset.control);
   const apply = (event) => {
     if (event.pointerType === "touch" && mobileTouchState.usingTouchEvents) return;
+    if (useFloatingStickControls()) return;
     if (touchControlSize !== "mini") return;
     event.preventDefault();
     startAudio();

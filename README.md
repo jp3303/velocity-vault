@@ -16,7 +16,7 @@ Controls:
 - `Space`: boost while accelerating
 - `P`: pause
 - `R`: reset the vehicle after a crash or bad position
-- On touch screens, use the on-screen buttons. Phone landscape mode has a dedicated multi-touch driver pad with left, center, right, gas, brake/reverse, boost, and a Hold/Toggle control mode switch. One thumb can stay on gas while the other steers.
+- On touch screens, use the on-screen controls. Phone Mini mode now uses a floating analog joystick: touch the driving screen, drag left/right to change lanes, and the car keeps accelerating while you steer. Pull the stick down only when you want brake/reverse. Full controls are still available from the `Size` button.
 - Landscape scrolling stays available in menus and the garage; the full-screen no-scroll layout only turns on while a race is live.
 - Bluetooth/gamepad controllers: pair the controller with the device, press any controller button in the browser, then use left stick or D-pad to steer, RT / A to accelerate, LT / X to brake or reverse, B / RB to boost, Y to reset, and Start / Select to pause
 
@@ -65,10 +65,10 @@ Real-world style visuals:
 - Driving effects include tire smoke, launch haze, boost exhaust, brake/slip wash, speed streaks, road reflections, depth haze, headlight wash, dust/snow/weather layers, camera shake, off-road drag, and car body lean during hard steering.
 - Phone landscape racing moves touch controls to a transparent driver-pad overlay so steering, center, gas, brake/reverse, boost, pause, and touch mode switching stay usable without covering the driving screen.
 - Touch controls use a multi-touch tracker plus pointer fallback so gas, brake, boost, and steering can stay active together until finger-up/cancel even if both thumbs are down at once.
-- Phone mode has a separate in-game control dock that is fixed to the visible app window in both portrait and landscape. The default Mini layout is now one compact 4-way drive stick: push up for gas, down for brake/reverse, left/right for steering, and drag diagonally to accelerate while steering. Tapping `Full` expands the larger separate controls.
-- The Mini 4-way drive stick now works in both Hold and Toggle modes. Dragging the stick updates gas, brake/reverse, and steering live, and lifting your thumb releases the movement so the car does not stay stuck turning or accelerating.
-- The Mini 4-way drive stick now calculates direction from the whole circular stick area with extra edge margin, so diagonal up-left/up-right steering keeps working even if a thumb slides into the gap between arrow buttons.
-- The Mini 4-way drive stick now sends analog touch steering into the driving physics and gets a stronger low-speed steering response, so pushing up-left or up-right accelerates and turns immediately instead of only going straight.
+- Phone mode has a separate in-game control layer fixed to the visible app window in both portrait and landscape. The default Mini layout is now a floating one-thumb joystick that appears under your touch, keeps gas active while you steer, releases cleanly when you lift your thumb, and leaves more of the driving screen open. Tapping `Full` expands the larger separate controls.
+- The Mini floating joystick sends analog steering into the driving physics, keeps throttle active while steering sideways, supports brake/reverse by pulling down, and visually follows the player's touch instead of staying locked to a fixed D-pad position.
+- Race starts now show a clear goal card on the driving screen with the current challenge, route, longer-race pacing, and crash-recovery status.
+- Crashes and total focus loss no longer end the race. Critical damage now starts a reset countdown, stabilizes the vehicle, and lets the player continue the same run.
 - Generated vehicle sprites now draw with stronger tire contact shadows, dark tire contact patches, short road streaks, and lower pavement anchoring so cars, trucks, semis, tractors, and opponents read as driving on the road instead of floating above it.
 - Phone and browser race views now generate rear/chase-view road vehicle sprites with the wheel bottoms used as the tire-contact anchor, so cars, trucks, semis, tractors, tanks, and snowmobiles sit on the pavement instead of reading like overhead stickers.
 - Vehicle tire anchors are now pushed to the bottom of the generated sprite, and every grounded vehicle draws a hard pavement clamp directly across the tire line so there is no transparent gap that can read as floating.
@@ -88,7 +88,7 @@ Real-world style visuals:
 - The Vehicles garage now paints real generated preview images for every vehicle class, including cars, F1, prototypes, trucks, semis, tractors, monster trucks, tanks, snowmobiles, boats, helicopters, and airplanes.
 - `Save Race` stores the current run on the device, and `Resume Saved Race` appears in the Race Hub for the same driver profile.
 - New and existing local profiles now get a starter garage budget and early reputation so vehicle switching, upgrades, freight racing, farm racing, and Tokyo-style routes are available quickly instead of feeling locked.
-- Race routes now run almost six times longer than the original short sprint format, so races feel more like full events instead of quick arcade bursts.
+- Race routes now run more than seven times longer than the original short sprint format and cannot finish before the opening minute-plus race window, so events land closer to a real 1-3 minute phone race instead of a quick arcade burst.
 
 Visual direction references:
 
