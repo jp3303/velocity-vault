@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 57;
+const starterGarageVersion = 58;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -145,6 +145,10 @@ const raceState = {
   brakeHeat: 0,
   slip: 0,
   damage: 0,
+  damageAlertTimer: 0,
+  damageAlertLabel: "",
+  hazardWarningTimer: 0,
+  hazardWarningLabel: "",
   resetTimer: 0,
   resetReason: "",
   crashCooldown: 0,
@@ -708,6 +712,10 @@ function launchRace() {
     brakeHeat: 0,
     slip: 0,
     damage: 0,
+    damageAlertTimer: 0,
+    damageAlertLabel: "",
+    hazardWarningTimer: 0,
+    hazardWarningLabel: "",
     resetTimer: 0,
     resetReason: "",
     crashCooldown: 0,
@@ -921,6 +929,8 @@ function updateHud() {
       ? `P${pos}/6 | ${turnName} | Heat ${Math.round(raceState.heat)}%`
       : `P${pos}/6 | ${turnName} | Leader ${leader.name}`;
     if (raceState.speed < 8) $("#missionChip").textContent = "Hold Gas to accelerate | Brake to stop/reverse";
+    if ((raceState.hazardWarningTimer || 0) > 0) $("#missionChip").textContent = raceState.hazardWarningLabel || "Traffic ahead";
+    if ((raceState.damageAlertTimer || 0) > 0) $("#missionChip").textContent = raceState.damageAlertLabel || "Damage taken";
     if (raceState.resetTimer > 0) $("#missionChip").textContent = `Vehicle reset in ${Math.ceil(raceState.resetTimer)} | ${raceState.resetReason}`;
   }
 }
@@ -1713,6 +1723,39 @@ function playerVehicleContact(object, kind = "traffic") {
   };
 }
 
+function visiblePlayerVehicleContact(object, kind = "traffic") {
+  const contact = playerVehicleContact(object, kind);
+  const gap = Number.isFinite(contact.gap) ? contact.gap : ensureRoadDistance(object) - raceState.distance;
+  const screenY = Number.isFinite(contact.screenY) ? contact.screenY : roadObjectY(object);
+  const phoneMode = phoneGraphicsActive();
+  const visibleTop = phoneMode ? canvas.height * 0.43 : canvas.height * 0.5;
+  const visibleBottom = phoneMode ? canvas.height * 0.99 : canvas.height * 0.94;
+  const aheadLimit = kind === "police" ? 54 : 48;
+  const rearForgiveness = phoneMode ? -4 : -10;
+  const visible = screenY >= visibleTop && screenY <= visibleBottom;
+  const avoidableOverlap = gap >= rearForgiveness && gap <= aheadLimit;
+  return {
+    ...contact,
+    gap,
+    screenY,
+    visible,
+    hit: Boolean(contact.laneHit && contact.yHit && visible && avoidableOverlap)
+  };
+}
+
+function updateHazardWarning(object, kind = "traffic") {
+  if (!raceState.active || raceState.resetTimer > 0) return;
+  const gap = ensureRoadDistance(object) - raceState.distance;
+  const laneGap = Math.abs((Number(object && object.lane) || 0) - raceState.lane);
+  const screenY = roadObjectY(object);
+  const phoneMode = phoneGraphicsActive();
+  const warningRange = phoneMode ? 260 : 190;
+  if (gap > 38 && gap < warningRange && laneGap < 0.96 && screenY > canvas.height * 0.42 && screenY < canvas.height * 0.88) {
+    raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, 0.35);
+    raceState.hazardWarningLabel = kind === "police" ? "POLICE AHEAD - CHANGE LANES" : "CAR AHEAD - CHANGE LANES";
+  }
+}
+
 function routeVehicleBoost(place, vehicleType, rival = false) {
   if (place === "snow" && vehicleType === "snowmobile") return rival ? 1.12 : 1.1;
   if (place === "harbor" && vehicleType === "boat") return rival ? 1.14 : 1.12;
@@ -1806,6 +1849,8 @@ function tick(dt) {
   const brakeInput = input.brake || input.gamepadBrake;
   const boostInput = input.boost || input.gamepadBoost;
   raceState.crashCooldown = Math.max(0, raceState.crashCooldown - dt);
+  raceState.damageAlertTimer = Math.max(0, (raceState.damageAlertTimer || 0) - dt);
+  raceState.hazardWarningTimer = Math.max(0, (raceState.hazardWarningTimer || 0) - dt);
   raceState.goalIntroTimer = Math.max(0, (raceState.goalIntroTimer || 0) - dt);
   if (raceState.resetTimer > 0) {
     raceState.resetTimer = Math.max(0, raceState.resetTimer - dt);
@@ -1872,7 +1917,10 @@ function tick(dt) {
     raceState.lateralVelocity -= Math.sign(raceState.lane) * offRoad * 6.5 * dt;
     raceState.speed *= Math.max(0.985, 1 - dt * (0.22 + offRoad * 0.24));
     raceState.focus -= dt * offRoad * 1.8;
-    if (Math.abs(raceState.speed) > 90) applyVehicleDamage(dt * offRoad * (Math.abs(raceState.speed) / 34), "Off-road damage", true);
+    if (Math.abs(raceState.speed) > 90) {
+      raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, 0.45);
+      raceState.hazardWarningLabel = "ROAD EDGE - STEER BACK";
+    }
   }
   raceState.slip = Math.min(1, Math.abs(raceState.lateralVelocity) * 0.42 + Math.abs(raceState.steerAngle) * speedGrip * 0.18 + raceState.brakeHeat * 0.22 + offRoad * 0.5);
   raceState.distance = Math.max(0, raceState.distance + Math.max(0, raceState.speed) * dt);
@@ -1951,14 +1999,15 @@ function moveObjects(dt) {
       raceState.dodges += 1;
       raceState.combo = Math.min(5, raceState.combo + 0.12);
     }
-    const contact = playerVehicleContact(rival, "traffic");
-    if (contact.laneHit && contact.yHit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+    updateHazardWarning(rival, "traffic");
+    const contact = visiblePlayerVehicleContact(rival, "traffic");
+    if (contact.hit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       const phoneMode = phoneGraphicsActive();
       rival.contactCooldown = phoneMode ? 1.35 : 0.55;
       const shield = activeProfile.upgrades.shield;
       const impact = Math.max(phoneMode ? 3.2 : 8, ((28 - shield * 2.7) * (phoneMode ? 0.28 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(rival.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
-      applyVehicleDamage(impact, "Traffic lane contact");
+      applyVehicleDamage(impact, "Visible traffic contact");
       applyTrafficDamage(rival, impact * 1.65, "Traffic disabled", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, rival.color || "#ff5b6b");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 4 : 7);
@@ -1996,14 +2045,15 @@ function moveObjects(dt) {
       raceState.score += 180;
       raceState.heat = Math.max(10, raceState.heat - 4);
     }
-    const contact = playerVehicleContact(unit, "police");
-    if (contact.laneHit && contact.yHit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+    updateHazardWarning(unit, "police");
+    const contact = visiblePlayerVehicleContact(unit, "police");
+    if (contact.hit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       const phoneMode = phoneGraphicsActive();
       unit.contactCooldown = phoneMode ? 1.45 : 0.65;
       const shield = activeProfile.upgrades.shield;
       const impact = Math.max(phoneMode ? 4.5 : 12, ((38 - shield * 2.5) * (phoneMode ? 0.26 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(unit.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
-      applyVehicleDamage(impact, "Police lane contact");
+      applyVehicleDamage(impact, "Visible police contact");
       applyTrafficDamage(unit, impact * 1.25, "Interceptor damaged", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.78, "#46d9ff");
       raceState.combo = 1;
       raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 6 : 12);
@@ -2104,6 +2154,8 @@ function applyVehicleDamage(amount, reason = "Impact", quiet = false) {
   raceState.damage = Math.max(0, Math.min(100, (raceState.damage || 0) + finalAmount));
   raceState.focus = Math.max(0, raceState.focus - Math.max(3, finalAmount * 0.64));
   raceState.crashCooldown = Math.max(raceState.crashCooldown, quiet ? 0.18 : 0.75);
+  raceState.damageAlertTimer = Math.max(raceState.damageAlertTimer || 0, quiet ? 0.65 : 1.45);
+  raceState.damageAlertLabel = `${reason}: +${Math.max(1, Math.round(finalAmount))}%`;
   if (!quiet) {
     const label = raceState.damage >= 100 ? "Critical damage" : `${reason}: ${Math.round(raceState.damage)}% damage`;
     showToast(label);
@@ -4441,7 +4493,7 @@ function drawObjects() {
     if (gap < -130) return false;
     if (!priority && gap < 95 && Math.abs(lane - raceState.lane) < 0.95) return false;
     const conflict = phoneDrawnVehicles.some((item) => Math.abs(item.gap - gap) < 250 && Math.abs(item.lane - lane) < 1.05);
-    if (conflict) return false;
+    if (conflict && !priority) return false;
     phoneDrawnVehicles.push({ gap, lane });
     return true;
   };
@@ -4474,7 +4526,8 @@ function drawObjects() {
   raceState.rivals.forEach((rival) => {
     const distance = ensureRoadDistance(rival);
     const gap = distance - raceState.distance;
-    if (!canDrawPhoneVehicle(gap, rival.lane)) return;
+    const priority = gap > -30 && gap < 260 && Math.abs(rival.lane - raceState.lane) < 1.08;
+    if (!canDrawPhoneVehicle(gap, rival.lane, priority)) return;
     const p = roadObjectPos(rival.lane, distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const groundY = p.y + roadContactSink(p.scale, rival.type || "car");
@@ -4486,7 +4539,8 @@ function drawObjects() {
   raceState.police.forEach((unit) => {
     const distance = ensureRoadDistance(unit);
     const gap = distance - raceState.distance;
-    if (!canDrawPhoneVehicle(gap, unit.lane)) return;
+    const priority = gap > -30 && gap < 280 && Math.abs(unit.lane - raceState.lane) < 1.12;
+    if (!canDrawPhoneVehicle(gap, unit.lane, priority)) return;
     const p = roadObjectPos(unit.lane, distance);
     if (!isVehicleScreenYVisible(p.y)) return;
     const groundY = p.y + roadContactSink(p.scale, "car");
@@ -6050,7 +6104,9 @@ function drawDamageOverlay(w, h, theme) {
   if (!raceState.active) return;
   const damage = Math.max(0, raceState.damage || 0);
   const resetting = raceState.resetTimer > 0;
-  if (damage < 10 && !resetting) return;
+  const damageAlert = (raceState.damageAlertTimer || 0) > 0;
+  const hazardWarning = (raceState.hazardWarningTimer || 0) > 0;
+  if (damage < 10 && !resetting && !damageAlert && !hazardWarning) return;
   ctx.save();
   const danger = Math.min(0.34, damage / 280 + (resetting ? 0.18 : 0));
   const edge = ctx.createRadialGradient(w * 0.5, h * 0.52, h * 0.28, w * 0.5, h * 0.52, h * 0.9);
@@ -6059,6 +6115,26 @@ function drawDamageOverlay(w, h, theme) {
   edge.addColorStop(1, `rgba(255,51,72,${danger})`);
   ctx.fillStyle = edge;
   ctx.fillRect(0, 0, w, h);
+
+  if (hazardWarning || damageAlert) {
+    const label = hazardWarning ? raceState.hazardWarningLabel : raceState.damageAlertLabel;
+    const panelW = Math.min(phoneGraphicsActive() ? 330 : 420, w - 28);
+    const panelH = phoneGraphicsActive() ? 34 : 40;
+    const x = (w - panelW) / 2;
+    const y = phoneGraphicsActive() ? h * 0.2 : h * 0.16;
+    ctx.globalAlpha = hazardWarning ? 0.9 : 0.82;
+    ctx.fillStyle = hazardWarning ? "rgba(255,209,102,0.16)" : "rgba(255,91,107,0.18)";
+    roundRect(x, y, panelW, panelH, 7);
+    ctx.fill();
+    ctx.strokeStyle = hazardWarning ? "rgba(255,209,102,0.82)" : "rgba(255,91,107,0.84)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = `900 ${phoneGraphicsActive() ? 13 : 15}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText(label || "WATCH TRAFFIC", w / 2, y + panelH * 0.64);
+  }
 
   if (cameraMode === "cockpit" || damage > 48) {
     ctx.strokeStyle = `rgba(244,251,248,${Math.min(0.28, damage / 240)})`;
