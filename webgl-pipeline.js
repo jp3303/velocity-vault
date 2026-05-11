@@ -126,14 +126,25 @@
     let vertices = [];
     let lastProjection = null;
 
+    function visualLaneValue(data) {
+      const state = data && data.raceState ? data.raceState : {};
+      const visualLane = Number(state.visualLane);
+      if (Number.isFinite(visualLane)) return visualLane;
+      return Number(state.lane) || 0;
+    }
+
+    function laneToWorldX(lane) {
+      return Number(lane) * 2.08;
+    }
+
     function cameraProjection(data) {
-      const laneX = data.raceState.lane * 2.08;
+      const laneX = laneToWorldX(visualLaneValue(data));
       const shake = data.raceState.cameraShake || 0;
       const curve = roadCurveValue(data);
       const jitter = shake > 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
       const phoneFrame = data.width <= 940 || data.height <= 540;
-      let eye = phoneFrame ? [laneX * 0.5 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.58 - curve * 0.9 + jitter, 2.1, -14.6];
-      let target = phoneFrame ? [laneX * 0.14 + curve * 3.45, 1.24, 62] : [laneX * 0.16 + curve * 3.4, 1.96, 50];
+      let eye = phoneFrame ? [laneX * 0.08 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.06 - curve * 0.9 + jitter, 2.1, -14.6];
+      let target = phoneFrame ? [laneX * 0.015 + curve * 3.45, 1.24, 62] : [laneX * 0.015 + curve * 3.4, 1.96, 50];
       if (data.cameraMode === "hood") {
         eye = phoneFrame ? [laneX * 0.3 - curve * 0.56 + jitter, 1.18, -7.8] : [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
         target = phoneFrame ? [laneX * 0.08 + curve * 3.65, 1.02, 64] : [laneX * 0.1 + curve * 3.6, 1.38, 52];
@@ -624,7 +635,6 @@
     function addMovingObjects(data) {
       const defs = data.vehicleDefs || [];
       const getVehicle = (id) => defs.find((vehicle) => vehicle.id === id) || defs[0] || { type: "car", color: "#46d9ff" };
-      const laneScale = 2.08;
       const screenYFromRoadDistance = (distance) => data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
       const distanceFromScreenY = (y) => {
         const clampedY = Math.max(data.height * 0.34, Math.min(data.height * 0.98, Number(y) || data.height * 0.34));
@@ -647,33 +657,33 @@
         const z = projected.z;
         if (z < 4 || z > 132) return;
         const vehicle = getVehicle(opponent.vehicleId);
-        addVehicle(vehicle.type, roadWorldX(data, opponent.lane * laneScale, z), z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
+        addVehicle(vehicle.type, roadWorldX(data, laneToWorldX(opponent.lane), z), z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
       });
       data.raceState.rivals.forEach((rival) => {
         const projected = projectRoadObject(rival);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        addVehicle(rival.type || "car", roadWorldX(data, rival.lane * laneScale, z), z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
+        addVehicle(rival.type || "car", roadWorldX(data, laneToWorldX(rival.lane), z), z, rival.color, rival.type === "semi" ? 1.08 : 0.9, false, rival.damage || 0);
       });
       data.raceState.police.forEach((unit) => {
         const projected = projectRoadObject(unit);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        addVehicle("car", roadWorldX(data, unit.lane * laneScale, z), z, "#f4fbf8", 0.98, true, unit.damage || 0);
+        addVehicle("car", roadWorldX(data, laneToWorldX(unit.lane), z), z, "#f4fbf8", 0.98, true, unit.damage || 0);
       });
       data.raceState.coinsOnRoad.forEach((coin) => {
         const projected = projectRoadObject(coin);
         if (!projected) return;
         const z = projected.z;
         if (z < 4 || z > 132) return;
-        box(roadWorldX(data, coin.lane * laneScale, z), 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
+        box(roadWorldX(data, laneToWorldX(coin.lane), z), 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
       });
       if (data.cameraMode === "chase") {
-        addVehicle(data.selectedVehicle.type, roadWorldX(data, data.raceState.lane * laneScale, 5.2), 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false, data.raceState.damage || 0);
+        addVehicle(data.selectedVehicle.type, roadWorldX(data, laneToWorldX(data.raceState.lane), 5.2), 5.2, data.selectedVehicle.color, data.selectedVehicle.type === "semi" ? 1.2 : 1.05, false, data.raceState.damage || 0);
       } else if (data.cameraMode === "hood") {
-        const hoodX = roadWorldX(data, data.raceState.lane * laneScale, 1.2);
+        const hoodX = roadWorldX(data, laneToWorldX(data.raceState.lane), 1.2);
         box(hoodX, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
         if ((data.raceState.damage || 0) > 25) box(hoodX - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
       }
@@ -720,12 +730,12 @@
       if (!lastProjection || !lastProjection.data) return null;
       const data = lastProjection.data;
       const z = zFromRoadDistance(data, Number(distance));
-      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, lane * 2.08, z), 0, z);
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
     }
 
     function projectWorldRoadPoint(lane, z) {
       if (!lastProjection) return null;
-      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, lane * 2.08, z), 0, z);
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
     }
 
     return {

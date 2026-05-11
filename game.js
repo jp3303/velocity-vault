@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 59;
+const starterGarageVersion = 62;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -1916,8 +1916,7 @@ function tick(dt) {
   }
   raceState.lane += raceState.lateralVelocity * dt;
   raceState.x = raceState.lane;
-  const followCamera = phoneGraphicsActive() || cameraMode === "hood" || cameraMode === "cockpit";
-  const targetVisualLane = followCamera ? raceState.lane : 0;
+  const targetVisualLane = raceState.lane;
   raceState.visualLane = Number.isFinite(raceState.visualLane) ? raceState.visualLane : targetVisualLane;
   raceState.visualLane += (targetVisualLane - raceState.visualLane) * Math.min(1, dt * 8.5);
   const offRoad = Math.max(0, Math.abs(raceState.lane) - 2.04);
@@ -2344,7 +2343,6 @@ function laneWidth() {
 
 function cameraLaneOffset(depth = 1) {
   if (!raceState.active) return 0;
-  if (!(phoneGraphicsActive() || cameraMode === "hood" || cameraMode === "cockpit")) return 0;
   const lane = Number.isFinite(raceState.visualLane) ? raceState.visualLane : raceState.lane || 0;
   const follow = Math.max(0.18, Math.min(1.08, depth));
   return lane * follow;
@@ -3009,7 +3007,8 @@ function perspectiveRoadCenter(w, t) {
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const clamped = Math.max(0, Math.min(1.08, t));
   const farPull = (1 - clamped) * (1 - clamped);
-  return w * 0.5 + turn * farPull * w * 0.27 + Math.sin(clamped * 4.1 + (raceState.roadOffset || 0) * 0.003) * Math.abs(turn) * w * 0.015;
+  const laneShift = cameraLaneOffset(0.24 + clamped * 0.86) * laneWidth() * (0.18 + clamped * 0.95);
+  return w * 0.5 + turn * farPull * w * 0.27 + Math.sin(clamped * 4.1 + (raceState.roadOffset || 0) * 0.003) * Math.abs(turn) * w * 0.015 - laneShift;
 }
 
 function drawGenAiRacingScenePass(w, h, theme) {
@@ -4022,17 +4021,20 @@ function drawRoad(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
   const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
-  const glare = ctx.createRadialGradient(w * 0.5, h * 0.62, w * 0.08, w * 0.5, h * 0.74, w * 0.75);
+  const roadCenter = (t) => w * 0.5 - cameraLaneOffset(0.24 + t * 0.86) * laneWidth() * (0.18 + t * 0.95);
+  const topCenter = roadCenter(0);
+  const bottomCenter = roadCenter(1);
+  const glare = ctx.createRadialGradient(bottomCenter, h * 0.62, w * 0.08, bottomCenter, h * 0.74, w * 0.75);
   glare.addColorStop(0, "rgba(244,251,248,0.08)");
   glare.addColorStop(1, "rgba(244,251,248,0)");
   ctx.fillStyle = glare;
   ctx.fillRect(0, horizon, w, h - horizon);
   ctx.fillStyle = "rgba(0,0,0,0.34)";
   ctx.beginPath();
-  ctx.moveTo(w / 2 - roadTop, horizon);
-  ctx.lineTo(w / 2 + roadTop, horizon);
-  ctx.lineTo(w / 2 + roadBottom, h);
-  ctx.lineTo(w / 2 - roadBottom, h);
+  ctx.moveTo(topCenter - roadTop, horizon);
+  ctx.lineTo(topCenter + roadTop, horizon);
+  ctx.lineTo(bottomCenter + roadBottom, h);
+  ctx.lineTo(bottomCenter - roadBottom, h);
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = "#222826";
@@ -4080,10 +4082,10 @@ function drawRoad(w, h, theme) {
   }
   ctx.fillStyle = asphalt;
   ctx.beginPath();
-  ctx.moveTo(w / 2 - roadTop * 0.86, horizon);
-  ctx.lineTo(w / 2 + roadTop * 0.86, horizon);
-  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
-  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.moveTo(topCenter - roadTop * 0.86, horizon);
+  ctx.lineTo(topCenter + roadTop * 0.86, horizon);
+  ctx.lineTo(bottomCenter + roadBottom * 0.7, h);
+  ctx.lineTo(bottomCenter - roadBottom * 0.7, h);
   ctx.closePath();
   ctx.fill();
   ctx.save();
@@ -4092,7 +4094,7 @@ function drawRoad(w, h, theme) {
     const y = ((i * 23 + raceState.roadOffset * 0.9) % (h + 40)) - 20;
     if (y < horizon) continue;
     const t = (y - horizon) / (h - horizon);
-    const x = w * 0.5 + (Math.sin(i * 13.7) * roadBottom * 0.55 * t);
+    const x = roadCenter(t) + (Math.sin(i * 13.7) * roadBottom * 0.55 * t);
     ctx.fillStyle = i % 3 ? "#f4fbf8" : "rgba(180,192,188,0.72)";
     ctx.fillRect(x, y, 1 + t * 3, 1 + t * 5);
   }
@@ -4103,13 +4105,14 @@ function drawRoad(w, h, theme) {
   for (let i = 0; i < 26; i += 1) {
     const y = ((i * 42 + raceState.roadOffset * 0.6) % (h + 80)) - 40;
     const t = Math.max(0, (y - horizon) / (h - horizon));
+    const center = roadCenter(t);
     ctx.beginPath();
-    ctx.moveTo(w / 2 - roadBottom * 0.65 * t, y);
-    ctx.lineTo(w / 2 + roadBottom * 0.65 * t, y + 4);
+    ctx.moveTo(center - roadBottom * 0.65 * t, y);
+    ctx.lineTo(center + roadBottom * 0.65 * t, y + 4);
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  const baseRoadX = (lane, t) => w / 2 + lane * laneWidth() * (0.3 + t * 1.05);
+  const baseRoadX = (lane, t) => roadCenter(t) + lane * laneWidth() * (0.3 + t * 1.05);
   const basePaintSegment = (lane, y, length, width, style) => {
     const y1 = Math.max(horizon, y);
     const y2 = Math.min(h + 80, y + length);
@@ -4147,18 +4150,18 @@ function drawRoad(w, h, theme) {
   ctx.globalAlpha = 0.42;
   for (let lane = -2.5; lane <= 2.5; lane += 1) {
     ctx.beginPath();
-    ctx.moveTo(w / 2 + lane * laneWidth() * 0.28, horizon);
-    ctx.lineTo(w / 2 + lane * laneWidth() * 1.28, h);
+    ctx.moveTo(topCenter + lane * laneWidth() * 0.28, horizon);
+    ctx.lineTo(bottomCenter + lane * laneWidth() * 1.28, h);
     ctx.stroke();
   }
   ctx.strokeStyle = "rgba(244,251,248,0.58)";
   ctx.lineWidth = 4;
   ctx.globalAlpha = 0.7;
   ctx.beginPath();
-  ctx.moveTo(w / 2 - roadTop * 0.9, horizon);
-  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
-  ctx.moveTo(w / 2 + roadTop * 0.9, horizon);
-  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
+  ctx.moveTo(topCenter - roadTop * 0.9, horizon);
+  ctx.lineTo(bottomCenter - roadBottom * 0.7, h);
+  ctx.moveTo(topCenter + roadTop * 0.9, horizon);
+  ctx.lineTo(bottomCenter + roadBottom * 0.7, h);
   ctx.stroke();
   ctx.globalAlpha = 1;
   drawRoadsideDetails(w, h, theme, horizon, roadBottom);
@@ -4168,24 +4171,26 @@ function drawRoad(w, h, theme) {
 
 function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
   ctx.save();
+  const topCenter = perspectiveRoadCenter(w, 0.04);
+  const bottomCenter = perspectiveRoadCenter(w, 1);
   for (let side = -1; side <= 1; side += 2) {
     ctx.strokeStyle = "rgba(205,218,214,0.38)";
     ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(w / 2 + side * roadTop * 1.08, horizon + 12);
-    ctx.lineTo(w / 2 + side * roadBottom * 0.82, h);
+    ctx.moveTo(topCenter + side * roadTop * 1.08, horizon + 12);
+    ctx.lineTo(bottomCenter + side * roadBottom * 0.82, h);
     ctx.stroke();
     ctx.strokeStyle = "rgba(5,8,7,0.78)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(w / 2 + side * roadTop * 1.04, horizon + 26);
-    ctx.lineTo(w / 2 + side * roadBottom * 0.78, h);
+    ctx.moveTo(topCenter + side * roadTop * 1.04, horizon + 26);
+    ctx.lineTo(bottomCenter + side * roadBottom * 0.78, h);
     ctx.stroke();
     for (let i = 0; i < 18; i += 1) {
       const y = ((i * 74 + raceState.roadOffset * 1.2) % (h + 120)) - 60;
       if (y < horizon) continue;
       const t = (y - horizon) / (h - horizon);
-      const x = w / 2 + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
+      const x = perspectiveRoadCenter(w, t) + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
       ctx.fillStyle = i % 2 ? "rgba(255,255,255,0.34)" : "rgba(180,192,188,0.34)";
       roundRect(x - side * 4, y, side * 10, 22 + t * 34, 3);
       ctx.fill();
@@ -4201,7 +4206,7 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
     if (y < horizon) continue;
     const t = (y - horizon) / (h - horizon);
     const side = i % 2 === 0 ? -1 : 1;
-    const x = w / 2 + side * roadBottom * (0.28 + t * 0.64);
+    const x = perspectiveRoadCenter(w, t) + side * roadBottom * (0.28 + t * 0.64);
     const size = 10 + t * 28;
     if (place === "canyon") {
       const rock = ctx.createLinearGradient(x - size, y - size, x + size, y + size);
@@ -4469,8 +4474,11 @@ function visibleRoadObjectPos(lane, distance) {
     if (projected && Number.isFinite(projected.x) && Number.isFinite(projected.y)) {
       const clampedY = Math.max(h * 0.34, Math.min(h * 1.06, projected.y));
       const t = Math.max(0, Math.min(1, (clampedY - h * 0.34) / Math.max(1, h * 0.7)));
+      const turn = raceState.roadTurn || raceState.roadCurve || 0;
+      const curveShift = turn * (1 - t) * (1 - t * 0.22) * w * 0.17;
+      const laneSpread = laneWidth() * (0.32 + t * 1.08);
       return {
-        x: projected.x,
+        x: w / 2 + curveShift + (lane - cameraLaneOffset(t)) * laneSpread,
         y: clampedY,
         scale: Math.max(0.34, Math.min(1.24, projected.scale || (0.36 + t * 0.78))),
         depth: t
@@ -4944,12 +4952,15 @@ function drawRoadWeightPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.28 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.12 : cameraMode === "hood" ? w * 0.15 : w * 0.14;
   const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
+  const roadCenter = (t) => w * 0.5 - cameraLaneOffset(0.24 + t * 0.86) * laneWidth() * (0.18 + t * 0.95);
+  const topCenter = roadCenter(0);
+  const bottomCenter = roadCenter(1);
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(w / 2 - roadTop * 0.88, horizon);
-  ctx.lineTo(w / 2 + roadTop * 0.88, horizon);
-  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
-  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.moveTo(topCenter - roadTop * 0.88, horizon);
+  ctx.lineTo(topCenter + roadTop * 0.88, horizon);
+  ctx.lineTo(bottomCenter + roadBottom * 0.7, h);
+  ctx.lineTo(bottomCenter - roadBottom * 0.7, h);
   ctx.closePath();
   ctx.clip();
 
@@ -4966,7 +4977,7 @@ function drawRoadWeightPass(w, h, theme) {
       const y = horizon + (((i * 92 + raceState.roadOffset * 0.72) % (h - horizon + 110)) - 30);
       if (y < horizon || y > h) continue;
       const t = Math.max(0, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
-      const x = w * 0.5 + lane * laneWidth() * (0.28 + t * 1.1);
+      const x = roadCenter(t) + lane * laneWidth() * (0.28 + t * 1.1);
       ctx.fillStyle = "rgba(0,0,0,0.56)";
       roundRect(x - (4 + t * 7), y, 8 + t * 14, 2 + t * 5, 2);
       ctx.fill();
@@ -4983,7 +4994,10 @@ function drawRoadMotionPass(w, h, theme) {
   const roadBottom = cameraMode === "cockpit" ? w * 1.05 : cameraMode === "hood" ? w * 0.95 : w * 1.02;
   const motion = raceState.roadOffset * (1.35 + Math.min(1.9, speed / 130));
   const loop = (value, span) => ((value % span) + span) % span;
-  const roadX = (lane, t) => w * 0.5 + lane * laneWidth() * (0.28 + t * 1.18);
+  const roadCenter = (t) => w * 0.5 - cameraLaneOffset(0.24 + t * 0.86) * laneWidth() * (0.18 + t * 0.95);
+  const roadX = (lane, t) => roadCenter(t) + lane * laneWidth() * (0.28 + t * 1.18);
+  const topCenter = roadCenter(0);
+  const bottomCenter = roadCenter(1);
   const paintSegment = (lane, y, length, width, style, alpha = 1) => {
     const y1 = Math.max(horizon, y);
     const y2 = Math.min(h + 80, y + length);
@@ -5007,10 +5021,10 @@ function drawRoadMotionPass(w, h, theme) {
 
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(w / 2 - roadTop * 0.88, horizon);
-  ctx.lineTo(w / 2 + roadTop * 0.88, horizon);
-  ctx.lineTo(w / 2 + roadBottom * 0.7, h);
-  ctx.lineTo(w / 2 - roadBottom * 0.7, h);
+  ctx.moveTo(topCenter - roadTop * 0.88, horizon);
+  ctx.lineTo(topCenter + roadTop * 0.88, horizon);
+  ctx.lineTo(bottomCenter + roadBottom * 0.7, h);
+  ctx.lineTo(bottomCenter - roadBottom * 0.7, h);
   ctx.closePath();
   ctx.clip();
 
@@ -5021,12 +5035,13 @@ function drawRoadMotionPass(w, h, theme) {
     if (y < horizon || y > h + 30) continue;
     const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
     const roadHalf = roadTop * 0.62 + (roadBottom * 0.63 - roadTop * 0.62) * t;
+    const center = roadCenter(t);
     ctx.globalAlpha = bandAlpha * (0.3 + t * 0.9);
     ctx.strokeStyle = i % 2 ? "rgba(0,0,0,0.78)" : "rgba(244,251,248,0.18)";
     ctx.lineWidth = 1 + t * 7;
     ctx.beginPath();
-    ctx.moveTo(w * 0.5 - roadHalf, y);
-    ctx.lineTo(w * 0.5 + roadHalf, y + 3 + t * 14);
+    ctx.moveTo(center - roadHalf, y);
+    ctx.lineTo(center + roadHalf, y + 3 + t * 14);
     ctx.stroke();
   }
 
@@ -5056,7 +5071,7 @@ function drawRoadMotionPass(w, h, theme) {
     if (y < h * 0.5) continue;
     const t = Math.max(0, Math.min(1, (y - horizon) / (h - horizon)));
     const side = i % 2 ? -1 : 1;
-    const x = w * 0.5 + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
+    const x = roadCenter(t) + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + side * w * (0.04 + t * 0.1), y + h * (0.04 + t * 0.12));
@@ -5758,13 +5773,13 @@ function drawCar(w, h) {
     drawPhoneDriverHood(w, h, vehicle);
     return;
   }
-  let x = w / 2 + (raceState.lane - cameraLaneOffset(1)) * laneWidth();
+  const carLaneFollowDepth = useWebGLRenderer() && cameraMode === "chase" ? 0.42 : 1;
+  let x = w / 2 + (raceState.lane - cameraLaneOffset(carLaneFollowDepth)) * laneWidth();
   let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.84 : h * 0.86;
   let projectionScale = 1;
   if (useWebGLRenderer() && cameraMode === "chase" && webglRenderer && typeof webglRenderer.projectWorldRoadPoint === "function") {
     const anchor = webglRenderer.projectWorldRoadPoint(raceState.lane, 5.2);
     if (anchor && Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) {
-      x = anchor.x;
       y = Math.max(h * 0.78, Math.min(h * 0.96, anchor.y + h * 0.045));
       projectionScale = Math.max(0.92, Math.min(1.12, anchor.scale || 1));
     }
