@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 58;
+const starterGarageVersion = 59;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -139,6 +139,7 @@ const raceState = {
   combo: 1,
   lane: 0,
   x: 0,
+  visualLane: 0,
   lateralVelocity: 0,
   steerAngle: 0,
   throttleLoad: 0,
@@ -706,6 +707,7 @@ function launchRace() {
     combo: 1,
     lane: 0,
     x: 0,
+    visualLane: 0,
     lateralVelocity: 0,
     steerAngle: 0,
     throttleLoad: 0,
@@ -776,6 +778,7 @@ function saveRace() {
       combo: raceState.combo,
       lane: raceState.lane,
       x: raceState.x,
+      visualLane: raceState.visualLane,
       lateralVelocity: raceState.lateralVelocity,
       steerAngle: raceState.steerAngle,
       throttleLoad: raceState.throttleLoad,
@@ -828,6 +831,8 @@ function resumeSavedRace() {
     director,
     cameraShake: 0
   });
+  raceState.visualLane = Number(saved.state.visualLane);
+  if (!Number.isFinite(raceState.visualLane)) raceState.visualLane = raceState.lane || 0;
   raceState.lateralVelocity = Number(saved.state.lateralVelocity) || 0;
   raceState.steerAngle = Number(saved.state.steerAngle) || 0;
   raceState.throttleLoad = Number(saved.state.throttleLoad) || 0;
@@ -1911,6 +1916,10 @@ function tick(dt) {
   }
   raceState.lane += raceState.lateralVelocity * dt;
   raceState.x = raceState.lane;
+  const followCamera = phoneGraphicsActive() || cameraMode === "hood" || cameraMode === "cockpit";
+  const targetVisualLane = followCamera ? raceState.lane : 0;
+  raceState.visualLane = Number.isFinite(raceState.visualLane) ? raceState.visualLane : targetVisualLane;
+  raceState.visualLane += (targetVisualLane - raceState.visualLane) * Math.min(1, dt * 8.5);
   const offRoad = Math.max(0, Math.abs(raceState.lane) - 2.04);
   if (offRoad > 0) {
     raceState.lane = Math.max(-2.28, Math.min(2.28, raceState.lane));
@@ -2186,6 +2195,7 @@ function completeVehicleReset() {
   raceState.damage = Math.min(42, raceState.damage * 0.42);
   raceState.lane = 0;
   raceState.x = 0;
+  raceState.visualLane = 0;
   raceState.speed = 0;
   raceState.lateralVelocity = 0;
   raceState.steerAngle = 0;
@@ -2220,7 +2230,7 @@ function burst(x, y, color) {
 function emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput) {
   if (!raceState.active || canvas.width <= 0 || canvas.height <= 0) return;
   const speed = Math.abs(raceState.speed);
-  const x = canvas.width / 2 + raceState.lane * laneWidth();
+  const x = canvas.width / 2 + (raceState.lane - cameraLaneOffset(1)) * laneWidth();
   const baseY = cameraMode === "cockpit" ? canvas.height * 0.78 : cameraMode === "hood" ? canvas.height * 0.93 : canvas.height * 0.87;
   const slipChance = Math.min(0.75, raceState.slip * 0.34 + (brakeInput && speed > 24 ? 0.12 : 0) + (Math.abs(steerInput) > 0 && speed > 90 ? 0.06 : 0));
   if (Math.random() < slipChance * dt * 18) {
@@ -2330,6 +2340,14 @@ function laneWidth() {
   if (cameraMode === "cockpit") return Math.min(canvas.width * 0.145, 118);
   if (cameraMode === "hood") return Math.min(canvas.width * 0.13, 104);
   return Math.min(canvas.width * 0.115, 92);
+}
+
+function cameraLaneOffset(depth = 1) {
+  if (!raceState.active) return 0;
+  if (!(phoneGraphicsActive() || cameraMode === "hood" || cameraMode === "cockpit")) return 0;
+  const lane = Number.isFinite(raceState.visualLane) ? raceState.visualLane : raceState.lane || 0;
+  const follow = Math.max(0.18, Math.min(1.08, depth));
+  return lane * follow;
 }
 
 let last = performance.now();
@@ -2541,7 +2559,8 @@ function drawPhoneConsoleChasePass(w, h, theme) {
     const clamped = Math.max(0, Math.min(1.08, t));
     const farPull = (1 - clamped) * (1 - clamped);
     const roadWave = Math.sin(clamped * 4.2 + (raceState.roadOffset || 0) * 0.004) * Math.abs(turn) * w * 0.018;
-    return w * 0.5 + turn * farPull * w * 0.26 + roadWave;
+    const laneShift = cameraLaneOffset(0.25 + clamped * 0.85) * laneWidth() * (0.18 + clamped * 0.95);
+    return w * 0.5 + turn * farPull * w * 0.26 + roadWave - laneShift;
   };
 
   ctx.save();
@@ -4361,8 +4380,9 @@ function objectPos(lane, y) {
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   const phoneCurve = phoneGraphicsActive() ? 0.29 : 0.19;
   const curveShift = turn * (1 - Math.min(1, t)) * (1 - Math.min(1, t) * 0.24) * canvas.width * phoneCurve;
+  const laneSpread = laneWidth() * (0.42 + t * 0.72);
   return {
-    x: canvas.width / 2 + curveShift + lane * laneWidth() * (0.42 + t * 0.72),
+    x: canvas.width / 2 + curveShift + (lane - cameraLaneOffset(t)) * laneSpread,
     y,
     scale: 0.52 + t * 0.55
   };
@@ -4391,7 +4411,7 @@ function phoneRoadObjectPos(lane, distance) {
   const curveShift = turn * farPull * w * 0.28;
   const laneSpread = laneWidth() * (0.54 + Math.min(1.08, clampedDepth) * 1.02);
   return {
-    x: w / 2 + curveShift + lane * laneSpread,
+    x: w / 2 + curveShift + (lane - cameraLaneOffset(clampedDepth)) * laneSpread,
     y,
     scale: Math.max(0.34, Math.min(1.26, 0.32 + clampedDepth * 0.84)),
     depth: clampedDepth
@@ -4472,7 +4492,7 @@ function visibleRoadObjectPos(lane, distance) {
   const curveShift = turn * (1 - depth) * (1 - depth * 0.22) * w * phoneCurve;
   const laneSpread = laneWidth() * (0.32 + depth * 1.08);
   return {
-    x: w / 2 + curveShift + lane * laneSpread,
+    x: w / 2 + curveShift + (lane - cameraLaneOffset(depth)) * laneSpread,
     y,
     scale: Math.min(1.34, 0.36 + depth * 0.78),
     depth
@@ -5738,7 +5758,7 @@ function drawCar(w, h) {
     drawPhoneDriverHood(w, h, vehicle);
     return;
   }
-  let x = w / 2 + raceState.lane * laneWidth();
+  let x = w / 2 + (raceState.lane - cameraLaneOffset(1)) * laneWidth();
   let y = cameraMode === "hood" ? h * 0.99 : useWebGLRenderer() ? h * 0.84 : h * 0.86;
   let projectionScale = 1;
   if (useWebGLRenderer() && cameraMode === "chase" && webglRenderer && typeof webglRenderer.projectWorldRoadPoint === "function") {
@@ -5774,6 +5794,8 @@ function drawPhoneDriverHood(w, h, vehicle) {
   const hoodY = h * 0.84;
   const color = vehicle.color || "#46d9ff";
   ctx.save();
+  const hoodShift = Math.max(-w * 0.035, Math.min(w * 0.035, (raceState.steerAngle || 0) * w * 0.018 + (raceState.lateralVelocity || 0) * w * 0.012));
+  ctx.translate(hoodShift, 0);
   const shadow = ctx.createLinearGradient(0, h * 0.68, 0, h);
   shadow.addColorStop(0, "rgba(0,0,0,0)");
   shadow.addColorStop(0.62, "rgba(0,0,0,0.62)");
