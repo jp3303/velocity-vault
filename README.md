@@ -6,7 +6,7 @@ A standalone browser racing game built with local-only profiles, age-band select
 
 Open `index.html` in a browser.
 
-Use `Quick Play` to launch straight into a race, or `Enter Garage` to review vehicles, upgrades, missions, and AI tuning first.
+Use `Play` to launch straight into a race, or `Enter Garage` to review vehicles, upgrades, missions, and AI tuning first.
 
 Controls:
 
@@ -29,7 +29,7 @@ Driver views:
 
 ## How To Play
 
-1. Choose `Quick Play` to start immediately, or `Enter Garage` to pick a vehicle, route, upgrades, and missions.
+1. Choose `Play` to start immediately, or `Enter Garage` to pick a vehicle, route, upgrades, and missions.
 2. Read the goal card at the start of each race. Goals can ask you to collect route markers, keep focus high, dodge rivals, or reach a target score.
 3. Hold gas to build speed. On phones, use Mini mode by touching the driving screen; the floating joystick appears under your thumb and keeps gas active while you drag left or right.
 4. Steer smoothly to pass opponents. Watch the lane radar, distance badges, and opponent names to see where rivals are sitting on the road.
@@ -74,6 +74,8 @@ Real-world style visuals:
 - Race opponents now line up against the player, change pace during the route, show names on the track, show visible damage bars, take collision damage, limp when wrecked, and affect finish position, rewards, and wins.
 - Opponent pack racing now uses a longer staggered grid, side-lane passing behavior, draft/catch-up pressure, and overtake tracking. You can pass opponents, they can draft back and pass you, and the phone HUD/finish screen show overtake progress.
 - The starting grid now splits the pack with three opponents ahead and two behind, wider side-lane behavior, less early traffic clutter, and close-pass collision tuning so the player can actually overtake named rivals and climb position instead of staring at one grouped wall of vehicles.
+- The v63 progression pass adds vehicle ownership, reputation unlocks, higher vehicle/upgrade pricing, per-vehicle saved builds, paint cycling, player license plates based on callsigns, and route rules so boats stay on water, aircraft race sky routes, tanks use military-style routes with a boost-button cannon, tractors stay on farm rallies, semis run freight, and monster trucks get off-road/arena-style routes.
+- The v63 race pass tightens player hitboxes so hidden traffic should not damage the car from far ahead, spreads online/browser opponents much farther apart, applies the same passing-lane behavior outside phone mode, makes route markers harder to collect, lowers police frequency outside true pursuit conditions, adds civilian penalties, adds selected-route oncoming traffic, and adds stronger day/night lighting with street lamps and vehicle light glow.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

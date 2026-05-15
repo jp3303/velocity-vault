@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 62;
+const starterGarageVersion = 63;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -36,29 +36,46 @@ const races = [
 ];
 
 const vehicleDefs = [
-  { id: "street", name: "Street Supercar", type: "car", desc: "Fast all-around modern racing feel.", speed: 1, handling: 1, mass: 1, color: "#1bb7e8" },
-  { id: "f1", name: "F1 Open-Wheel", type: "f1", desc: "Sharp steering and high top speed.", speed: 1.18, handling: 1.18, mass: 0.72, color: "#ff3348" },
-  { id: "grandprix", name: "Grand Prix Prototype", type: "prototype", desc: "Stable, fast, low race body.", speed: 1.12, handling: 1.08, mass: 0.82, color: "#f4fbf8" },
-  { id: "truck", name: "Performance Truck", type: "truck", desc: "Heavier, stable, strong contact resistance.", speed: 0.88, handling: 0.82, mass: 1.35, color: "#ffd166" },
-  { id: "semi", name: "Semi Truck Racer", type: "semi", desc: "Huge highway pull, heavy drafting, upgrade into a freight rocket.", speed: 0.72, handling: 0.58, mass: 2.1, color: "#dce8ef" },
-  { id: "tractor", name: "Racing Tractor", type: "tractor", desc: "Farm rally machine with tough grip and upgradeable agility.", speed: 0.62, handling: 0.7, mass: 1.65, color: "#36d98a" },
-  { id: "monster", name: "Monster Truck", type: "monster", desc: "Huge stance, slower but tough.", speed: 0.76, handling: 0.7, mass: 1.75, color: "#bbf24a" },
-  { id: "tank", name: "Armored Tank", type: "tank", desc: "Slow, heavy, almost unstoppable.", speed: 0.56, handling: 0.52, mass: 2.35, color: "#6d7667" },
-  { id: "snowmobile", name: "Snowmobile", type: "snowmobile", desc: "Light and quick on snow routes.", speed: 0.94, handling: 1.15, mass: 0.58, color: "#f4fbf8" },
-  { id: "boat", name: "Race Boat", type: "boat", desc: "Best fit for harbor water sprints.", speed: 1.05, handling: 0.86, mass: 0.92, color: "#46d9ff" },
-  { id: "helicopter", name: "Pursuit Helicopter", type: "helicopter", desc: "Air-style handling with wide steering.", speed: 0.92, handling: 0.98, mass: 0.9, color: "#dce8ef" },
-  { id: "airplane", name: "Sport Airplane", type: "airplane", desc: "Fast runway and airfield races.", speed: 1.22, handling: 0.78, mass: 0.74, color: "#ff5b6b" }
+  { id: "street", name: "Street Supercar", type: "car", desc: "Fast all-around modern racing feel.", speed: 1, handling: 1, mass: 1, color: "#1bb7e8", price: 0, unlock: 0, class: "road" },
+  { id: "f1", name: "F1 Open-Wheel", type: "f1", desc: "Sharp steering and high top speed.", speed: 1.18, handling: 1.18, mass: 0.72, color: "#ff3348", price: 2600, unlock: 45, class: "road" },
+  { id: "grandprix", name: "Grand Prix Prototype", type: "prototype", desc: "Stable, fast, low race body.", speed: 1.12, handling: 1.08, mass: 0.82, color: "#f4fbf8", price: 3200, unlock: 58, class: "road" },
+  { id: "truck", name: "Performance Truck", type: "truck", desc: "Heavier, stable, strong contact resistance.", speed: 0.88, handling: 0.82, mass: 1.35, color: "#ffd166", price: 1200, unlock: 20, class: "road" },
+  { id: "semi", name: "Semi Truck Racer", type: "semi", desc: "Huge highway pull, heavy drafting, upgrade into a freight rocket.", speed: 0.72, handling: 0.58, mass: 2.1, color: "#dce8ef", price: 3400, unlock: 60, class: "freight" },
+  { id: "tractor", name: "Racing Tractor", type: "tractor", desc: "Farm rally machine with tough grip and upgradeable agility.", speed: 0.62, handling: 0.7, mass: 1.65, color: "#36d98a", price: 1400, unlock: 22, class: "farm" },
+  { id: "monster", name: "Monster Truck", type: "monster", desc: "Huge stance, slower but tough.", speed: 0.76, handling: 0.7, mass: 1.75, color: "#bbf24a", price: 4200, unlock: 72, class: "monster" },
+  { id: "tank", name: "Armored Tank", type: "tank", desc: "Slow, heavy, almost unstoppable.", speed: 0.56, handling: 0.52, mass: 2.35, color: "#6d7667", price: 5200, unlock: 92, class: "military" },
+  { id: "snowmobile", name: "Snowmobile", type: "snowmobile", desc: "Light and quick on snow routes.", speed: 0.94, handling: 1.15, mass: 0.58, color: "#f4fbf8", price: 1600, unlock: 26, class: "snow" },
+  { id: "boat", name: "Race Boat", type: "boat", desc: "Best fit for harbor water sprints.", speed: 1.05, handling: 0.86, mass: 0.92, color: "#46d9ff", price: 1900, unlock: 30, class: "water" },
+  { id: "helicopter", name: "Pursuit Helicopter", type: "helicopter", desc: "Air-style handling with wide steering.", speed: 0.92, handling: 0.98, mass: 0.9, color: "#dce8ef", price: 6000, unlock: 110, class: "air" },
+  { id: "airplane", name: "Sport Airplane", type: "airplane", desc: "Fast runway and airfield races.", speed: 1.22, handling: 0.78, mass: 0.74, color: "#ff5b6b", price: 7000, unlock: 128, class: "air" }
 ];
 
 const opponentNames = ["Vega", "Knox", "Ryder", "Nova", "Sable"];
 
 const upgradeDefs = [
-  { id: "engine", name: "Ion Engine", desc: "Higher top speed and faster score flow.", base: 160 },
-  { id: "tires", name: "Grip Tires", desc: "Quicker steering and smoother dodges.", base: 140 },
-  { id: "shield", name: "Pulse Shield", desc: "Protects focus during collisions.", base: 180 },
-  { id: "magnet", name: "Coin Magnet", desc: "Pulls coins from wider lanes.", base: 150 },
-  { id: "boost", name: "Clean Boost", desc: "Longer boost bursts with less focus drain.", base: 170 }
+  { id: "engine", name: "Ion Engine", desc: "Higher top speed and faster score flow.", base: 320 },
+  { id: "tires", name: "Grip Tires", desc: "Quicker steering and smoother dodges.", base: 280 },
+  { id: "shield", name: "Pulse Shield", desc: "Protects focus during collisions.", base: 360 },
+  { id: "magnet", name: "Coin Magnet", desc: "Pulls coins from wider lanes.", base: 300 },
+  { id: "boost", name: "Clean Boost", desc: "Longer boost bursts with less focus drain.", base: 340 }
 ];
+
+const paintPalette = ["#1bb7e8", "#ff3348", "#ffd166", "#bbf24a", "#f4fbf8", "#ff4fd8", "#36d98a", "#dce8ef", "#6d7667"];
+
+const vehicleRaceRules = {
+  car: { places: ["coast", "city", "canyon", "alpine", "tokyo", "desert", "rainforest", "europe"], label: "road circuits" },
+  f1: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
+  prototype: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
+  truck: { places: ["coast", "city", "canyon", "alpine", "freight", "farm", "desert", "rainforest"], label: "road, freight, and rally routes" },
+  semi: { places: ["freight", "coast", "city", "desert"], label: "freight routes" },
+  tractor: { places: ["farm", "rainforest"], label: "farm rally routes" },
+  monster: { places: ["canyon", "freight", "farm", "desert", "rainforest"], label: "monster truck arenas" },
+  tank: { places: ["airfield", "desert", "freight", "canyon"], label: "military routes" },
+  snowmobile: { places: ["snow"], label: "snow routes" },
+  boat: { places: ["harbor"], label: "water routes" },
+  helicopter: { places: ["airfield", "desert", "rainforest", "europe"], label: "sky routes" },
+  airplane: { places: ["airfield", "desert", "europe"], label: "sky routes" }
+};
 
 const missionDefs = [
   { id: "first", text: "Finish your first race", reward: 90, test: (p) => p.stats.races >= 1 },
@@ -136,6 +153,9 @@ const raceState = {
   dodges: 0,
   overtakes: 0,
   passesAgainst: 0,
+  civilianHits: 0,
+  penaltyCoins: 0,
+  penaltyRep: 0,
   combo: 1,
   lane: 0,
   x: 0,
@@ -158,10 +178,15 @@ const raceState = {
   roadOffset: 0,
   spawnClock: 0,
   coinClock: 0,
+  civilianClock: 0,
+  oncomingClock: 0,
+  cannonCooldown: 0,
   rivals: [],
   police: [],
   opponents: [],
   coinsOnRoad: [],
+  civilians: [],
+  oncoming: [],
   particles: [],
   elapsed: 0,
   heat: 0,
@@ -194,6 +219,138 @@ function selectedVehicle() {
 
 function vehicleById(id) {
   return vehicleDefs.find((vehicle) => vehicle.id === id) || vehicleDefs[0];
+}
+
+function defaultUpgrades() {
+  return { engine: 0, tires: 0, shield: 0, magnet: 0, boost: 0 };
+}
+
+function defaultBuild(vehicle = vehicleDefs[0]) {
+  return {
+    color: vehicle.color,
+    trim: "#050807",
+    upgrades: defaultUpgrades(),
+    plate: ""
+  };
+}
+
+function normalizeBuild(vehicle, build, legacyUpgrades = null) {
+  const base = defaultBuild(vehicle);
+  const source = build && typeof build === "object" ? build : {};
+  const upgrades = Object.assign(
+    base.upgrades,
+    legacyUpgrades && typeof legacyUpgrades === "object" ? legacyUpgrades : {},
+    source.upgrades || {}
+  );
+  Object.keys(upgrades).forEach((key) => {
+    upgrades[key] = Math.max(0, Math.min(5, Number(upgrades[key]) || 0));
+  });
+  return {
+    color: source.color || base.color,
+    trim: source.trim || base.trim,
+    upgrades,
+    plate: sanitizePlate(source.plate || "")
+  };
+}
+
+function sanitizePlate(value) {
+  const source = String(value || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+  return source.slice(0, 8);
+}
+
+function driverPlate(profile = activeProfile) {
+  if (!profile) return "RACER";
+  const build = vehicleBuild(profile, profile.selectedVehicle || "street");
+  return sanitizePlate(build.plate || profile.name || "RACER");
+}
+
+function vehicleBuild(profile = activeProfile, vehicleId = null) {
+  const vehicle = vehicleById(vehicleId || (profile && profile.selectedVehicle) || "street");
+  if (!profile) return defaultBuild(vehicle);
+  profile.vehicleBuilds = profile.vehicleBuilds && typeof profile.vehicleBuilds === "object" ? profile.vehicleBuilds : {};
+  const legacy = vehicleOwned(profile, vehicle.id) ? profile.upgrades : null;
+  profile.vehicleBuilds[vehicle.id] = normalizeBuild(vehicle, profile.vehicleBuilds[vehicle.id], legacy);
+  return profile.vehicleBuilds[vehicle.id];
+}
+
+function activeVehicleUpgrades(profile = activeProfile) {
+  return vehicleBuild(profile, profile && profile.selectedVehicle).upgrades;
+}
+
+function selectedVehicleColor(vehicle = selectedVehicle()) {
+  return vehicleBuild(activeProfile, vehicle.id).color || vehicle.color;
+}
+
+function vehicleOwned(profile = activeProfile, vehicleId = "street") {
+  if (!profile) return vehicleId === "street";
+  const owned = Array.isArray(profile.ownedVehicles) ? profile.ownedVehicles : ["street"];
+  return owned.includes(vehicleId);
+}
+
+function vehicleUnlocked(profile = activeProfile, vehicle = vehicleDefs[0]) {
+  return !vehicle.unlock || (profile && profile.rep >= vehicle.unlock);
+}
+
+function raceCompatibleWithVehicle(race = selectedRace, vehicle = selectedVehicle()) {
+  const rule = vehicleRaceRules[vehicle.type] || vehicleRaceRules.car;
+  return rule.places.includes(race.place);
+}
+
+function compatibilityLabel(vehicle = selectedVehicle()) {
+  const rule = vehicleRaceRules[vehicle.type] || vehicleRaceRules.car;
+  return rule.label;
+}
+
+function firstCompatibleRace(vehicle = selectedVehicle(), profile = activeProfile) {
+  return races.find((race, index) => {
+    const requiredRep = race.unlock ?? index * 22;
+    return (!profile || profile.rep >= requiredRep) && raceCompatibleWithVehicle(race, vehicle);
+  }) || races[0];
+}
+
+function buyOrSelectVehicle(vehicle) {
+  if (!activeProfile) return;
+  if (!vehicleUnlocked(activeProfile, vehicle)) {
+    showToast(`${vehicle.name} needs ${vehicle.unlock} reputation.`);
+    return;
+  }
+  activeProfile.ownedVehicles = Array.isArray(activeProfile.ownedVehicles) ? activeProfile.ownedVehicles : ["street"];
+  if (!vehicleOwned(activeProfile, vehicle.id)) {
+    if (activeProfile.coins < vehicle.price) {
+      showToast(`${vehicle.name} costs ${vehicle.price} coins.`);
+      return;
+    }
+    activeProfile.coins -= vehicle.price;
+    activeProfile.ownedVehicles.push(vehicle.id);
+    activeProfile.vehicleBuilds = activeProfile.vehicleBuilds && typeof activeProfile.vehicleBuilds === "object" ? activeProfile.vehicleBuilds : {};
+    activeProfile.vehicleBuilds[vehicle.id] = normalizeBuild(vehicle, null, null);
+    activeProfile.vehicleBuilds[vehicle.id].plate = sanitizePlate(activeProfile.name);
+    showToast(`${vehicle.name} added to your garage.`);
+  } else if (activeProfile.selectedVehicle === vehicle.id) {
+    cycleVehiclePaint(vehicle);
+    return;
+  }
+  activeProfile.selectedVehicle = vehicle.id;
+  const build = vehicleBuild(activeProfile, vehicle.id);
+  activeProfile.upgrades = Object.assign(defaultUpgrades(), build.upgrades);
+  if (!raceCompatibleWithVehicle(selectedRace, vehicle)) selectedRace = firstCompatibleRace(vehicle, activeProfile);
+  profiles[activeProfile.id] = activeProfile;
+  saveProfiles();
+  renderHub();
+  updateHud();
+  showToast(`${vehicle.name} selected for ${compatibilityLabel(vehicle)}.`);
+}
+
+function cycleVehiclePaint(vehicle = selectedVehicle()) {
+  if (!activeProfile) return;
+  const build = vehicleBuild(activeProfile, vehicle.id);
+  const current = build.color || vehicle.color;
+  const currentIndex = paintPalette.indexOf(current);
+  build.color = paintPalette[(currentIndex + 1 + paintPalette.length) % paintPalette.length];
+  profiles[activeProfile.id] = activeProfile;
+  saveProfiles();
+  renderHub();
+  showToast(`${vehicle.name} paint changed.`);
 }
 
 function raceLength(race = selectedRace) {
@@ -281,7 +438,11 @@ function makeProfile(name, pin, age) {
     coins: 1250,
     rep: 44,
     selectedVehicle: "street",
-    upgrades: { engine: 0, tires: 0, shield: 0, magnet: 0, boost: 0 },
+    upgrades: defaultUpgrades(),
+    ownedVehicles: ["street"],
+    vehicleBuilds: {
+      street: Object.assign(defaultBuild(vehicleById("street")), { plate: sanitizePlate(name) })
+    },
     completedMissions: [],
     stats: { races: 0, wins: 0, totalCoins: 0, steadyRuns: 0, bestScore: 0 },
     garageStarterVersion: starterGarageVersion
@@ -292,7 +453,18 @@ function normalizeProfile(profile) {
   profile.coins = Number(profile.coins) || 0;
   profile.rep = Number(profile.rep) || 0;
   profile.selectedVehicle = profile.selectedVehicle || "street";
-  profile.upgrades = Object.assign({ engine: 0, tires: 0, shield: 0, magnet: 0, boost: 0 }, profile.upgrades || {});
+  profile.upgrades = Object.assign(defaultUpgrades(), profile.upgrades || {});
+  profile.ownedVehicles = Array.isArray(profile.ownedVehicles) ? profile.ownedVehicles : ["street"];
+  if (!profile.ownedVehicles.includes("street")) profile.ownedVehicles.unshift("street");
+  profile.vehicleBuilds = profile.vehicleBuilds && typeof profile.vehicleBuilds === "object" ? profile.vehicleBuilds : {};
+  vehicleDefs.forEach((vehicle) => {
+    if (profile.ownedVehicles.includes(vehicle.id) || vehicle.id === profile.selectedVehicle) {
+      profile.vehicleBuilds[vehicle.id] = normalizeBuild(vehicle, profile.vehicleBuilds[vehicle.id], profile.upgrades);
+      if (!profile.vehicleBuilds[vehicle.id].plate) profile.vehicleBuilds[vehicle.id].plate = sanitizePlate(profile.name);
+    }
+  });
+  if (!vehicleOwned(profile, profile.selectedVehicle)) profile.selectedVehicle = "street";
+  profile.upgrades = Object.assign(defaultUpgrades(), vehicleBuild(profile, profile.selectedVehicle).upgrades);
   profile.completedMissions = Array.isArray(profile.completedMissions) ? profile.completedMissions : [];
   profile.stats = Object.assign({ races: 0, wins: 0, totalCoins: 0, steadyRuns: 0, bestScore: 0 }, profile.stats || {});
   if (profile.garageStarterVersion !== starterGarageVersion) {
@@ -393,7 +565,8 @@ function playHitSound(kind = "impact") {
 }
 
 function profilePower(profile) {
-  return Object.values(profile.upgrades).reduce((sum, level) => sum + level, 0);
+  const build = vehicleBuild(profile, profile && profile.selectedVehicle);
+  return Object.values(build.upgrades).reduce((sum, level) => sum + level, 0);
 }
 
 function directorDay() {
@@ -404,7 +577,7 @@ function getDirector(profile) {
   const day = directorDay();
   const seed = profile.name.length * 17 + profile.rep * 3 + profile.stats.races * 11 + day;
   const event = directorEvents[Math.abs(seed) % directorEvents.length];
-  const upgrades = profile.upgrades;
+  const upgrades = activeVehicleUpgrades(profile);
   let weakest = upgradeDefs[0];
   upgradeDefs.forEach((def) => {
     if (upgrades[def.id] < upgrades[weakest.id]) weakest = def;
@@ -439,13 +612,14 @@ function renderDirector() {
 }
 
 function upgradeCost(profile, def) {
-  const level = profile.upgrades[def.id];
-  return Math.round(def.base * Math.pow(1.68, level));
+  const level = activeVehicleUpgrades(profile)[def.id];
+  return Math.round(def.base * Math.pow(1.92, level));
 }
 
 function setActiveProfile(profile) {
   activeProfile = profile;
   selectedRace = races[Math.min(profile.stats.races, races.length - 1)];
+  if (!raceCompatibleWithVehicle(selectedRace, selectedVehicle())) selectedRace = firstCompatibleRace(selectedVehicle(), profile);
   renderHub();
   updateHud();
   showView("garage");
@@ -467,6 +641,7 @@ function enterProfile(openRace = false) {
   setActiveProfile(profile);
   if (openRace) {
     selectedRace = races[Math.min(profile.stats.races, races.length - 1)];
+    if (!raceCompatibleWithVehicle(selectedRace, selectedVehicle())) selectedRace = firstCompatibleRace(selectedVehicle(), profile);
     launchRace();
   }
   return profile;
@@ -474,7 +649,7 @@ function enterProfile(openRace = false) {
 
 function renderHub() {
   if (!activeProfile) return;
-  $("#driverSummary").textContent = `${ageBands[activeProfile.age].label} | ${activeProfile.coins} coins | ${activeProfile.rep} rep | Power ${profilePower(activeProfile)}`;
+  $("#driverSummary").textContent = `${ageBands[activeProfile.age].label} | ${activeProfile.coins} coins | ${activeProfile.rep} rep | ${selectedVehicle().name} | Plate ${driverPlate(activeProfile)} | Power ${profilePower(activeProfile)}`;
   renderRaces();
   renderVehicles();
   renderUpgrades();
@@ -500,19 +675,21 @@ function renderRaces() {
   const list = $("#raceList");
   list.innerHTML = "";
   const director = getDirector(activeProfile);
+  const vehicle = selectedVehicle();
   races.forEach((race, index) => {
     const requiredRep = race.unlock ?? index * 22;
     const locked = activeProfile.rep < requiredRep;
+    const incompatible = !raceCompatibleWithVehicle(race, vehicle);
     const card = document.createElement("button");
     card.type = "button";
     card.className = `race-card ${selectedRace.id === race.id ? "selected" : ""}`;
-    card.disabled = locked;
+    card.disabled = locked || incompatible;
     card.innerHTML = `
-      <div class="card-top"><strong>${race.name}</strong><span class="badge">${locked ? `${requiredRep} rep` : `${Math.round(race.reward * director.reward)} coins`}</span></div>
-      <div class="tiny">${race.target} | ${Math.round(raceLength(race) / 100)} sectors | ${director.event.name}</div>
+      <div class="card-top"><strong>${race.name}</strong><span class="badge">${locked ? `${requiredRep} rep` : incompatible ? compatibilityLabel(vehicle) : `${Math.round(race.reward * director.reward)} coins`}</span></div>
+      <div class="tiny">${race.target} | ${Math.round(raceLength(race) / 100)} sectors | ${routeWorldInfo(race.place).scene} | ${director.event.name}</div>
     `;
     card.addEventListener("click", () => {
-      if (locked) return;
+      if (locked || incompatible) return;
       selectedRace = race;
       renderRaces();
     });
@@ -526,24 +703,22 @@ function renderVehicles() {
   list.innerHTML = "";
   const current = selectedVehicle();
   vehicleDefs.forEach((vehicle) => {
+    const owned = vehicleOwned(activeProfile, vehicle.id);
+    const unlocked = vehicleUnlocked(activeProfile, vehicle);
+    const build = vehicleBuild(activeProfile, vehicle.id);
+    const status = current.id === vehicle.id ? "Active" : owned ? "Select" : !unlocked ? `${vehicle.unlock} rep` : `${vehicle.price} coins`;
     const card = document.createElement("button");
     card.type = "button";
-    card.className = `vehicle-card ${current.id === vehicle.id ? "selected" : ""}`;
+    card.className = `vehicle-card ${current.id === vehicle.id ? "selected" : ""} ${!unlocked ? "locked" : ""}`;
     card.innerHTML = `
-      <div class="vehicle-preview asset-preview" data-type="${vehicle.type}" style="--vehicle-color:${vehicle.color}">
+      <div class="vehicle-preview asset-preview" data-type="${vehicle.type}" style="--vehicle-color:${build.color || vehicle.color}">
         <canvas class="vehicle-preview-canvas" width="180" height="116" aria-hidden="true"></canvas>
       </div>
-      <div class="card-top"><strong>${vehicle.name}</strong><span class="badge">${current.id === vehicle.id ? "Active" : "Tap Drive"}</span></div>
-      <div class="tiny">${vehicle.desc} | Speed ${Math.round(vehicle.speed * 100)} | Handling ${Math.round(vehicle.handling * 100)} | Mass ${Math.round(vehicle.mass * 100)}</div>
+      <div class="card-top"><strong>${vehicle.name}</strong><span class="badge">${status}</span></div>
+      <div class="tiny">${vehicle.desc} | ${compatibilityLabel(vehicle)} | Plate ${build.plate || sanitizePlate(activeProfile.name)} | Tap active vehicle to repaint</div>
     `;
-    drawVehiclePreview(card.querySelector(".vehicle-preview-canvas"), vehicle);
-    card.addEventListener("click", () => {
-      activeProfile.selectedVehicle = vehicle.id;
-      profiles[activeProfile.id] = activeProfile;
-      saveProfiles();
-      renderHub();
-      showToast(`${vehicle.name} selected.`);
-    });
+    drawVehiclePreview(card.querySelector(".vehicle-preview-canvas"), Object.assign({}, vehicle, { color: build.color || vehicle.color }));
+    card.addEventListener("click", () => buyOrSelectVehicle(vehicle));
     list.appendChild(card);
   });
 }
@@ -625,8 +800,9 @@ function renderUpgrades() {
   const list = $("#upgradeList");
   list.innerHTML = "";
   const director = getDirector(activeProfile);
+  const build = vehicleBuild(activeProfile, activeProfile.selectedVehicle);
   upgradeDefs.forEach((def) => {
-    const level = activeProfile.upgrades[def.id];
+    const level = build.upgrades[def.id];
     const cost = upgradeCost(activeProfile, def);
     const card = document.createElement("div");
     card.className = "upgrade-card";
@@ -664,17 +840,19 @@ function renderMissions() {
 }
 
 function buyUpgrade(def) {
-  const level = activeProfile.upgrades[def.id];
+  const build = vehicleBuild(activeProfile, activeProfile.selectedVehicle);
+  const level = build.upgrades[def.id];
   if (level >= 5) return;
   const cost = upgradeCost(activeProfile, def);
   if (activeProfile.coins < cost) return showToast("More coins needed.");
   activeProfile.coins -= cost;
-  activeProfile.upgrades[def.id] += 1;
+  build.upgrades[def.id] += 1;
+  activeProfile.upgrades = Object.assign(defaultUpgrades(), build.upgrades);
   profiles[activeProfile.id] = activeProfile;
   saveProfiles();
   renderHub();
   updateHud();
-  showToast(`${def.name} upgraded.`);
+  showToast(`${selectedVehicle().name} ${def.name} upgraded.`);
 }
 
 function claimMission(mission) {
@@ -694,6 +872,16 @@ function launchRace() {
   const age = ageBands[activeProfile.age];
   const director = getDirector(activeProfile);
   const vehicle = selectedVehicle();
+  if (!vehicleOwned(activeProfile, vehicle.id)) {
+    showToast("Buy or select an owned vehicle first.");
+    renderVehicles();
+    return;
+  }
+  if (!raceCompatibleWithVehicle(selectedRace, vehicle)) {
+    selectedRace = firstCompatibleRace(vehicle, activeProfile);
+    renderRaces();
+    showToast(`${vehicle.name} switched to a ${compatibilityLabel(vehicle)} route.`);
+  }
   Object.assign(raceState, {
     active: true,
     distance: 0,
@@ -704,6 +892,9 @@ function launchRace() {
     dodges: 0,
     overtakes: 0,
     passesAgainst: 0,
+    civilianHits: 0,
+    penaltyCoins: 0,
+    penaltyRep: 0,
     combo: 1,
     lane: 0,
     x: 0,
@@ -726,10 +917,15 @@ function launchRace() {
     roadOffset: 0,
     spawnClock: 0,
     coinClock: 0,
+    civilianClock: 5.5,
+    oncomingClock: 8,
+    cannonCooldown: 0,
     rivals: [],
     police: [],
     opponents: makeOpponents(vehicle, age, director),
     coinsOnRoad: [],
+    civilians: [],
+    oncoming: [],
     particles: [],
     elapsed: 0,
     heat: 0,
@@ -743,11 +939,12 @@ function launchRace() {
   });
   $("#raceTitle").textContent = selectedRace.name;
   const route = routeWorldInfo(selectedRace.place);
-  $("#raceBrief").textContent = `Goal: ${selectedRace.target} | ${route.country}: ${route.scene} | Longer route`;
+  $("#raceBrief").textContent = `Goal: ${raceGoalText()} | ${route.country}: ${route.scene} | ${compatibilityLabel(vehicle)}`;
   $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = `${vehicle.name} | ${selectedRace.target}`;
   showView("race");
-  showToast(`${vehicle.name} on grid. Race the pack to the finish.`);
+  saveProfiles();
+  showToast(`${vehicle.name} on grid. ${raceGoalText()}`);
 }
 
 function saveRace() {
@@ -775,6 +972,9 @@ function saveRace() {
       dodges: raceState.dodges,
       overtakes: raceState.overtakes,
       passesAgainst: raceState.passesAgainst,
+      civilianHits: raceState.civilianHits,
+      penaltyCoins: raceState.penaltyCoins,
+      penaltyRep: raceState.penaltyRep,
       combo: raceState.combo,
       lane: raceState.lane,
       x: raceState.x,
@@ -793,10 +993,15 @@ function saveRace() {
       roadOffset: raceState.roadOffset,
       spawnClock: raceState.spawnClock,
       coinClock: raceState.coinClock,
+      civilianClock: raceState.civilianClock,
+      oncomingClock: raceState.oncomingClock,
+      cannonCooldown: raceState.cannonCooldown,
       rivals: raceState.rivals,
       police: raceState.police,
       opponents: raceState.opponents,
       coinsOnRoad: raceState.coinsOnRoad,
+      civilians: raceState.civilians,
+      oncoming: raceState.oncoming,
       elapsed: raceState.elapsed,
       heat: raceState.heat,
       heatClock: raceState.heatClock,
@@ -828,6 +1033,8 @@ function resumeSavedRace() {
     active: true,
     particles: [],
     opponents: saved.state.opponents || makeOpponents(selectedVehicle(), ageBands[activeProfile.age], director),
+    civilians: saved.state.civilians || [],
+    oncoming: saved.state.oncoming || [],
     director,
     cameraShake: 0
   });
@@ -847,6 +1054,10 @@ function resumeSavedRace() {
   raceState.roadTurn = Number(saved.state.roadTurn) || raceState.roadCurve || 0;
   raceState.overtakes = Number(saved.state.overtakes) || 0;
   raceState.passesAgainst = Number(saved.state.passesAgainst) || 0;
+  raceState.civilianHits = Number(saved.state.civilianHits) || 0;
+  raceState.penaltyCoins = Number(saved.state.penaltyCoins) || 0;
+  raceState.penaltyRep = Number(saved.state.penaltyRep) || 0;
+  raceState.cannonCooldown = Number(saved.state.cannonCooldown) || 0;
   raceState.opponents.forEach((opponent) => {
     const gap = Number(opponent.distance) - raceState.distance;
     opponent.wasAhead = gap > 4;
@@ -857,7 +1068,7 @@ function resumeSavedRace() {
   $("#pauseBtn").textContent = input.paused ? "Play" : "Pause";
   $("#raceTitle").textContent = selectedRace.name;
   const route = routeWorldInfo(selectedRace.place);
-  $("#raceBrief").textContent = `Goal: ${selectedRace.target} | ${route.country}: ${route.scene} | Longer route`;
+  $("#raceBrief").textContent = `Goal: ${raceGoalText()} | ${route.country}: ${route.scene} | ${compatibilityLabel(selectedVehicle())}`;
   $("#modeChip").textContent = `${route.country} | ${route.scene}`;
   $("#missionChip").textContent = raceState.chaseActive ? `Police heat ${Math.round(raceState.heat)}% | Escape clean` : `${selectedRace.target} | ${director.event.name}`;
   startAudio();
@@ -883,10 +1094,13 @@ function endRace(manual = false) {
   const age = ageBands[activeProfile.age];
   const directorReward = raceState.director ? raceState.director.reward : 1;
   const podiumBonus = finishPosition === 1 ? 120 : finishPosition <= 3 ? 60 : 0;
-  const reward = Math.round((selectedRace.reward + raceState.coins * 7 + (success ? 80 : 20) + podiumBonus) * age.rewards * directorReward);
-  const rep = success ? selectedRace.rep + (finishPosition === 1 ? 8 : 0) : Math.ceil(selectedRace.rep / 3);
+  const grossReward = Math.round((selectedRace.reward + raceState.coins * 5 + (success ? 70 : 18) + podiumBonus) * age.rewards * directorReward);
+  const reward = Math.max(0, grossReward - Math.round(raceState.penaltyCoins || 0));
+  const grossRep = success ? selectedRace.rep + (finishPosition === 1 ? 8 : 0) : Math.ceil(selectedRace.rep / 3);
+  const rep = Math.max(0, grossRep - Math.round(raceState.penaltyRep || 0));
   activeProfile.coins += reward;
   activeProfile.rep += rep;
+  activeProfile.upgrades = Object.assign(defaultUpgrades(), activeVehicleUpgrades(activeProfile));
   activeProfile.stats.races += 1;
   activeProfile.stats.wins += success && finishPosition === 1 ? 1 : 0;
   activeProfile.stats.totalCoins += raceState.coins;
@@ -900,6 +1114,7 @@ function endRace(manual = false) {
     <div><span>Position</span><strong>${finishPosition}/6</strong></div>
     <div><span>Coins earned</span><strong>${reward}</strong></div>
     <div><span>Reputation</span><strong>+${rep}</strong></div>
+    <div><span>Penalties</span><strong>${raceState.civilianHits || 0}</strong></div>
     <div><span>Overtakes</span><strong>${raceState.overtakes}</strong></div>
     <div><span>Score</span><strong>${Math.round(raceState.score)}</strong></div>
     <div><span>Damage</span><strong>${Math.round(raceState.damage)}%</strong></div>
@@ -915,6 +1130,12 @@ function missionProgress() {
   if (selectedRace.type === "focus") return raceState.focus / selectedRace.goal;
   if (selectedRace.type === "dodges") return raceState.dodges / selectedRace.goal;
   return raceState.score / selectedRace.goal;
+}
+
+function raceGoalText(race = selectedRace, vehicle = selectedVehicle()) {
+  const route = routeWorldInfo(race.place);
+  const clean = vehicle.type === "tank" ? "clear the route" : vehicle.type === "boat" ? "hold the water line" : ["helicopter", "airplane"].includes(vehicle.type) ? "fly the gates" : "race the pack";
+  return `${race.target}; ${clean} through ${route.scene}. Avoid civilians and finish the full route.`;
 }
 
 function updateHud() {
@@ -1488,11 +1709,11 @@ function installApp() {
 function makeOpponents(playerVehicle, age, director) {
   const pool = vehicleDefs.filter((vehicle) => vehicle.id !== playerVehicle.id);
   const grid = [
-    { gap: 360, lane: -1.95, bias: 0.56, speed: 24 },
-    { gap: 920, lane: 0.25, bias: 0.64, speed: 30 },
-    { gap: 1540, lane: 1.9, bias: 0.73, speed: 38 },
-    { gap: -760, lane: 1.15, bias: 0.72, speed: 28 },
-    { gap: -1760, lane: -1.15, bias: 0.82, speed: 34 }
+    { gap: 680, lane: -1.95, bias: 0.58, speed: 28 },
+    { gap: 1360, lane: 0.72, bias: 0.66, speed: 34 },
+    { gap: 2240, lane: 1.95, bias: 0.74, speed: 42 },
+    { gap: -980, lane: 1.22, bias: 0.74, speed: 32 },
+    { gap: -2260, lane: -1.22, bias: 0.84, speed: 38 }
   ];
   return opponentNames.map((name, index) => {
     const vehicle = pool[(index * 2 + selectedRace.id.length) % pool.length];
@@ -1550,7 +1771,7 @@ function updateOpponents(dt, maxSpeed) {
     raceState.opponents.forEach((other) => {
       if (other === opponent || other.finished) return;
       const otherGap = other.distance - opponent.distance;
-      const minGap = phoneGraphicsActive() ? 340 : 130;
+      const minGap = phoneGraphicsActive() ? 420 : 320;
       if (Math.abs(otherGap) < minGap) spreadPressure += otherGap >= 0 ? -0.075 : 0.075;
     });
     const damageDrag = Math.max(0.28, 1 - ((opponent.damage || 0) / 100) * 0.58);
@@ -1626,7 +1847,7 @@ function enforceOpponentSpacing(length, dt) {
     .filter((opponent) => opponent && !opponent.finished)
     .sort((a, b) => a.distance - b.distance);
   const phoneMode = phoneGraphicsActive();
-  const minGap = phoneMode ? 520 : 150;
+  const minGap = phoneMode ? 560 : 420;
   const laneSlots = phonePassLaneSlots();
   active.forEach((opponent, index) => {
     if (index > 0) {
@@ -1638,24 +1859,24 @@ function enforceOpponentSpacing(length, dt) {
       }
     }
     const playerGap = opponent.distance - raceState.distance;
-    if (phoneMode && playerGap > -360 && playerGap < 1900 && !opponent.wrecked) {
-      const nearPlayerLane = Math.abs(opponent.lane - raceState.lane) < 0.9 && playerGap > -90 && playerGap < 420;
+    if (playerGap > -420 && playerGap < 2200 && !opponent.wrecked) {
+      const nearPlayerLane = Math.abs(opponent.lane - raceState.lane) < 0.9 && playerGap > -110 && playerGap < 520;
       const laneConflict = active.some((other) => {
         if (other === opponent || other.finished) return false;
         const otherGap = other.distance - opponent.distance;
-        return Math.abs(otherGap) < 360 && Math.abs(other.lane - opponent.lane) < 0.72;
+        return Math.abs(otherGap) < (phoneMode ? 420 : 360) && Math.abs(other.lane - opponent.lane) < 0.72;
       });
       const openSlot = laneSlots.find((slot) => Math.abs(slot - raceState.lane) > 1.05 && active.every((other) => {
         if (other === opponent) return true;
         const otherGap = other.distance - raceState.distance;
-        return Math.abs(otherGap - playerGap) > 360 || Math.abs(other.lane - slot) > 0.72;
+        return Math.abs(otherGap - playerGap) > (phoneMode ? 420 : 360) || Math.abs(other.lane - slot) > 0.72;
       }));
       const currentHome = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : opponent.lane;
       const laneTarget = nearPlayerLane || laneConflict
         ? (openSlot ?? (opponent.lane < raceState.lane ? -1.95 : 1.95))
         : currentHome;
       opponent.homeLane = laneTarget;
-      const laneRate = nearPlayerLane ? 2.6 : laneConflict ? 1.4 : 0.28;
+      const laneRate = nearPlayerLane ? 2.4 : laneConflict ? 1.25 : 0.24;
       opponent.lane += (laneTarget - opponent.lane) * Math.min(1, dt * laneRate);
       if (nearPlayerLane) opponent.speed *= Math.max(0.96, 1 - dt * 0.16);
       opponent.lane = Math.max(-2.15, Math.min(2.15, opponent.lane));
@@ -1680,6 +1901,9 @@ function visiblePhoneTrafficCount() {
     const gap = opponent.distance - raceState.distance;
     if (!opponent.wrecked && gap > -180 && gap < 1150) count += 1;
   });
+  (raceState.oncoming || []).forEach((unit) => {
+    if (!unit.wrecked && inRange(unit)) count += 1;
+  });
   return count;
 }
 
@@ -1697,6 +1921,9 @@ function choosePhoneSpawnLane() {
     }) || raceState.police.some((unit) => {
       const gap = ensureRoadDistance(unit) - raceState.distance;
       return gap > -160 && gap < 1200 && Math.abs(unit.lane - lane) < 0.76;
+    }) || (raceState.oncoming || []).some((unit) => {
+      const gap = ensureRoadDistance(unit) - raceState.distance;
+      return gap > -160 && gap < 1200 && Math.abs(unit.lane - lane) < 0.76;
     });
   };
   return slots.find((lane) => !busy(lane)) ?? slots.find((lane) => Math.abs(lane - raceState.lane) > 1.05) ?? -1.95;
@@ -1707,9 +1934,9 @@ function playerVehicleContact(object, kind = "traffic") {
   const laneGap = Math.abs(objectLane - raceState.lane);
   if (phoneGraphicsActive()) {
     const gap = ensureRoadDistance(object) - raceState.distance;
-    const laneLimit = kind === "police" ? 0.4 : 0.38;
-    const aheadLimit = kind === "police" ? 62 : 56;
-    const behindLimit = kind === "police" ? 24 : 20;
+    const laneLimit = kind === "civilian" ? 0.24 : kind === "police" ? 0.32 : 0.3;
+    const aheadLimit = kind === "civilian" ? 18 : kind === "police" ? 28 : 24;
+    const behindLimit = kind === "civilian" ? 10 : kind === "police" ? 16 : 14;
     return {
       laneHit: laneGap < laneLimit,
       yHit: gap > -behindLimit && gap < aheadLimit,
@@ -1718,11 +1945,14 @@ function playerVehicleContact(object, kind = "traffic") {
     };
   }
   const screenY = roadObjectY(object);
+  const laneLimit = kind === "civilian" ? 0.36 : kind === "police" ? 0.48 : 0.46;
   return {
-    laneHit: laneGap < (kind === "police" ? 0.56 : 0.52),
+    laneHit: laneGap < laneLimit,
     yHit: kind === "police"
-      ? screenY > canvas.height * 0.61 && screenY < canvas.height * 0.9
-      : screenY > canvas.height * 0.64 && screenY < canvas.height * 0.87,
+      ? screenY > canvas.height * 0.72 && screenY < canvas.height * 0.96
+      : kind === "civilian"
+        ? screenY > canvas.height * 0.76 && screenY < canvas.height * 0.98
+        : screenY > canvas.height * 0.74 && screenY < canvas.height * 0.95,
     screenY,
     laneGap
   };
@@ -1733,10 +1963,10 @@ function visiblePlayerVehicleContact(object, kind = "traffic") {
   const gap = Number.isFinite(contact.gap) ? contact.gap : ensureRoadDistance(object) - raceState.distance;
   const screenY = Number.isFinite(contact.screenY) ? contact.screenY : roadObjectY(object);
   const phoneMode = phoneGraphicsActive();
-  const visibleTop = phoneMode ? canvas.height * 0.43 : canvas.height * 0.5;
-  const visibleBottom = phoneMode ? canvas.height * 0.99 : canvas.height * 0.94;
-  const aheadLimit = kind === "police" ? 54 : 48;
-  const rearForgiveness = phoneMode ? -4 : -10;
+  const visibleTop = phoneMode ? canvas.height * 0.5 : canvas.height * 0.58;
+  const visibleBottom = phoneMode ? canvas.height * 1.02 : canvas.height * 0.98;
+  const aheadLimit = kind === "civilian" ? 18 : kind === "police" ? 26 : 22;
+  const rearForgiveness = phoneMode ? -8 : -14;
   const visible = screenY >= visibleTop && screenY <= visibleBottom;
   const avoidableOverlap = gap >= rearForgiveness && gap <= aheadLimit;
   return {
@@ -1774,6 +2004,41 @@ function routeVehicleBoost(place, vehicleType, rival = false) {
   return 1;
 }
 
+function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
+  if (vehicle.type === "boat" || race.place === "harbor") return ["boat", "boat", "boat", "boat"];
+  if (vehicle.type === "airplane" || vehicle.type === "helicopter") return ["airplane", "helicopter", "airplane", "helicopter"];
+  if (vehicle.type === "tank") return ["tank", "truck", "semi", "monster"];
+  if (vehicle.type === "monster") return ["monster", "truck", "monster", "semi"];
+  if (vehicle.type === "tractor") return ["tractor", "tractor", "truck"];
+  if (vehicle.type === "semi") return ["semi", "semi", "truck"];
+  if (vehicle.type === "snowmobile" || race.place === "snow") return ["snowmobile", "snowmobile", "truck"];
+  if (race.place === "freight") return ["semi", "semi", "truck", "monster"];
+  if (race.place === "farm") return ["tractor", "tractor", "truck", "monster"];
+  if (race.place === "tokyo") return ["car", "f1", "prototype", "semi"];
+  if (race.place === "desert") return ["monster", "truck", "semi", "car"];
+  if (race.place === "rainforest") return ["truck", "monster", "tractor", "car"];
+  return ["car", "f1", "prototype", "truck", "monster"];
+}
+
+function raceAllowsPolice(race = selectedRace, vehicle = selectedVehicle()) {
+  if (race.place === "airfield" && vehicle.type === "tank") return true;
+  return Boolean(race.hotPursuit || /hot pursuit/i.test(`${race.name} ${race.mood}`));
+}
+
+function raceHasOncomingTraffic(race = selectedRace, vehicle = selectedVehicle()) {
+  if (["boat", "airplane", "helicopter", "tank"].includes(vehicle.type)) return false;
+  return ["city", "tokyo", "coast", "desert", "europe"].includes(race.place);
+}
+
+function raceAllowsCivilians(race = selectedRace, vehicle = selectedVehicle()) {
+  if (["airplane", "helicopter", "boat"].includes(vehicle.type)) return false;
+  return !["airfield", "snow"].includes(race.place);
+}
+
+function raceIsNight(race = selectedRace) {
+  return race.place === "city" || race.place === "tokyo" || /night|neon|tunnel/i.test(race.name + " " + race.mood);
+}
+
 function raceRankings() {
   const racers = [{ name: "You", distance: raceState.distance, player: true }];
   raceState.opponents.forEach((opponent) => racers.push({
@@ -1794,15 +2059,7 @@ function spawnRival() {
   const director = raceState.director || getDirector(activeProfile);
   const laneOptions = [-2, -1, 0, 1, 2].filter((candidate) => Math.abs(candidate - raceState.lane) > 0.72);
   const lane = phoneGraphicsActive() ? choosePhoneSpawnLane() : (laneOptions[Math.floor(Math.random() * laneOptions.length)] ?? (Math.floor(Math.random() * 5) - 2));
-  const routeTypes = selectedRace.place === "harbor" ? ["boat", "car", "truck"]
-    : selectedRace.place === "snow" ? ["snowmobile", "truck", "car"]
-      : selectedRace.place === "airfield" ? ["airplane", "helicopter", "car", "truck"]
-        : selectedRace.place === "freight" ? ["semi", "semi", "truck", "monster"]
-          : selectedRace.place === "farm" ? ["tractor", "tractor", "truck", "monster"]
-            : selectedRace.place === "tokyo" ? ["car", "f1", "prototype", "semi"]
-              : selectedRace.place === "desert" ? ["monster", "truck", "semi", "car"]
-                : selectedRace.place === "rainforest" ? ["truck", "monster", "tractor", "car"]
-                  : ["car", "f1", "prototype", "truck", "monster"];
+  const routeTypes = raceTrafficTypes(selectedRace, selectedVehicle());
   const type = routeTypes[Math.floor(Math.random() * routeTypes.length)];
   const def = vehicleDefs.find((vehicle) => vehicle.type === type) || vehicleDefs[0];
   raceState.rivals.push({
@@ -1839,6 +2096,70 @@ function spawnPoliceUnit() {
   });
 }
 
+function spawnCivilian() {
+  const side = Math.random() > 0.5 ? 1 : -1;
+  const crossing = Math.random() < 0.26;
+  raceState.civilians.push({
+    lane: crossing ? side * (1.9 + Math.random() * 0.22) : side * (2.34 + Math.random() * 0.28),
+    distance: roadSpawnDistance(0.24, 0.34),
+    side,
+    crossing,
+    speed: crossing ? 0.34 + Math.random() * 0.26 : 0,
+    step: Math.random() * Math.PI * 2,
+    hit: false,
+    warned: false
+  });
+}
+
+function spawnOncomingTraffic() {
+  const laneChoices = [-1.55, -0.48, 0.48, 1.55].filter((lane) => Math.abs(lane - raceState.lane) > 0.48);
+  const routeTypes = raceTrafficTypes(selectedRace, selectedVehicle()).filter((type) => !["boat", "airplane", "helicopter"].includes(type));
+  const type = routeTypes[Math.floor(Math.random() * routeTypes.length)] || "car";
+  const def = vehicleDefs.find((vehicle) => vehicle.type === type) || vehicleDefs[0];
+  raceState.oncoming.push({
+    lane: laneChoices[Math.floor(Math.random() * laneChoices.length)] || -1.55,
+    distance: roadSpawnDistance(0.18, 0.3) + 360,
+    speed: 54 + Math.random() * 44,
+    w: type === "semi" ? 82 : type === "monster" || type === "truck" ? 68 : 56,
+    h: type === "semi" ? 112 : 94,
+    color: def.color,
+    type,
+    damage: 0,
+    wrecked: false,
+    contactCooldown: 0,
+    laneVelocity: 0,
+    spin: Math.PI
+  });
+}
+
+function fireTankCannon() {
+  raceState.cannonCooldown = 1.25;
+  const targets = [
+    ...raceState.rivals.map((target) => ({ target, group: "traffic", gap: ensureRoadDistance(target) - raceState.distance })),
+    ...raceState.police.map((target) => ({ target, group: "police", gap: ensureRoadDistance(target) - raceState.distance })),
+    ...raceState.oncoming.map((target) => ({ target, group: "traffic", gap: ensureRoadDistance(target) - raceState.distance })),
+    ...raceState.opponents.map((target) => ({ target, group: "opponent", gap: target.distance - raceState.distance }))
+  ].filter((item) => item.target && !item.target.wrecked && item.gap > 18 && item.gap < 520 && Math.abs((item.target.lane || 0) - raceState.lane) < 0.86)
+    .sort((a, b) => a.gap - b.gap);
+  const hit = targets[0];
+  const x = canvas.width / 2 + raceState.lane * laneWidth();
+  const y = canvas.height * 0.68;
+  burst(x, y, "#ffd166");
+  playHitSound("police");
+  raceState.focus = Math.max(0, raceState.focus - 2.5);
+  if (!hit) {
+    showToast("Tank cannon fired. No target in lane.");
+    return;
+  }
+  if (hit.group === "opponent") {
+    applyOpponentDamage(hit.target, 58, `${hit.target.name} disabled`, x, y, hit.target.color || "#ffd166");
+  } else {
+    applyTrafficDamage(hit.target, 72, hit.group === "police" ? "Interceptor disabled" : "Vehicle cleared", x, y, hit.target.color || "#ffd166");
+  }
+  raceState.score += 260;
+  showToast("Route cleared.");
+}
+
 function spawnCoin() {
   const lane = Math.floor(Math.random() * 5) - 2;
   raceState.coinsOnRoad.push({ lane, distance: roadSpawnDistance(0.35, 0.45), r: 13, pulse: Math.random() * 10 });
@@ -1846,7 +2167,7 @@ function spawnCoin() {
 
 function tick(dt) {
   if (!raceState.active || input.paused) return;
-  const upgrades = activeProfile.upgrades;
+  const upgrades = activeVehicleUpgrades(activeProfile);
   const age = ageBands[activeProfile.age];
   const director = raceState.director || getDirector(activeProfile);
   const vehicle = selectedVehicle();
@@ -1945,6 +2266,9 @@ function tick(dt) {
   updateOpponents(dt, maxSpeed);
   raceState.spawnClock -= dt;
   raceState.coinClock -= dt;
+  raceState.civilianClock = Math.max(0, (raceState.civilianClock || 0) - dt);
+  raceState.oncomingClock = Math.max(0, (raceState.oncomingClock || 0) - dt);
+  raceState.cannonCooldown = Math.max(0, (raceState.cannonCooldown || 0) - dt);
   const phoneMode = phoneGraphicsActive();
   const trafficRoom = !phoneMode || visiblePhoneTrafficCount() < 3;
   if (raceState.spawnClock <= 0 && raceState.speed > 45 && raceState.elapsed > 5 && trafficRoom) {
@@ -1957,13 +2281,23 @@ function tick(dt) {
   }
   if (raceState.coinClock <= 0 && raceState.speed > 30) {
     spawnCoin();
-    raceState.coinClock = Math.max(0.3, (0.76 - upgrades.magnet * 0.035) / director.coinRate);
+    raceState.coinClock = Math.max(0.78, (1.15 - upgrades.magnet * 0.045) / Math.max(0.8, director.coinRate * 0.82));
   }
-  if (raceState.heat > 18 && raceState.heatClock <= 0 && raceState.speed > 45 && (!phoneMode || visiblePhoneTrafficCount() < 4)) {
+  if (raceAllowsCivilians(selectedRace, vehicle) && raceState.civilianClock <= 0 && raceState.speed > 34) {
+    spawnCivilian();
+    raceState.civilianClock = 8.5 + Math.random() * 10 + (phoneMode ? 3 : 0);
+  }
+  if (raceHasOncomingTraffic(selectedRace, vehicle) && raceState.oncomingClock <= 0 && raceState.speed > 55 && (!phoneMode || visiblePhoneTrafficCount() < 3)) {
+    spawnOncomingTraffic();
+    raceState.oncomingClock = 7.5 + Math.random() * 8;
+  }
+  if (vehicle.type === "tank" && boostInput && raceState.cannonCooldown <= 0) fireTankCannon();
+  const policeEligible = raceAllowsPolice(selectedRace, vehicle) || raceState.heat > 82;
+  if (policeEligible && raceState.heat > 45 && raceState.heatClock <= 0 && raceState.speed > 45 && (!phoneMode || visiblePhoneTrafficCount() < 4)) {
     raceState.chaseActive = true;
     spawnPoliceUnit();
-    raceState.heatClock = Math.max(1.2, 4.5 - raceState.heat / 24 - activeProfile.upgrades.engine * 0.12);
-    showToast(raceState.heat > 65 ? "High heat pursuit. Watch for interceptors." : "Police chase started.");
+    raceState.heatClock = Math.max(4.2, 9.5 - raceState.heat / 28 - upgrades.engine * 0.08);
+    showToast(raceState.heat > 82 ? "High heat pursuit. Watch for interceptors." : "Pursuit unit entering the route.");
   }
   moveObjects(dt);
   if (raceState.focus <= 0) {
@@ -2012,7 +2346,7 @@ function moveObjects(dt) {
     if (contact.hit && rival.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       const phoneMode = phoneGraphicsActive();
       rival.contactCooldown = phoneMode ? 1.35 : 0.55;
-      const shield = activeProfile.upgrades.shield;
+      const shield = activeVehicleUpgrades(activeProfile).shield;
       const impact = Math.max(phoneMode ? 3.2 : 8, ((28 - shield * 2.7) * (phoneMode ? 0.28 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(rival.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
       applyVehicleDamage(impact, "Visible traffic contact");
@@ -2058,7 +2392,7 @@ function moveObjects(dt) {
     if (contact.hit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
       const phoneMode = phoneGraphicsActive();
       unit.contactCooldown = phoneMode ? 1.45 : 0.65;
-      const shield = activeProfile.upgrades.shield;
+      const shield = activeVehicleUpgrades(activeProfile).shield;
       const impact = Math.max(phoneMode ? 4.5 : 12, ((38 - shield * 2.5) * (phoneMode ? 0.26 : 1)) / Math.max(0.72, vehicle.mass));
       const side = Math.sign(unit.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
       applyVehicleDamage(impact, "Visible police contact");
@@ -2075,12 +2409,75 @@ function moveObjects(dt) {
       playHitSound("police");
     }
   });
-  const magnet = activeProfile.upgrades.magnet;
+  raceState.oncoming = Array.isArray(raceState.oncoming) ? raceState.oncoming : [];
+  raceState.oncoming.forEach((unit) => {
+    ensureRoadDistance(unit, -180);
+    unit.damage = Math.max(0, Math.min(100, Number(unit.damage) || 0));
+    unit.contactCooldown = Math.max(0, (unit.contactCooldown || 0) - dt);
+    unit.laneVelocity = Number(unit.laneVelocity) || 0;
+    unit.spin = Number(unit.spin) || Math.PI;
+    const damageDrag = Math.max(0.26, 1 - ((unit.damage || 0) / 100) * 0.64);
+    if (unit.wrecked) {
+      unit.speed *= Math.max(0, 1 - dt * 1.5);
+      unit.spin += dt * 2.1;
+    } else {
+      unit.distance -= Math.max(10, unit.speed * damageDrag) * dt;
+      unit.lane += (unit.laneVelocity || 0) * dt;
+      unit.laneVelocity *= Math.max(0, 1 - dt * 1.2);
+    }
+    updateHazardWarning(unit, "traffic");
+    const contact = visiblePlayerVehicleContact(unit, "traffic");
+    if (contact.hit && unit.contactCooldown <= 0 && raceState.resetTimer <= 0) {
+      const phoneMode = phoneGraphicsActive();
+      unit.contactCooldown = phoneMode ? 1.4 : 0.6;
+      const shield = activeVehicleUpgrades(activeProfile).shield;
+      const impact = Math.max(phoneMode ? 4 : 11, ((34 - shield * 2.4) * (phoneMode ? 0.3 : 1)) / Math.max(0.72, vehicle.mass));
+      const side = Math.sign(unit.lane - carLane) || (Math.random() > 0.5 ? 1 : -1);
+      applyVehicleDamage(impact, "Oncoming traffic contact");
+      applyTrafficDamage(unit, impact * 1.45, "Oncoming vehicle disabled", canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, unit.color || "#ffd166");
+      raceState.combo = 1;
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 5 : 10);
+      raceState.speed *= Math.max(phoneMode ? 0.6 : 0.32, (phoneMode ? 0.82 : 0.68) - impact * 0.006);
+      raceState.lateralVelocity -= side * (phoneMode ? 0.7 : 1.25);
+      unit.laneVelocity += side * 1.45;
+      burst(canvas.width / 2 + carLane * laneWidth(), canvas.height * 0.76, unit.color || "#ffd166");
+      playHitSound("impact");
+    }
+  });
+  raceState.civilians = Array.isArray(raceState.civilians) ? raceState.civilians : [];
+  raceState.civilians.forEach((person) => {
+    ensureRoadDistance(person, -120);
+    person.step = (person.step || 0) + dt * 6;
+    if (person.crossing && !person.hit) {
+      person.lane -= person.side * (person.speed || 0.42) * dt;
+      if (Math.abs(person.lane) < 0.55 && !person.warned) {
+        person.warned = true;
+        raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, 0.8);
+        raceState.hazardWarningLabel = "CIVILIAN CROSSING - AVOID";
+      }
+    }
+    const contact = visiblePlayerVehicleContact(person, "civilian");
+    if (contact.hit && !person.hit && raceState.resetTimer <= 0) {
+      person.hit = true;
+      raceState.civilianHits = (raceState.civilianHits || 0) + 1;
+      raceState.penaltyCoins = (raceState.penaltyCoins || 0) + 160;
+      raceState.penaltyRep = (raceState.penaltyRep || 0) + 5;
+      raceState.coins = Math.max(0, raceState.coins - 2);
+      raceState.score = Math.max(0, raceState.score - 520);
+      raceState.focus = Math.max(0, raceState.focus - 12);
+      raceState.combo = 1;
+      raceState.cameraShake = Math.max(raceState.cameraShake, 6);
+      burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.78, "#f4fbf8");
+      showToast("Civilian hit. Reputation and coins penalized.");
+      playHitSound("impact");
+    }
+  });
+  const magnet = activeVehicleUpgrades(activeProfile).magnet;
   raceState.coinsOnRoad.forEach((coin) => {
     ensureRoadDistance(coin, -60);
     const screenY = roadObjectY(coin);
     coin.pulse += dt * 8;
-    const catchRange = 0.38 + magnet * 0.1;
+    const catchRange = 0.25 + magnet * 0.065;
     const laneHit = Math.abs(coin.lane - carLane) < catchRange;
     const yHit = screenY > canvas.height * 0.62 && screenY < canvas.height * 0.9;
     if (laneHit && yHit && !coin.hit) {
@@ -2094,6 +2491,8 @@ function moveObjects(dt) {
   });
   raceState.rivals = raceState.rivals.filter((r) => roadObjectY(r) < canvas.height + 220 && r.distance > raceState.distance - 360);
   raceState.police = raceState.police.filter((p) => roadObjectY(p) < canvas.height + 240 && p.distance > raceState.distance - 390);
+  raceState.oncoming = raceState.oncoming.filter((p) => roadObjectY(p) < canvas.height + 260 && p.distance > raceState.distance - 420);
+  raceState.civilians = raceState.civilians.filter((p) => roadObjectY(p) < canvas.height + 160 && p.distance > raceState.distance - 280 && !p.hit);
   if (!raceState.police.length && raceState.heat < 16) raceState.chaseActive = false;
   raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => roadObjectY(c) < canvas.height + 80 && !c.hit);
   raceState.particles.forEach((p) => {
@@ -2154,7 +2553,7 @@ function emitVehicleSmoke(x, y, damage, color = "#777777") {
 
 function applyVehicleDamage(amount, reason = "Impact", quiet = false) {
   if (!raceState.active || raceState.resetTimer > 0 || amount <= 0) return;
-  const shield = activeProfile ? activeProfile.upgrades.shield : 0;
+  const shield = activeProfile ? activeVehicleUpgrades(activeProfile).shield : 0;
   const vehicle = selectedVehicle();
   const massResist = Math.max(0.55, Math.min(1.15, 1.18 / Math.max(0.72, vehicle.mass)));
   const shieldResist = Math.max(0.58, 1 - shield * 0.055);
@@ -2246,8 +2645,8 @@ function emitDrivingEffects(dt, gasInput, brakeInput, boostInput, steerInput) {
       color: brakeInput ? "rgba(190,205,205,0.42)" : "rgba(120,134,128,0.32)"
     });
   }
-  const driftPower = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.24) * 1.6 + Math.abs(raceState.lateralVelocity || 0) * 0.055));
-  if (driftPower > 0.12 && speed > 42 && Math.random() < dt * (14 + driftPower * 28)) {
+  const driftPower = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.16) * 1.95 + Math.abs(raceState.lateralVelocity || 0) * 0.07));
+  if (driftPower > 0.08 && speed > 36 && Math.random() < dt * (18 + driftPower * 36)) {
     const side = Math.sign(raceState.lateralVelocity || raceState.steerAngle || (Math.random() - 0.5)) || 1;
     const life = 0.42 + Math.random() * 0.38;
     const dusty = selectedRace.place === "desert" || selectedRace.place === "canyon" || selectedRace.place === "farm";
@@ -2371,7 +2770,7 @@ function drawFrame() {
       height: h,
       raceState,
       selectedRace: selectedRace || races[0],
-      selectedVehicle: selectedVehicle(),
+      selectedVehicle: Object.assign({}, selectedVehicle(), { color: selectedVehicleColor(selectedVehicle()) }),
       vehicleDefs,
       cameraMode
     });
@@ -2382,6 +2781,7 @@ function drawFrame() {
     drawRealisticDrivingPass(w, h, theme);
     drawWebGLFlatPavementPass(w, h, theme);
     drawGenAiRacingScenePass(w, h, theme);
+    drawRouteLightingPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
       drawCar(w, h);
@@ -2426,6 +2826,7 @@ function drawFrame() {
   drawRoadMotionPass(w, h, theme);
   drawPhoneUltraGraphicsPass(w, h, theme);
   drawGenAiRacingScenePass(w, h, theme);
+  drawRouteLightingPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
@@ -2459,6 +2860,7 @@ function drawPhoneCanvasFrame(w, h, theme, shake) {
   drawPhoneAssetTexturePass(w, h, theme);
   drawPhoneRoadContrastPass(w, h, theme);
   drawGenAiRacingScenePass(w, h, theme);
+  drawRouteLightingPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
   drawCar(w, h);
@@ -3333,15 +3735,15 @@ function drawDriftStylePass(w, h, theme) {
   if (!raceState.active || raceState.resetTimer > 0) return;
   if (phoneCleanRoadActive()) return;
   const speed = Math.abs(raceState.speed || 0);
-  const drift = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.2) * 1.55 + Math.abs(raceState.lateralVelocity || 0) * 0.05));
-  if (drift <= 0.04 || speed < 34) return;
+  const drift = Math.max(0, Math.min(1, ((raceState.slip || 0) - 0.14) * 1.95 + Math.abs(raceState.lateralVelocity || 0) * 0.07));
+  if (drift <= 0.03 || speed < 30) return;
   const vehicle = selectedVehicle();
   const carX = w / 2 + raceState.lane * laneWidth();
   const baseY = cameraMode === "cockpit" ? h * 0.78 : cameraMode === "hood" ? h * 0.91 : h * 0.87;
   const steer = raceState.steerAngle || 0;
   const slide = raceState.lateralVelocity || 0;
   ctx.save();
-  ctx.globalAlpha = Math.min(0.72, 0.22 + drift * 0.5);
+  ctx.globalAlpha = Math.min(0.86, 0.26 + drift * 0.58);
   ctx.strokeStyle = "rgba(1,2,2,0.72)";
   ctx.lineWidth = Math.max(2, w * 0.005 + drift * 4);
   ctx.lineCap = "round";
@@ -3360,7 +3762,7 @@ function drawDriftStylePass(w, h, theme) {
   smoke.addColorStop(1, `${smokeColor}0)`);
   ctx.fillStyle = smoke;
   ctx.fillRect(0, h * 0.48, w, h * 0.52);
-  if (drift > 0.5 && cameraMode !== "cockpit") {
+  if (drift > 0.35 && cameraMode !== "cockpit") {
     ctx.fillStyle = theme[1];
     ctx.font = `900 ${Math.max(13, Math.min(20, w * 0.018))}px system-ui`;
     ctx.textAlign = "center";
@@ -3473,6 +3875,52 @@ function drawScenery(w, h, theme) {
   if (place === "europe") drawEuropeanScenery(w, h, theme);
   drawAtmosphericDepth(w, h, theme);
   drawRoadSigns(w, h, theme);
+  ctx.restore();
+}
+
+function drawRouteLightingPass(w, h, theme) {
+  const night = raceIsNight(selectedRace);
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  ctx.save();
+  if (!night) {
+    const sunX = w * (0.18 + (Math.sin((raceState.distance || 0) * 0.00004) + 1) * 0.08);
+    const sunY = h * 0.16;
+    const glow = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, w * 0.34);
+    glow.addColorStop(0, "rgba(255,209,102,0.26)");
+    glow.addColorStop(1, "rgba(255,209,102,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h * 0.5);
+    ctx.restore();
+    return;
+  }
+  const skyShade = ctx.createLinearGradient(0, 0, 0, h);
+  skyShade.addColorStop(0, "rgba(0,0,0,0.34)");
+  skyShade.addColorStop(0.48, "rgba(0,0,0,0.08)");
+  skyShade.addColorStop(1, "rgba(0,0,0,0.26)");
+  ctx.fillStyle = skyShade;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "screen";
+  const horizon = phoneGraphicsActive() ? h * 0.34 : h * 0.44;
+  for (let i = 0; i < 11; i += 1) {
+    const depth = (i + 1) / 12;
+    const y = horizon + Math.pow(depth, 1.7) * h * 0.52;
+    const center = perspectiveRoadCenter(w, depth) + turn * (1 - depth) * w * 0.05;
+    const half = w * (0.18 + depth * 0.43);
+    for (let side = -1; side <= 1; side += 2) {
+      const x = center + side * half;
+      const lamp = ctx.createRadialGradient(x, y, 2, x, y, w * (0.025 + depth * 0.04));
+      lamp.addColorStop(0, "rgba(255,229,148,0.34)");
+      lamp.addColorStop(1, "rgba(255,229,148,0)");
+      ctx.fillStyle = lamp;
+      ctx.fillRect(x - w * 0.09, y - h * 0.08, w * 0.18, h * 0.16);
+      ctx.strokeStyle = "rgba(244,251,248,0.14)";
+      ctx.lineWidth = Math.max(1, 2 * depth);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + h * (0.04 + depth * 0.04));
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -4577,7 +5025,65 @@ function drawObjects() {
       draw: () => drawTrafficRearCar(p.x, groundY, unit.w * p.scale * 1.16, unit.h * p.scale * 0.84, "#f4fbf8", true, "car", "", unit.damage || 0, unit.wrecked, unit.spin || 0)
     });
   });
+  (raceState.oncoming || []).forEach((unit) => {
+    const distance = ensureRoadDistance(unit);
+    const gap = distance - raceState.distance;
+    const priority = gap > -30 && gap < 320 && Math.abs(unit.lane - raceState.lane) < 1.12;
+    if (!canDrawPhoneVehicle(gap, unit.lane, priority)) return;
+    const p = roadObjectPos(unit.lane, distance);
+    if (!isVehicleScreenYVisible(p.y)) return;
+    const groundY = p.y + roadContactSink(p.scale, unit.type || "car");
+    draws.push({
+      y: groundY,
+      draw: () => drawTrafficRearCar(p.x, groundY, unit.w * p.scale * 1.08, unit.h * p.scale * 0.82, unit.color || "#ffd166", false, unit.type || "car", "ONCOMING", unit.damage || 0, unit.wrecked, unit.spin || Math.PI)
+    });
+  });
+  (raceState.civilians || []).forEach((person) => {
+    const distance = ensureRoadDistance(person);
+    const p = roadObjectPos(person.lane, distance);
+    if (!isVehicleScreenYVisible(p.y)) return;
+    draws.push({
+      y: p.y + 8,
+      draw: () => drawCivilianMarker(p.x, p.y, p.scale, person)
+    });
+  });
   draws.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
+}
+
+function drawCivilianMarker(x, y, scale, person) {
+  const s = Math.max(0.42, Math.min(1.18, scale || 1));
+  const step = Math.sin(person.step || 0) * 3 * s;
+  ctx.save();
+  ctx.translate(x, y + 8 * s);
+  ctx.globalAlpha = person.crossing ? 0.92 : 0.72;
+  ctx.fillStyle = "rgba(0,0,0,0.42)";
+  ctx.beginPath();
+  ctx.ellipse(0, 13 * s, 12 * s, 4 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = person.crossing ? "#ffd166" : "rgba(244,251,248,0.72)";
+  ctx.lineWidth = Math.max(1.4, 2.4 * s);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, -5 * s);
+  ctx.lineTo(0, 8 * s);
+  ctx.moveTo(-5 * s, 0);
+  ctx.lineTo(5 * s, 2 * s);
+  ctx.moveTo(0, 8 * s);
+  ctx.lineTo(-5 * s, 15 * s + step);
+  ctx.moveTo(0, 8 * s);
+  ctx.lineTo(6 * s, 15 * s - step);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(244,251,248,0.9)";
+  ctx.beginPath();
+  ctx.arc(0, -10 * s, 4.2 * s, 0, Math.PI * 2);
+  ctx.fill();
+  if (person.crossing) {
+    ctx.fillStyle = "rgba(255,209,102,0.16)";
+    ctx.beginPath();
+    ctx.arc(0, 1 * s, 24 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawPhoneOpponentGapCue(x, y, scale, gap, lane, damage = 0, wrecked = false) {
@@ -5246,6 +5752,20 @@ function drawPhoneLaneRadar(w, h, theme) {
     ctx.lineWidth = 1.2;
     ctx.stroke();
   });
+  (raceState.oncoming || []).forEach((unit) => {
+    const gap = ensureRoadDistance(unit) - raceState.distance;
+    if (gap < -220 || gap > 1680 || unit.wrecked) return;
+    const px = startX + Math.max(0, Math.min(1, (gap + 220) / 1900)) * span;
+    const py = midY + Math.max(-2.2, Math.min(2.2, unit.lane)) * panelH * 0.085;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#ff5b6b";
+    ctx.beginPath();
+    ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(5,8,7,0.7)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  });
   ctx.restore();
 }
 
@@ -5526,6 +6046,35 @@ function drawVehicleTrimDetails(w, h, color, police = false) {
   ctx.fillStyle = "rgba(244,251,248,0.18)";
   roundRect(-w * 0.22, -h * 0.31, w * 0.44, h * 0.045, 3);
   ctx.fill();
+  if (raceIsNight(selectedRace)) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = police ? "rgba(70,217,255,0.35)" : "rgba(255,248,214,0.28)";
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.285, -h * 0.48, w * 0.18, h * 0.04, -0.08, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.285, -h * 0.48, w * 0.18, h * 0.04, 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,51,72,0.34)";
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.3, h * 0.42, w * 0.14, h * 0.035, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.3, h * 0.42, w * 0.14, h * 0.035, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawLicensePlate(w, h, plate) {
+  const text = sanitizePlate(plate || "RACER");
+  ctx.save();
+  ctx.fillStyle = "rgba(244,251,248,0.88)";
+  roundRect(-w * 0.16, h * 0.36, w * 0.32, h * 0.058, 3);
+  ctx.fill();
+  ctx.fillStyle = "#06100e";
+  ctx.font = `900 ${Math.max(6, Math.min(13, w * 0.075))}px system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 0, h * 0.389, w * 0.28);
   ctx.restore();
 }
 
@@ -5769,8 +6318,9 @@ function drawDemoPursuitTraffic(w, h) {
 function drawCar(w, h) {
   if (cameraMode === "cockpit") return;
   const vehicle = selectedVehicle();
+  const color = selectedVehicleColor(vehicle);
   if (phoneGraphicsActive() && cameraMode === "hood") {
-    drawPhoneDriverHood(w, h, vehicle);
+    drawPhoneDriverHood(w, h, Object.assign({}, vehicle, { color }));
     return;
   }
   const carLaneFollowDepth = useWebGLRenderer() && cameraMode === "chase" ? 0.42 : 1;
@@ -5790,9 +6340,9 @@ function drawCar(w, h) {
   const carHeight = (cameraMode === "hood" ? 190 : 178) * sizeBoost * projectionScale * phoneChaseScale;
   if (cameraMode === "chase") {
     const phoneLift = phoneGraphicsActive() ? h * 0.065 : 0;
-    drawPlayerChaseCar(x, y + phoneLift + 18 + roadContactSink(projectionScale, vehicle.type), carWidth * 1.26, carHeight * 1.02, vehicle.color, vehicle.type);
+    drawPlayerChaseCar(x, y + phoneLift + 18 + roadContactSink(projectionScale, vehicle.type), carWidth * 1.26, carHeight * 1.02, color, vehicle.type);
   } else {
-    drawVehicle(x, y, carWidth, carHeight, vehicle.color, true, false, vehicle.type);
+    drawVehicle(x, y, carWidth, carHeight, color, true, false, vehicle.type);
   }
   if ((input.boost || input.gamepadBoost) && raceState.active) {
     ctx.fillStyle = "rgba(255,209,102,0.82)";
@@ -5870,6 +6420,10 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
   drawRoadContactShadow(width, height, vehicleType, 1);
 
   if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, false, raceState.damage || 0, true)) {
+    ctx.save();
+    ctx.translate(0, -height * 0.18);
+    drawLicensePlate(width * 0.78, height * 0.78, driverPlate(activeProfile));
+    ctx.restore();
     ctx.restore();
     return;
   }
@@ -5878,6 +6432,7 @@ function drawPlayerChaseCar(x, y, width, height, color, vehicleType = "car") {
 
   if (vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, true);
+    drawLicensePlate(width * 0.82, height * 0.82, driverPlate(activeProfile));
     ctx.restore();
     return;
   }
@@ -6405,6 +6960,12 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   drawRoadContactShadow(width, height, vehicleType, 1);
 
   if (drawPhoneAssetVehicleSprite(width, height, color, vehicleType, police, player ? raceState.damage || 0 : 0, true)) {
+    if (player) {
+      ctx.save();
+      ctx.translate(0, -height * 0.18);
+      drawLicensePlate(width * 0.78, height * 0.78, driverPlate(activeProfile));
+      ctx.restore();
+    }
     ctx.restore();
     return;
   }
@@ -6413,6 +6974,7 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
 
   if (!police && vehicleType !== "car") {
     drawSpecialVehicleSilhouette(width, height, color, vehicleType, player);
+    if (player) drawLicensePlate(width * 0.82, height * 0.82, driverPlate(activeProfile));
     ctx.restore();
     return;
   }
@@ -6454,6 +7016,7 @@ function drawVehicle(x, y, width, height, color, player, police = false, vehicle
   ctx.lineWidth = Math.max(1, width * 0.018);
   ctx.stroke();
   drawVehicleTrimDetails(width, height, color, police);
+  if (player) drawLicensePlate(width, height, driverPlate(activeProfile));
 
   ctx.fillStyle = police ? "#111817" : shade(color, -36);
   ctx.globalAlpha = 0.64;
@@ -6603,7 +7166,7 @@ function drawAttract(w, h) {
   ctx.fill();
   ctx.fillStyle = "#f4fbf8";
   ctx.font = "900 34px system-ui";
-  ctx.fillText("Press Quick Play. Hit The Street.", w / 2, h * 0.36);
+  ctx.fillText("Press Play. Hit The Street.", w / 2, h * 0.36);
   ctx.fillStyle = "#a9bbb5";
   ctx.font = "700 16px system-ui";
   ctx.fillText("Performance cars, police heat, and cinematic routes built for replay.", w / 2, h * 0.36 + 34);
