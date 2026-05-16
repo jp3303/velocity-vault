@@ -1,5 +1,5 @@
 ﻿<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v66. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, and README/how-to-play notes.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v67. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, and README/how-to-play notes.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -2061,7 +2061,7 @@ const glCanvas = $(&quot;#glCanvas&quot;);
 
 const storeKey = &quot;velocityVaultProfilesV1&quot;;
 const saveKey = &quot;velocityVaultSavedRaceV1&quot;;
-const starterGarageVersion = 66;
+const starterGarageVersion = 67;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -2121,6 +2121,7 @@ const upgradeDefs = [
 ];
 
 const paintPalette = [&quot;#1bb7e8&quot;, &quot;#ff3348&quot;, &quot;#ff8c42&quot;, &quot;#ffd166&quot;, &quot;#bbf24a&quot;, &quot;#f4fbf8&quot;, &quot;#ff4fd8&quot;, &quot;#36d98a&quot;, &quot;#6fffe9&quot;, &quot;#dce8ef&quot;, &quot;#6d7667&quot;, &quot;#3f4a38&quot;];
+const pickupLaneSlots = [-1.42, -0.72, 0, 0.72, 1.42];
 
 const vehicleRaceRules = {
   car: { places: [&quot;coast&quot;, &quot;city&quot;, &quot;canyon&quot;, &quot;alpine&quot;, &quot;tokyo&quot;, &quot;desert&quot;, &quot;rainforest&quot;, &quot;europe&quot;], label: &quot;road circuits&quot; },
@@ -4401,6 +4402,20 @@ function spawnRouteFeature() {
   });
 }
 
+function safePickupLane(lane) {
+  const value = Number(lane);
+  if (!Number.isFinite(value)) return 0;
+  return pickupLaneSlots.reduce((best, candidate) =&gt; Math.abs(candidate - value) &lt; Math.abs(best - value) ? candidate : best, pickupLaneSlots[0]);
+}
+
+function choosePickupLane() {
+  const sorted = pickupLaneSlots
+    .map((lane) =&gt; ({ lane, distanceFromPlayer: Math.abs(lane - (raceState.lane || 0)), jitter: Math.random() }))
+    .sort((a, b) =&gt; b.distanceFromPlayer + b.jitter * 0.18 - (a.distanceFromPlayer + a.jitter * 0.18));
+  const preferAway = Math.random() &lt; 0.58 ? sorted.slice(0, 3) : sorted;
+  return preferAway[Math.floor(Math.random() * preferAway.length)].lane;
+}
+
 function updateRouteFeatures(dt) {
   raceState.routeFeatures = Array.isArray(raceState.routeFeatures) ? raceState.routeFeatures : [];
   raceState.routeFeatures.forEach((feature) =&gt; {
@@ -4477,7 +4492,7 @@ function fireTankCannon() {
 }
 
 function spawnCoin() {
-  const lane = Math.floor(Math.random() * 5) - 2;
+  const lane = choosePickupLane();
   raceState.coinsOnRoad.push({ lane, distance: roadSpawnDistance(0.35, 0.45), r: 13, pulse: Math.random() * 10 });
 }
 
@@ -4801,6 +4816,7 @@ function moveObjects(dt) {
   });
   const magnet = activeVehicleUpgrades(activeProfile).magnet;
   raceState.coinsOnRoad.forEach((coin) =&gt; {
+    coin.lane = safePickupLane(coin.lane);
     ensureRoadDistance(coin, -60);
     const screenY = roadObjectY(coin);
     coin.pulse += dt * 8;
@@ -7560,6 +7576,7 @@ function drawObjects() {
     });
   });
   raceState.coinsOnRoad.forEach((coin) =&gt; {
+    coin.lane = safePickupLane(coin.lane);
     const p = roadObjectPos(coin.lane, ensureRoadDistance(coin));
     if (!isVehicleScreenYVisible(p.y)) return;
     draws.push({
@@ -11746,7 +11763,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v66&quot;;
+const cacheName = &quot;velocity-vault-v67&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -11883,6 +11900,7 @@ Real-world style visuals:
 - The v64 scenario pass adds more vehicle models and classes, including rally, drift, buggy, heavy tank, hydroplane, patrol boat, attack helicopter, and jet plane builds. It also adds local ghost/crew multiplayer-style race scenarios, longer hot-pursuit escalation, route hideouts such as garages, caves, hangars, barns, mountain tunnels, and marina cover, plus shortcut branches that open different road, water, sky, farm, freight, military, and world-route decisions during races.
 - The v65 close-pass pass widens side-contact detection and makes nearby rivals steer apart faster, so passing reads as side-by-side racing or a scrape instead of the player car visually floating over another vehicle.
 - The v66 visibility pass tightens desktop/WebGL hitboxes to a short road-distance window around the player car, adds route-stage scenery that changes during each race, and draws an actual finish gate/checkered road line so the route has a visible end instead of feeling endless.
+- The v67 pickup-lane pass keeps coins and route markers inside safe painted lanes instead of letting outer pickups project onto the shoulder or off the road during curves.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

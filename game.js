@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 66;
+const starterGarageVersion = 67;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -69,6 +69,7 @@ const upgradeDefs = [
 ];
 
 const paintPalette = ["#1bb7e8", "#ff3348", "#ff8c42", "#ffd166", "#bbf24a", "#f4fbf8", "#ff4fd8", "#36d98a", "#6fffe9", "#dce8ef", "#6d7667", "#3f4a38"];
+const pickupLaneSlots = [-1.42, -0.72, 0, 0.72, 1.42];
 
 const vehicleRaceRules = {
   car: { places: ["coast", "city", "canyon", "alpine", "tokyo", "desert", "rainforest", "europe"], label: "road circuits" },
@@ -2349,6 +2350,20 @@ function spawnRouteFeature() {
   });
 }
 
+function safePickupLane(lane) {
+  const value = Number(lane);
+  if (!Number.isFinite(value)) return 0;
+  return pickupLaneSlots.reduce((best, candidate) => Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best, pickupLaneSlots[0]);
+}
+
+function choosePickupLane() {
+  const sorted = pickupLaneSlots
+    .map((lane) => ({ lane, distanceFromPlayer: Math.abs(lane - (raceState.lane || 0)), jitter: Math.random() }))
+    .sort((a, b) => b.distanceFromPlayer + b.jitter * 0.18 - (a.distanceFromPlayer + a.jitter * 0.18));
+  const preferAway = Math.random() < 0.58 ? sorted.slice(0, 3) : sorted;
+  return preferAway[Math.floor(Math.random() * preferAway.length)].lane;
+}
+
 function updateRouteFeatures(dt) {
   raceState.routeFeatures = Array.isArray(raceState.routeFeatures) ? raceState.routeFeatures : [];
   raceState.routeFeatures.forEach((feature) => {
@@ -2425,7 +2440,7 @@ function fireTankCannon() {
 }
 
 function spawnCoin() {
-  const lane = Math.floor(Math.random() * 5) - 2;
+  const lane = choosePickupLane();
   raceState.coinsOnRoad.push({ lane, distance: roadSpawnDistance(0.35, 0.45), r: 13, pulse: Math.random() * 10 });
 }
 
@@ -2749,6 +2764,7 @@ function moveObjects(dt) {
   });
   const magnet = activeVehicleUpgrades(activeProfile).magnet;
   raceState.coinsOnRoad.forEach((coin) => {
+    coin.lane = safePickupLane(coin.lane);
     ensureRoadDistance(coin, -60);
     const screenY = roadObjectY(coin);
     coin.pulse += dt * 8;
@@ -5508,6 +5524,7 @@ function drawObjects() {
     });
   });
   raceState.coinsOnRoad.forEach((coin) => {
+    coin.lane = safePickupLane(coin.lane);
     const p = roadObjectPos(coin.lane, ensureRoadDistance(coin));
     if (!isVehicleScreenYVisible(p.y)) return;
     draws.push({
