@@ -397,6 +397,7 @@ input:focus {
 }
 
 .race-list,
+.scenario-list,
 .upgrade-list,
 .vehicle-list,
 .mission-list {
@@ -406,6 +407,7 @@ input:focus {
 }
 
 .race-card,
+.scenario-card,
 .upgrade-card,
 .vehicle-card,
 .mission-card {
@@ -413,11 +415,13 @@ input:focus {
 }
 
 .race-card,
+.scenario-card,
 .vehicle-card {
   cursor: pointer;
 }
 
 .race-card.selected,
+.scenario-card.selected,
 .vehicle-card.selected {
   border-color: var(--cyan);
   box-shadow: inset 0 0 0 1px rgba(70, 217, 255, 0.4);
@@ -427,6 +431,17 @@ input:focus {
 .vehicle-card.locked {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+.scenario-list {
+  margin-top: 2px;
+}
+
+.scenario-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(70, 217, 255, 0.08), rgba(187, 242, 74, 0.06));
+  text-align: left;
 }
 
 .vehicle-card {
