@@ -1,5 +1,5 @@
 ﻿<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v64. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, and README/how-to-play notes.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v65. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, and README/how-to-play notes.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -2061,7 +2061,7 @@ const glCanvas = $(&quot;#glCanvas&quot;);
 
 const storeKey = &quot;velocityVaultProfilesV1&quot;;
 const saveKey = &quot;velocityVaultSavedRaceV1&quot;;
-const starterGarageVersion = 64;
+const starterGarageVersion = 65;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -3939,13 +3939,14 @@ function updateOpponents(dt, maxSpeed) {
     opponent.wobble += dt * (0.85 + index * 0.08);
     const homeLane = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : ((index % 5) - 2);
     const flowLane = homeLane * 0.82 + Math.sin(opponent.wobble + opponent.packPhase) * 0.42 + Math.sin(opponent.wobble * 0.47 + index) * 0.18;
+    const closePassWindow = gapToPlayer &gt; -180 &amp;&amp; gapToPlayer &lt; 260;
     const sideFromPlayer = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-    const passSide = gapToPlayer &gt; -80 &amp;&amp; gapToPlayer &lt; 145 ? sideFromPlayer : (index % 2 ? -1 : 1);
-    const clearance = gapToPlayer &gt; -80 &amp;&amp; gapToPlayer &lt; 145 ? 1.55 : 1.08;
+    const passSide = closePassWindow ? sideFromPlayer : (index % 2 ? -1 : 1);
+    const clearance = closePassWindow ? 1.86 : 1.08;
     const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * clearance + Math.sin(opponent.wobble * 1.6) * 0.14));
-    const laneTarget = Math.abs(gapToPlayer) &lt; 170 &amp;&amp; !opponent.wrecked ? duelLane : flowLane;
+    const laneTarget = closePassWindow &amp;&amp; !opponent.wrecked ? duelLane : flowLane;
     if (!opponent.wrecked) {
-      opponent.lane += (laneTarget - opponent.lane) * dt * 0.42 * vehicle.handling * Math.max(0.42, damageDrag);
+      opponent.lane += (laneTarget - opponent.lane) * dt * (closePassWindow ? 1.35 : 0.42) * vehicle.handling * Math.max(0.42, damageDrag);
     }
     opponent.lane += (opponent.laneVelocity || 0) * dt;
     opponent.laneVelocity = (opponent.laneVelocity || 0) * Math.max(0, 1 - dt * (opponent.wrecked ? 0.75 : 1.35));
@@ -3953,18 +3954,21 @@ function updateOpponents(dt, maxSpeed) {
     opponent.spin += (opponent.wrecked ? 1.8 : 0.2) * dt * Math.sign(opponent.laneVelocity || 1);
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
     const phoneMode = phoneGraphicsActive();
-    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) &lt; (phoneMode ? 8 : 12) &amp;&amp; Math.abs(opponent.lane - raceState.lane) &lt; (phoneMode ? 0.26 : 0.34);
+    const laneOverlap = Math.abs(opponent.lane - raceState.lane);
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) &lt; (phoneMode ? 42 : 54) &amp;&amp; laneOverlap &lt; (phoneMode ? 0.72 : 0.78);
     if (wheelToWheel &amp;&amp; opponent.bumpCooldown &lt;= 0 &amp;&amp; raceState.resetTimer &lt;= 0) {
-      opponent.bumpCooldown = phoneMode ? 2.1 : 1.35;
+      opponent.bumpCooldown = phoneMode ? 1.45 : 1.15;
       const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-      opponent.speed *= phoneMode ? 0.86 : 0.78;
-      opponent.laneVelocity += side * (phoneMode ? 1.75 : 1.15);
-      opponent.focus = Math.max(0, opponent.focus - (phoneMode ? 14 : 22));
-      raceState.speed *= phoneMode ? 0.9 : 0.82;
-      raceState.lateralVelocity -= side * (phoneMode ? 0.62 : 0.95);
-      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 5 : 9);
-      applyVehicleDamage((phoneMode ? 4.5 : 12) / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
-      applyOpponentDamage(opponent, (phoneMode ? 16 : 22) / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || &quot;#ffd166&quot;);
+      const shove = 0.82 - Math.min(0.82, laneOverlap);
+      opponent.speed *= phoneMode ? 0.9 : 0.84;
+      opponent.laneVelocity += side * (phoneMode ? 2.25 : 1.75) * (1 + shove);
+      opponent.focus = Math.max(0, opponent.focus - (phoneMode ? 10 : 16));
+      raceState.speed *= phoneMode ? 0.93 : 0.87;
+      raceState.lateralVelocity -= side * (phoneMode ? 0.78 : 1.12) * (1 + shove * 0.65);
+      raceState.lane = Math.max(-2.18, Math.min(2.18, raceState.lane - side * (phoneMode ? 0.055 : 0.07) * (1 + shove)));
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 4 : 7);
+      applyVehicleDamage((phoneMode ? 3.2 : 8) / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
+      applyOpponentDamage(opponent, (phoneMode ? 12 : 17) / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || &quot;#ffd166&quot;);
       burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || &quot;#ffd166&quot;);
       playHitSound(&quot;impact&quot;);
     }
@@ -4127,12 +4131,17 @@ function visiblePlayerVehicleContact(object, kind = &quot;traffic&quot;) {
   const rearForgiveness = phoneMode ? -8 : -14;
   const visible = screenY &gt;= visibleTop &amp;&amp; screenY &lt;= visibleBottom;
   const avoidableOverlap = gap &gt;= rearForgiveness &amp;&amp; gap &lt;= aheadLimit;
+  const sideScrapeLane = kind === &quot;civilian&quot; ? 0.32 : kind === &quot;police&quot; ? (phoneMode ? 0.7 : 0.78) : (phoneMode ? 0.66 : 0.74);
+  const sideScrapeGap = phoneMode
+    ? gap &gt;= -22 &amp;&amp; gap &lt;= (kind === &quot;police&quot; ? 46 : 42)
+    : screenY &gt;= canvas.height * 0.68 &amp;&amp; screenY &lt;= canvas.height * 0.98;
+  const sideScrape = kind !== &quot;civilian&quot; &amp;&amp; contact.laneGap &lt; sideScrapeLane &amp;&amp; visible &amp;&amp; sideScrapeGap;
   return {
     ...contact,
     gap,
     screenY,
     visible,
-    hit: Boolean(contact.laneHit &amp;&amp; contact.yHit &amp;&amp; visible &amp;&amp; avoidableOverlap)
+    hit: Boolean((contact.laneHit &amp;&amp; contact.yHit &amp;&amp; visible &amp;&amp; avoidableOverlap) || sideScrape)
   };
 }
 
@@ -11497,7 +11506,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v64&quot;;
+const cacheName = &quot;velocity-vault-v65&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -11632,6 +11641,7 @@ Real-world style visuals:
 - The v63 progression pass adds vehicle ownership, reputation unlocks, higher vehicle/upgrade pricing, per-vehicle saved builds, paint cycling, player license plates based on callsigns, and route rules so boats stay on water, aircraft race sky routes, tanks use military-style routes with a boost-button cannon, tractors stay on farm rallies, semis run freight, and monster trucks get off-road/arena-style routes.
 - The v63 race pass tightens player hitboxes so hidden traffic should not damage the car from far ahead, spreads online/browser opponents much farther apart, applies the same passing-lane behavior outside phone mode, makes route markers harder to collect, lowers police frequency outside true pursuit conditions, adds civilian penalties, adds selected-route oncoming traffic, and adds stronger day/night lighting with street lamps and vehicle light glow.
 - The v64 scenario pass adds more vehicle models and classes, including rally, drift, buggy, heavy tank, hydroplane, patrol boat, attack helicopter, and jet plane builds. It also adds local ghost/crew multiplayer-style race scenarios, longer hot-pursuit escalation, route hideouts such as garages, caves, hangars, barns, mountain tunnels, and marina cover, plus shortcut branches that open different road, water, sky, farm, freight, military, and world-route decisions during races.
+- The v65 close-pass pass widens side-contact detection and makes nearby rivals steer apart faster, so passing reads as side-by-side racing or a scrape instead of the player car visually floating over another vehicle.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

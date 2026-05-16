@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 64;
+const starterGarageVersion = 65;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -1887,13 +1887,14 @@ function updateOpponents(dt, maxSpeed) {
     opponent.wobble += dt * (0.85 + index * 0.08);
     const homeLane = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : ((index % 5) - 2);
     const flowLane = homeLane * 0.82 + Math.sin(opponent.wobble + opponent.packPhase) * 0.42 + Math.sin(opponent.wobble * 0.47 + index) * 0.18;
+    const closePassWindow = gapToPlayer > -180 && gapToPlayer < 260;
     const sideFromPlayer = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-    const passSide = gapToPlayer > -80 && gapToPlayer < 145 ? sideFromPlayer : (index % 2 ? -1 : 1);
-    const clearance = gapToPlayer > -80 && gapToPlayer < 145 ? 1.55 : 1.08;
+    const passSide = closePassWindow ? sideFromPlayer : (index % 2 ? -1 : 1);
+    const clearance = closePassWindow ? 1.86 : 1.08;
     const duelLane = Math.max(-2.08, Math.min(2.08, raceState.lane + passSide * clearance + Math.sin(opponent.wobble * 1.6) * 0.14));
-    const laneTarget = Math.abs(gapToPlayer) < 170 && !opponent.wrecked ? duelLane : flowLane;
+    const laneTarget = closePassWindow && !opponent.wrecked ? duelLane : flowLane;
     if (!opponent.wrecked) {
-      opponent.lane += (laneTarget - opponent.lane) * dt * 0.42 * vehicle.handling * Math.max(0.42, damageDrag);
+      opponent.lane += (laneTarget - opponent.lane) * dt * (closePassWindow ? 1.35 : 0.42) * vehicle.handling * Math.max(0.42, damageDrag);
     }
     opponent.lane += (opponent.laneVelocity || 0) * dt;
     opponent.laneVelocity = (opponent.laneVelocity || 0) * Math.max(0, 1 - dt * (opponent.wrecked ? 0.75 : 1.35));
@@ -1901,18 +1902,21 @@ function updateOpponents(dt, maxSpeed) {
     opponent.spin += (opponent.wrecked ? 1.8 : 0.2) * dt * Math.sign(opponent.laneVelocity || 1);
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
     const phoneMode = phoneGraphicsActive();
-    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < (phoneMode ? 8 : 12) && Math.abs(opponent.lane - raceState.lane) < (phoneMode ? 0.26 : 0.34);
+    const laneOverlap = Math.abs(opponent.lane - raceState.lane);
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) < (phoneMode ? 42 : 54) && laneOverlap < (phoneMode ? 0.72 : 0.78);
     if (wheelToWheel && opponent.bumpCooldown <= 0 && raceState.resetTimer <= 0) {
-      opponent.bumpCooldown = phoneMode ? 2.1 : 1.35;
+      opponent.bumpCooldown = phoneMode ? 1.45 : 1.15;
       const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
-      opponent.speed *= phoneMode ? 0.86 : 0.78;
-      opponent.laneVelocity += side * (phoneMode ? 1.75 : 1.15);
-      opponent.focus = Math.max(0, opponent.focus - (phoneMode ? 14 : 22));
-      raceState.speed *= phoneMode ? 0.9 : 0.82;
-      raceState.lateralVelocity -= side * (phoneMode ? 0.62 : 0.95);
-      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 5 : 9);
-      applyVehicleDamage((phoneMode ? 4.5 : 12) / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
-      applyOpponentDamage(opponent, (phoneMode ? 16 : 22) / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
+      const shove = 0.82 - Math.min(0.82, laneOverlap);
+      opponent.speed *= phoneMode ? 0.9 : 0.84;
+      opponent.laneVelocity += side * (phoneMode ? 2.25 : 1.75) * (1 + shove);
+      opponent.focus = Math.max(0, opponent.focus - (phoneMode ? 10 : 16));
+      raceState.speed *= phoneMode ? 0.93 : 0.87;
+      raceState.lateralVelocity -= side * (phoneMode ? 0.78 : 1.12) * (1 + shove * 0.65);
+      raceState.lane = Math.max(-2.18, Math.min(2.18, raceState.lane - side * (phoneMode ? 0.055 : 0.07) * (1 + shove)));
+      raceState.cameraShake = Math.max(raceState.cameraShake, phoneMode ? 4 : 7);
+      applyVehicleDamage((phoneMode ? 3.2 : 8) / Math.max(0.72, selectedVehicle().mass), `${opponent.name} side contact`);
+      applyOpponentDamage(opponent, (phoneMode ? 12 : 17) / Math.max(0.74, vehicle.mass), `${opponent.name} damaged`, canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.76, opponent.color || "#ffd166");
       playHitSound("impact");
     }
@@ -2075,12 +2079,17 @@ function visiblePlayerVehicleContact(object, kind = "traffic") {
   const rearForgiveness = phoneMode ? -8 : -14;
   const visible = screenY >= visibleTop && screenY <= visibleBottom;
   const avoidableOverlap = gap >= rearForgiveness && gap <= aheadLimit;
+  const sideScrapeLane = kind === "civilian" ? 0.32 : kind === "police" ? (phoneMode ? 0.7 : 0.78) : (phoneMode ? 0.66 : 0.74);
+  const sideScrapeGap = phoneMode
+    ? gap >= -22 && gap <= (kind === "police" ? 46 : 42)
+    : screenY >= canvas.height * 0.68 && screenY <= canvas.height * 0.98;
+  const sideScrape = kind !== "civilian" && contact.laneGap < sideScrapeLane && visible && sideScrapeGap;
   return {
     ...contact,
     gap,
     screenY,
     visible,
-    hit: Boolean(contact.laneHit && contact.yHit && visible && avoidableOverlap)
+    hit: Boolean((contact.laneHit && contact.yHit && visible && avoidableOverlap) || sideScrape)
   };
 }
 
