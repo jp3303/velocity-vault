@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 65;
+const starterGarageVersion = 66;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -2042,8 +2042,8 @@ function choosePhoneSpawnLane() {
 function playerVehicleContact(object, kind = "traffic") {
   const objectLane = Number(object && object.lane) || 0;
   const laneGap = Math.abs(objectLane - raceState.lane);
+  const gap = ensureRoadDistance(object) - raceState.distance;
   if (phoneGraphicsActive()) {
-    const gap = ensureRoadDistance(object) - raceState.distance;
     const laneLimit = kind === "civilian" ? 0.24 : kind === "police" ? 0.32 : 0.3;
     const aheadLimit = kind === "civilian" ? 18 : kind === "police" ? 28 : 24;
     const behindLimit = kind === "civilian" ? 10 : kind === "police" ? 16 : 14;
@@ -2055,14 +2055,14 @@ function playerVehicleContact(object, kind = "traffic") {
     };
   }
   const screenY = roadObjectY(object);
-  const laneLimit = kind === "civilian" ? 0.36 : kind === "police" ? 0.48 : 0.46;
+  const laneLimit = kind === "civilian" ? 0.3 : kind === "police" ? 0.42 : 0.4;
+  const aheadLimit = kind === "civilian" ? 18 : kind === "police" ? 46 : 40;
+  const behindLimit = kind === "civilian" ? 8 : kind === "police" ? 24 : 22;
+  const screenAligned = screenY > canvas.height * 0.64 && screenY < canvas.height * 1.02;
   return {
     laneHit: laneGap < laneLimit,
-    yHit: kind === "police"
-      ? screenY > canvas.height * 0.72 && screenY < canvas.height * 0.96
-      : kind === "civilian"
-        ? screenY > canvas.height * 0.76 && screenY < canvas.height * 0.98
-        : screenY > canvas.height * 0.74 && screenY < canvas.height * 0.95,
+    yHit: gap > -behindLimit && gap < aheadLimit && screenAligned,
+    gap,
     screenY,
     laneGap
   };
@@ -2075,14 +2075,14 @@ function visiblePlayerVehicleContact(object, kind = "traffic") {
   const phoneMode = phoneGraphicsActive();
   const visibleTop = phoneMode ? canvas.height * 0.5 : canvas.height * 0.58;
   const visibleBottom = phoneMode ? canvas.height * 1.02 : canvas.height * 0.98;
-  const aheadLimit = kind === "civilian" ? 18 : kind === "police" ? 26 : 22;
-  const rearForgiveness = phoneMode ? -8 : -14;
+  const aheadLimit = phoneMode
+    ? (kind === "civilian" ? 18 : kind === "police" ? 26 : 22)
+    : (kind === "civilian" ? 18 : kind === "police" ? 48 : 42);
+  const rearForgiveness = phoneMode ? -8 : kind === "civilian" ? -8 : -26;
   const visible = screenY >= visibleTop && screenY <= visibleBottom;
   const avoidableOverlap = gap >= rearForgiveness && gap <= aheadLimit;
   const sideScrapeLane = kind === "civilian" ? 0.32 : kind === "police" ? (phoneMode ? 0.7 : 0.78) : (phoneMode ? 0.66 : 0.74);
-  const sideScrapeGap = phoneMode
-    ? gap >= -22 && gap <= (kind === "police" ? 46 : 42)
-    : screenY >= canvas.height * 0.68 && screenY <= canvas.height * 0.98;
+  const sideScrapeGap = gap >= (phoneMode ? -22 : -32) && gap <= (kind === "police" ? (phoneMode ? 46 : 60) : (phoneMode ? 42 : 52));
   const sideScrape = kind !== "civilian" && contact.laneGap < sideScrapeLane && visible && sideScrapeGap;
   return {
     ...contact,
@@ -3056,6 +3056,7 @@ function drawFrame() {
     drawRealisticDrivingPass(w, h, theme);
     drawWebGLFlatPavementPass(w, h, theme);
     drawGenAiRacingScenePass(w, h, theme);
+    drawRouteStageLandmarks(w, h, theme);
     drawRouteLightingPass(w, h, theme);
     if (raceState.active) {
       drawObjects();
@@ -3101,6 +3102,7 @@ function drawFrame() {
   drawRoadMotionPass(w, h, theme);
   drawPhoneUltraGraphicsPass(w, h, theme);
   drawGenAiRacingScenePass(w, h, theme);
+  drawRouteStageLandmarks(w, h, theme);
   drawRouteLightingPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
@@ -3135,6 +3137,7 @@ function drawPhoneCanvasFrame(w, h, theme, shake) {
   drawPhoneAssetTexturePass(w, h, theme);
   drawPhoneRoadContrastPass(w, h, theme);
   drawGenAiRacingScenePass(w, h, theme);
+  drawRouteStageLandmarks(w, h, theme);
   drawRouteLightingPass(w, h, theme);
   if (!raceState.active) drawDemoPursuitTraffic(w, h);
   drawObjects();
@@ -3718,6 +3721,243 @@ function drawGenAiRacingScenePass(w, h, theme) {
     drawGenAiTrackProp(prop, x, y, scale, side, design, theme, route, seed + i * 13);
   }
   drawGenAiCrowdAndCameras(w, h, horizon, roadTop, roadBottom, design);
+  ctx.restore();
+}
+
+function routeStageInfo(place = "city", progress = 0) {
+  const stageIndex = Math.max(0, Math.min(3, Math.floor(Math.max(0, Math.min(0.999, progress)) * 4)));
+  const stages = {
+    coast: [["Ocean Cliff", "cliff"], ["Beach Town", "palm"], ["Coastal Bridge", "bridge"], ["Finish Pier", "checkpoint"]],
+    city: [["Lakefront", "tower"], ["Downtown", "crowd"], ["Underpass", "tunnel"], ["Loop Finish", "checkpoint"]],
+    canyon: [["Red Rocks", "cliff"], ["Cave Road", "tunnel"], ["Mesa Sweep", "dune"], ["Canyon Finish", "checkpoint"]],
+    alpine: [["Pine Pass", "pine"], ["Mountain Tunnel", "tunnel"], ["Snow Peaks", "mountain"], ["Summit Finish", "checkpoint"]],
+    harbor: [["Marina", "pier"], ["Container Docks", "crane"], ["Bridge Cut", "bridge"], ["Harbor Finish", "checkpoint"]],
+    snow: [["Aspen Forest", "pine"], ["Ice Village", "village"], ["Snow Tunnel", "tunnel"], ["Winter Finish", "checkpoint"]],
+    airfield: [["Runway", "beacon"], ["Hangars", "hangar"], ["Taxiway", "plane"], ["Airfield Finish", "checkpoint"]],
+    freight: [["Truck Stop", "trailer"], ["Overpass", "bridge"], ["Depot", "hangar"], ["Freight Finish", "checkpoint"]],
+    farm: [["Cornfields", "field"], ["Barn Bend", "barn"], ["Dirt Cut", "tractor"], ["Farm Finish", "checkpoint"]],
+    tokyo: [["Neon Entry", "neon"], ["Expressway", "tower"], ["Tunnel Run", "tunnel"], ["Tokyo Finish", "checkpoint"]],
+    desert: [["Dune Sea", "dune"], ["Oasis Road", "palm"], ["Rock Gate", "cliff"], ["Rally Finish", "checkpoint"]],
+    rainforest: [["Jungle Entry", "canopy"], ["Bridge Bypass", "bridge"], ["Canopy Tunnel", "canopy"], ["Rain Finish", "checkpoint"]],
+    europe: [["Village Road", "village"], ["Switchback", "mountain"], ["Stone Tunnel", "tunnel"], ["Alps Finish", "checkpoint"]]
+  };
+  const selected = (stages[place] || stages.city)[stageIndex];
+  return { index: stageIndex, label: selected[0], prop: selected[1] };
+}
+
+function drawRouteStageLandmarks(w, h, theme) {
+  if (!raceState.active && view !== "race") return;
+  const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const length = raceLength();
+  const progress = length ? Math.max(0, Math.min(1, raceState.distance / length)) : 0;
+  const stage = routeStageInfo(place, progress);
+  const design = genAiSceneDesign(place);
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const phoneMode = phoneGraphicsActive();
+  const seed = hashText(`${place}:${stage.label}:${stage.index}`);
+  ctx.save();
+  ctx.globalAlpha = phoneMode ? 0.72 : 0.82;
+  drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed);
+  const loopSpan = h - horizon + 260;
+  const count = phoneMode ? 13 : 18;
+  for (let i = 0; i < count; i += 1) {
+    const raw = ((i * 132 + (raceState.roadOffset || 0) * (0.72 + seededUnit(seed, i) * 0.22) + stage.index * 43) % loopSpan) - 84;
+    const y = horizon + raw;
+    if (y < horizon - 12 || y > h + 80) continue;
+    const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
+    const side = i % 2 === 0 ? -1 : 1;
+    const center = perspectiveRoadCenter(w, t);
+    const sideOffset = w * (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07);
+    const x = center + side * sideOffset;
+    const scale = 0.38 + t * (phoneMode ? 0.92 : 1.22);
+    const prop = i % 5 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length];
+    drawRouteStageProp(prop, x, y, scale, side, design, theme, seed + i * 17);
+  }
+  drawRouteStageSign(w, h, horizon, stage, design, theme);
+  drawFinishGate(w, h, theme);
+  ctx.restore();
+}
+
+function drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed) {
+  const x = w * (0.5 + Math.sin((raceState.distance || 0) * 0.00008 + seed) * 0.05);
+  const y = horizon + h * 0.035;
+  ctx.save();
+  ctx.globalAlpha *= 0.62;
+  if (stage.prop === "tunnel") {
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(x - w * 0.16, y - h * 0.06, w * 0.32, h * 0.14, 12);
+    ctx.fill();
+    ctx.strokeStyle = `${design.accent}77`;
+    ctx.lineWidth = Math.max(2, w * 0.004);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath();
+    ctx.ellipse(x, y + h * 0.045, w * 0.09, h * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (stage.prop === "bridge") {
+    ctx.strokeStyle = `${design.light}88`;
+    ctx.lineWidth = Math.max(2, w * 0.004);
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.27, y + h * 0.04);
+    ctx.quadraticCurveTo(x, y - h * 0.11, x + w * 0.27, y + h * 0.04);
+    ctx.stroke();
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(x + i * w * 0.07, y - h * 0.045);
+      ctx.lineTo(x + i * w * 0.055, y + h * 0.055);
+      ctx.stroke();
+    }
+  } else if (stage.prop === "checkpoint") {
+    ctx.fillStyle = "rgba(5,8,7,0.72)";
+    roundRect(x - w * 0.13, y - h * 0.055, w * 0.26, h * 0.05, 6);
+    ctx.fill();
+    ctx.strokeStyle = theme[1] || "#46d9ff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = `${design.accent}22`;
+    ctx.beginPath();
+    ctx.ellipse(x, y, w * 0.22, h * 0.045, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRouteStageProp(prop, x, y, scale, side, design, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha *= Math.max(0.42, Math.min(0.96, 0.42 + scale * 0.22));
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  if (prop === "tower" || prop === "neon" || prop === "village") {
+    const bw = prop === "village" ? 52 : 34;
+    const bh = prop === "village" ? 48 : 118;
+    ctx.fillStyle = prop === "neon" ? "rgba(18,10,32,0.9)" : "rgba(10,18,20,0.88)";
+    roundRect(-bw / 2, -bh, bw, bh, 4);
+    ctx.fill();
+    ctx.fillStyle = prop === "neon" ? `${accent}cc` : `${light}99`;
+    for (let i = 0; i < 5; i += 1) ctx.fillRect(-bw * 0.3, -bh + 12 + i * 18, bw * 0.6, 4);
+    if (prop === "village") {
+      ctx.fillStyle = `${light}88`;
+      ctx.beginPath();
+      ctx.moveTo(-bw * 0.6, -bh);
+      ctx.lineTo(0, -bh - 28);
+      ctx.lineTo(bw * 0.6, -bh);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (prop === "palm" || prop === "pine" || prop === "canopy") {
+    ctx.strokeStyle = prop === "palm" ? "rgba(140,100,55,0.9)" : "rgba(30,78,52,0.92)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.lineTo(side * 6, -70);
+    ctx.stroke();
+    ctx.fillStyle = prop === "pine" ? "rgba(34,93,59,0.86)" : "rgba(54,217,138,0.62)";
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.ellipse(side * (4 + i * 3), -70 + i * 12, 36 - i * 7, 12, side * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (prop === "bridge" || prop === "crane" || prop === "beacon") {
+    ctx.strokeStyle = `${light}99`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 16);
+    ctx.lineTo(0, -86);
+    ctx.moveTo(-42 * side, -62);
+    ctx.lineTo(52 * side, -76);
+    ctx.stroke();
+    ctx.fillStyle = `${accent}aa`;
+    ctx.beginPath();
+    ctx.arc(0, -90, 7, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (prop === "hangar" || prop === "barn" || prop === "trailer" || prop === "field" || prop === "tractor") {
+    ctx.fillStyle = prop === "barn" ? "rgba(148,42,34,0.84)" : "rgba(22,29,29,0.84)";
+    roundRect(-54, -42, 108, 54, 5);
+    ctx.fill();
+    ctx.fillStyle = prop === "barn" ? "rgba(255,209,102,0.7)" : `${light}77`;
+    ctx.beginPath();
+    ctx.moveTo(-62, -42);
+    ctx.lineTo(0, -76);
+    ctx.lineTo(62, -42);
+    ctx.closePath();
+    ctx.fill();
+    if (prop === "trailer" || prop === "tractor") {
+      ctx.fillStyle = "rgba(5,8,7,0.9)";
+      ctx.beginPath();
+      ctx.arc(-34, 14, 8, 0, Math.PI * 2);
+      ctx.arc(34, 14, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    ctx.fillStyle = prop === "dune" ? "rgba(255,183,74,0.58)" : prop === "mountain" ? "rgba(130,160,160,0.5)" : "rgba(132,72,38,0.58)";
+    ctx.beginPath();
+    ctx.moveTo(-58, 16);
+    ctx.quadraticCurveTo(-8, -68 - seededUnit(seed, 1) * 28, 64, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.18)";
+    ctx.fillRect(-18, -18, 42, 5);
+  }
+  ctx.restore();
+}
+
+function drawRouteStageSign(w, h, horizon, stage, design, theme) {
+  const x = w * 0.2;
+  const y = horizon + h * 0.08;
+  ctx.save();
+  ctx.globalAlpha *= 0.88;
+  ctx.fillStyle = "rgba(5,8,7,0.78)";
+  roundRect(x - w * 0.095, y - 18, w * 0.19, 38, 6);
+  ctx.fill();
+  ctx.strokeStyle = design.accent || theme[1] || "#46d9ff";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${Math.max(9, Math.min(15, w * 0.013))}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(stage.label.toUpperCase(), x, y + 1);
+  ctx.restore();
+}
+
+function drawFinishGate(w, h, theme) {
+  if (!raceState.active) return;
+  const length = raceLength();
+  const gap = length - raceState.distance;
+  if (gap > 2600 || gap < -420) return;
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const p = roadObjectPos(0, length);
+  const y = Math.max(horizon + h * 0.05, Math.min(h * 0.94, p.y));
+  const scale = Math.max(0.34, Math.min(1.24, p.scale || 1));
+  const half = laneWidth() * (2.15 + scale * 0.65);
+  const x = p.x;
+  const lineH = Math.max(8, 20 * scale);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.48, Math.min(0.96, 1 - Math.max(0, gap - 1800) / 1600));
+  for (let i = 0; i < 12; i += 1) {
+    ctx.fillStyle = i % 2 ? "#050807" : "#f4fbf8";
+    const tileW = (half * 2) / 12;
+    ctx.fillRect(x - half + i * tileW, y + lineH * 0.25, tileW + 1, lineH);
+  }
+  ctx.fillStyle = "rgba(5,8,7,0.82)";
+  roundRect(x - half * 0.92, y - 86 * scale, 12 * scale, 108 * scale, 4 * scale);
+  ctx.fill();
+  roundRect(x + half * 0.92 - 12 * scale, y - 86 * scale, 12 * scale, 108 * scale, 4 * scale);
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.88)";
+  roundRect(x - half * 0.72, y - 104 * scale, half * 1.44, 34 * scale, 5 * scale);
+  ctx.fill();
+  ctx.strokeStyle = theme[1] || "#46d9ff";
+  ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+  ctx.stroke();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${Math.max(9, 17 * scale)}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("FINISH", x, y - 87 * scale);
   ctx.restore();
 }
 
