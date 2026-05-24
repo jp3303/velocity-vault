@@ -459,6 +459,7 @@ input:focus {
 }
 
 .vehicle-preview {
+  --vehicle-color: #46d9ff;
   grid-row: 1 / span 2;
   width: 74px;
   height: 52px;
