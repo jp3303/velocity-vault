@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 68;
+const starterGarageVersion = 69;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -3988,12 +3988,14 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v68:${place}:${route.scene}`);
+  const seed = hashText(`v69:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
+  drawRealWorldRouteSignaturePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldCurveCues(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawRealWorldForegroundDepthPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   ctx.restore();
 }
 
@@ -4141,25 +4143,119 @@ function drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, des
     }
   }
 
+  drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   ctx.globalAlpha = 1;
   ctx.restore();
 }
 
+function drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion) {
+  const phoneMode = phoneGraphicsActive();
+  const hardwareCount = phoneMode ? 8 : 14;
+  const cityRoad = place === "city" || place === "tokyo" || place === "europe" || place === "harbor";
+  for (let i = 0; i < hardwareCount; i += 1) {
+    const y = horizon + (((i * 144 + motion * 0.74 + seed * 0.01) % (h - horizon + 240)) - 70);
+    if (y < horizon || y > h + 42) continue;
+    const t = Math.max(0.04, Math.min(1.04, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = cityRoad ? (i % 3) - 1 : -1.55 + seededUnit(seed, i + 120) * 3.1;
+    const x = realWorldRoadX(w, lane * 0.55, t);
+    const size = (10 + seededUnit(seed, i + 130) * 18) * (0.45 + t);
+    const kind = cityRoad ? (i % 3 === 0 ? "manhole" : i % 3 === 1 ? "drain" : "arrow") : (i % 3 === 0 ? "pothole" : i % 3 === 1 ? "patchedJoint" : "arrow");
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = phoneMode ? 0.12 + t * 0.08 : 0.18 + t * 0.14;
+    if (kind === "manhole") {
+      ctx.fillStyle = "rgba(5,8,7,0.62)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.9, size * 0.34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.26)";
+      ctx.lineWidth = Math.max(1, size * 0.07);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.68, size * 0.25, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let s = -2; s <= 2; s += 1) {
+        ctx.beginPath();
+        ctx.moveTo(s * size * 0.16, -size * 0.2);
+        ctx.lineTo(s * size * 0.16, size * 0.2);
+        ctx.stroke();
+      }
+    } else if (kind === "drain") {
+      ctx.fillStyle = "rgba(5,8,7,0.66)";
+      roundRect(-size * 1.2, -size * 0.22, size * 2.4, size * 0.44, Math.max(2, size * 0.08));
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.22)";
+      ctx.lineWidth = Math.max(1, size * 0.05);
+      for (let s = -3; s <= 3; s += 1) {
+        ctx.beginPath();
+        ctx.moveTo(s * size * 0.28, -size * 0.19);
+        ctx.lineTo(s * size * 0.28, size * 0.19);
+        ctx.stroke();
+      }
+    } else if (kind === "pothole") {
+      ctx.fillStyle = "rgba(0,0,0,0.48)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 1.25, size * 0.34, seededUnit(seed, i + 140) - 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(244,251,248,0.11)";
+      ctx.lineWidth = Math.max(1, size * 0.04);
+      ctx.stroke();
+    } else if (kind === "patchedJoint") {
+      ctx.fillStyle = "rgba(244,251,248,0.18)";
+      roundRect(-size * 1.5, -size * 0.18, size * 3, size * 0.36, Math.max(2, size * 0.08));
+      ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      roundRect(-size * 1.32, -size * 0.09, size * 2.64, size * 0.16, 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "rgba(244,251,248,0.42)";
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 1.35);
+      ctx.lineTo(size * 0.48, -size * 0.22);
+      ctx.lineTo(size * 0.18, -size * 0.22);
+      ctx.lineTo(size * 0.18, size * 1.12);
+      ctx.lineTo(-size * 0.18, size * 1.12);
+      ctx.lineTo(-size * 0.18, -size * 0.22);
+      ctx.lineTo(-size * 0.48, -size * 0.22);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  const shoulderLines = phoneMode ? 4 : 6;
+  for (let side = -1; side <= 1; side += 2) {
+    for (let i = 0; i < shoulderLines; i += 1) {
+      const y = horizon + (((i * 164 + motion * 0.8 + side * 53) % (h - horizon + 260)) - 88);
+      if (y < horizon || y > h + 30) continue;
+      const t = Math.max(0.04, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+      const half = realWorldRoadHalf(roadTop, roadBottom, t);
+      const x = perspectiveRoadCenter(w, t) + side * half * 0.84;
+      ctx.globalAlpha = phoneMode ? 0.1 : 0.18;
+      ctx.strokeStyle = "rgba(244,251,248,0.58)";
+      ctx.lineWidth = Math.max(1, 1.5 + t * 2.5);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + side * (18 + t * 34), y + 1 + t * 2);
+      ctx.stroke();
+    }
+  }
+}
+
 function realWorldPropSet(place) {
   const sets = {
-    coast: ["person", "parked", "palm", "cliff", "fence", "roadSign", "lifeguard"],
-    city: ["building", "person", "parked", "streetlight", "busStop", "roadSign", "fence"],
-    canyon: ["rock", "cliff", "person", "roadSign", "fence", "parked", "telephone"],
-    alpine: ["pine", "mountain", "person", "cabin", "guardrail", "roadSign", "snowbank"],
-    harbor: ["crane", "boat", "person", "warehouse", "streetlight", "parked", "fence"],
-    snow: ["pine", "snowbank", "person", "cabin", "roadSign", "fence", "mountain"],
-    airfield: ["hangar", "beacon", "plane", "person", "fence", "roadSign", "warehouse"],
-    freight: ["trailer", "warehouse", "person", "streetlight", "parked", "roadSign", "fence"],
-    farm: ["barn", "field", "tractor", "person", "fence", "telephone", "roadSign"],
-    tokyo: ["neon", "building", "person", "parked", "streetlight", "busStop", "roadSign"],
-    desert: ["dune", "rock", "person", "roadSign", "fence", "telephone", "parked"],
-    rainforest: ["canopy", "person", "bridge", "fence", "roadSign", "parked", "telephone"],
-    europe: ["village", "mountain", "person", "parked", "streetlight", "roadSign", "fence"]
+    coast: ["person", "parked", "palm", "cliff", "fence", "roadSign", "lifeguard", "pier", "billboard"],
+    city: ["building", "person", "parked", "streetlight", "busStop", "roadSign", "fence", "billboard", "speedCamera"],
+    canyon: ["rock", "cliff", "person", "roadSign", "fence", "parked", "telephone", "mileMarker", "tunnelMouth"],
+    alpine: ["pine", "mountain", "person", "cabin", "guardrail", "roadSign", "snowbank", "tunnelMouth", "mileMarker"],
+    harbor: ["crane", "boat", "person", "warehouse", "streetlight", "parked", "fence", "pier", "container"],
+    snow: ["pine", "snowbank", "person", "cabin", "roadSign", "fence", "mountain", "tunnelMouth", "mileMarker"],
+    airfield: ["hangar", "beacon", "plane", "person", "fence", "roadSign", "warehouse", "radar", "serviceTruck"],
+    freight: ["trailer", "warehouse", "person", "streetlight", "parked", "roadSign", "fence", "fuelStop", "container"],
+    farm: ["barn", "field", "tractor", "person", "fence", "telephone", "roadSign", "silo", "market"],
+    tokyo: ["neon", "building", "person", "parked", "streetlight", "busStop", "roadSign", "billboard", "speedCamera"],
+    desert: ["dune", "rock", "person", "roadSign", "fence", "telephone", "parked", "mileMarker", "tunnelMouth"],
+    rainforest: ["canopy", "person", "bridge", "fence", "roadSign", "parked", "telephone", "market", "waterfall"],
+    europe: ["village", "mountain", "person", "parked", "streetlight", "roadSign", "fence", "tunnelMouth", "market"]
   };
   return sets[place] || sets.city;
 }
@@ -4230,6 +4326,10 @@ function drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme
     drawRoadsideBuilding(kind, side, place, design, theme, seed);
   } else if (kind === "boat" || kind === "plane" || kind === "tractor") {
     drawRoadsideMachine(kind, side, accent, light);
+  } else if (kind === "billboard" || kind === "speedCamera" || kind === "mileMarker") {
+    drawRoadsideServiceSign(kind, side, place, design, theme, seed);
+  } else if (kind === "pier" || kind === "container" || kind === "fuelStop" || kind === "silo" || kind === "market" || kind === "radar" || kind === "serviceTruck" || kind === "tunnelMouth" || kind === "waterfall") {
+    drawRoadsideWorldFixture(kind, side, place, design, theme, seed);
   } else {
     drawRoadsideTerrain(kind, side, place, accent, light);
   }
@@ -4550,6 +4650,169 @@ function drawRoadsideTerrain(kind, side, place, accent, light) {
   ctx.scale(side, 1);
 }
 
+function drawRoadsideServiceSign(kind, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  if (kind === "speedCamera") {
+    ctx.strokeStyle = "rgba(205,218,214,0.72)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.lineTo(0, -58);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.9)";
+    roundRect(-16, -72, 32, 18, 3);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(side * 8, -63, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === "mileMarker") {
+    ctx.fillStyle = "rgba(5,8,7,0.84)";
+    roundRect(-18, -50, 36, 42, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.32)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 8px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("KM", 0, -35);
+    ctx.fillStyle = light;
+    ctx.fillText(String(20 + Math.floor(seededUnit(seed, 4) * 79)), 0, -21);
+  } else {
+    ctx.strokeStyle = "rgba(180,192,188,0.58)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-42, 14);
+    ctx.lineTo(-42, -54);
+    ctx.moveTo(42, 14);
+    ctx.lineTo(42, -54);
+    ctx.stroke();
+    const panel = ctx.createLinearGradient(-62, -92, 62, -48);
+    panel.addColorStop(0, "rgba(5,8,7,0.92)");
+    panel.addColorStop(1, place === "tokyo" ? `${accent}66` : "rgba(20,34,36,0.86)");
+    ctx.fillStyle = panel;
+    roundRect(-66, -94, 132, 42, 5);
+    ctx.fill();
+    ctx.strokeStyle = `${accent}aa`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 9px system-ui";
+    ctx.textAlign = "center";
+    const words = place === "coast" ? "SCENIC DRIVE" : place === "tokyo" ? "EXPRESS" : place === "city" ? "DOWNTOWN" : "NEXT SECTOR";
+    ctx.fillText(words, 0, -75, 112);
+    ctx.fillStyle = `${light}dd`;
+    ctx.font = "800 7px system-ui";
+    ctx.fillText(routeTurnName(raceState.roadTurn || 0).toUpperCase(), 0, -61, 112);
+  }
+  ctx.scale(side, 1);
+  ctx.restore();
+}
+
+function drawRoadsideWorldFixture(kind, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  if (kind === "pier" || kind === "bridge") {
+    ctx.strokeStyle = kind === "pier" ? "rgba(117,86,47,0.74)" : "rgba(205,218,214,0.5)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-76 * side, 4);
+    ctx.lineTo(76 * side, -12);
+    ctx.moveTo(-76 * side, 16);
+    ctx.lineTo(76 * side, 0);
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.moveTo(i * 22 * side, -16);
+      ctx.lineTo(i * 22 * side, 22);
+    }
+    ctx.stroke();
+  } else if (kind === "container") {
+    const colors = ["#ff5b6b", "#46d9ff", "#ffd166", "#dce8ef"];
+    for (let i = 0; i < 3; i += 1) {
+      ctx.fillStyle = colors[(i + Math.floor(seed)) % colors.length];
+      roundRect(-58 + i * 38, -34 - (i % 2) * 22, 34, 24, 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(5,8,7,0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  } else if (kind === "fuelStop" || kind === "market") {
+    ctx.fillStyle = "rgba(10,20,20,0.9)";
+    roundRect(-52, -38, 104, 48, 4);
+    ctx.fill();
+    ctx.fillStyle = kind === "fuelStop" ? `${light}cc` : `${accent}aa`;
+    roundRect(-42, -56, 84, 18, 3);
+    ctx.fill();
+    ctx.fillStyle = "#050807";
+    ctx.font = "900 8px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(kind === "fuelStop" ? "FUEL" : "MARKET", 0, -44, 70);
+    ctx.fillStyle = "rgba(244,251,248,0.18)";
+    ctx.fillRect(-36, -24, 18, 22);
+    ctx.fillRect(16, -24, 18, 22);
+  } else if (kind === "silo") {
+    ctx.fillStyle = "rgba(198,205,198,0.62)";
+    roundRect(-16, -74, 32, 84, 8);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.36)";
+    ctx.beginPath();
+    ctx.ellipse(0, -74, 17, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(148,42,34,0.8)";
+    roundRect(18 * side, -42, 54 * side, 50, 4);
+    ctx.fill();
+  } else if (kind === "radar") {
+    ctx.strokeStyle = "rgba(205,218,214,0.62)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 12);
+    ctx.lineTo(0, -58);
+    ctx.stroke();
+    ctx.strokeStyle = `${accent}99`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -64, 20, Math.PI * 0.08, Math.PI * 0.92);
+    ctx.arc(0, -64, 12, Math.PI * 0.08, Math.PI * 0.92);
+    ctx.stroke();
+  } else if (kind === "serviceTruck") {
+    drawRoadsideParkedVehicle(side, light);
+    ctx.fillStyle = "rgba(5,8,7,0.88)";
+    roundRect(-20, -28, 40, 18, 3);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    roundRect(-5, -36, 10, 8, 2);
+    ctx.fill();
+  } else if (kind === "tunnelMouth") {
+    ctx.fillStyle = "rgba(5,8,7,0.86)";
+    roundRect(-62, -68, 124, 78, 12);
+    ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.58)";
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 42, 38, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `${accent}88`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  } else if (kind === "waterfall") {
+    ctx.fillStyle = "rgba(18,75,45,0.58)";
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 72, 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(222,249,255,0.46)";
+    roundRect(-12, -72, 24, 92, 6);
+    ctx.fill();
+    ctx.fillStyle = "rgba(70,217,255,0.24)";
+    ctx.beginPath();
+    ctx.ellipse(0, 22, 42, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.scale(side, 1);
+  ctx.restore();
+}
+
 function drawRealWorldCurveCues(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
   const turn = raceState.roadTurn || raceState.roadCurve || 0;
   if (Math.abs(turn) < 0.12) return;
@@ -4659,6 +4922,281 @@ function drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed) 
       ctx.stroke();
     }
   }
+  ctx.restore();
+}
+
+function drawRealWorldRouteSignaturePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const route = routeWorldInfo(place);
+  const length = raceLength();
+  const progress = length ? Math.max(0, Math.min(1, raceState.distance / length)) : 0;
+  const stage = routeStageInfo(place, progress);
+  const motion = (raceState.roadOffset || 0) * 0.02;
+  const fixtures = {
+    coast: ["pierRails", "beachHouse", "coastalWall"],
+    city: ["overpass", "officeGlass", "taxiStand"],
+    canyon: ["roadCut", "lookoutRail", "butte"],
+    alpine: ["switchbackWall", "stoneTunnel", "snowFence"],
+    harbor: ["containerYard", "drawBridge", "dockCrane"],
+    snow: ["snowFence", "skiVillage", "stoneTunnel"],
+    airfield: ["runwayBeacon", "hangarRow", "radarTower"],
+    freight: ["interstateGantry", "truckStop", "containerYard"],
+    farm: ["cropRows", "grainElevator", "countyRoad"],
+    tokyo: ["expressGantry", "neonBlocks", "railOverpass"],
+    desert: ["rallyCamp", "roadCut", "duneRidge"],
+    rainforest: ["canopyBridge", "wetMarket", "riverBridge"],
+    europe: ["stoneVillage", "alpsTunnel", "switchbackWall"]
+  };
+  const routeFixtures = fixtures[place] || fixtures.city;
+  ctx.save();
+  ctx.globalAlpha = phoneMode ? 0.35 : 0.5;
+
+  for (let i = 0; i < 8; i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const y = horizon + h * (0.1 + seededUnit(seed, i) * 0.28);
+    const t = Math.max(0.08, Math.min(0.58, (y - horizon) / Math.max(1, h - horizon)));
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.1 + seededUnit(seed, i + 8) * 0.13)) + Math.sin(motion + i) * 14;
+    const scale = 0.42 + t * (phoneMode ? 0.62 : 0.84);
+    drawRouteSignatureFixture(routeFixtures[(i + stage.index) % routeFixtures.length], x, y, scale, side, place, design, theme, seed + i * 41);
+  }
+
+  if (!phoneMode || h > 620) {
+    const signT = 0.22;
+    const signY = horizon + h * 0.12;
+    const signX = perspectiveRoadCenter(w, signT);
+    const signW = Math.min(w * 0.44, 260);
+    ctx.globalAlpha = phoneMode ? 0.32 : 0.48;
+    ctx.fillStyle = "rgba(5,8,7,0.64)";
+    roundRect(signX - signW / 2, signY - 18, signW, 34, 5);
+    ctx.fill();
+    ctx.strokeStyle = `${design.accent || theme[1]}77`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = `900 ${Math.max(8, Math.min(13, w * 0.012))}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${route.country} ${stage.label}`.toUpperCase(), signX, signY - 2, signW - 18);
+    ctx.fillStyle = `${design.light || theme[2]}dd`;
+    ctx.font = `800 ${Math.max(7, Math.min(10, w * 0.01))}px system-ui`;
+    ctx.fillText(route.cue.toUpperCase(), signX, signY + 11, signW - 18);
+  }
+  ctx.restore();
+}
+
+function drawRouteSignatureFixture(kind, x, y, scale, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  if (kind === "overpass" || kind === "expressGantry" || kind === "interstateGantry" || kind === "railOverpass") {
+    ctx.strokeStyle = "rgba(180,192,188,0.52)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-92 * side, -34);
+    ctx.lineTo(92 * side, -42);
+    ctx.moveTo(-76 * side, -34);
+    ctx.lineTo(-76 * side, 24);
+    ctx.moveTo(76 * side, -42);
+    ctx.lineTo(76 * side, 20);
+    ctx.stroke();
+    ctx.fillStyle = kind === "expressGantry" || kind === "railOverpass" ? `${accent}44` : "rgba(5,8,7,0.7)";
+    roundRect(-58, -66, 116, 24, 3);
+    ctx.fill();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 8px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(kind === "interstateGantry" ? "FREIGHT" : kind === "expressGantry" ? "EXPRESS" : "CITY", 0, -52, 92);
+  } else if (kind === "containerYard" || kind === "hangarRow" || kind === "truckStop") {
+    for (let i = 0; i < 5; i += 1) {
+      const px = -70 + i * 34;
+      ctx.fillStyle = i % 2 ? `${accent}66` : "rgba(244,251,248,0.3)";
+      roundRect(px, -36 - (i % 2) * 14, 30, 24, 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "rgba(5,8,7,0.76)";
+    roundRect(-76, -10, 152, 20, 4);
+    ctx.fill();
+  } else if (kind === "officeGlass" || kind === "neonBlocks" || kind === "stoneVillage" || kind === "skiVillage") {
+    for (let i = 0; i < 4; i += 1) {
+      const bw = kind === "stoneVillage" || kind === "skiVillage" ? 38 : 28;
+      const bh = (kind === "stoneVillage" || kind === "skiVillage" ? 34 : 82) + i * 11;
+      const px = -60 + i * 38;
+      ctx.fillStyle = kind === "neonBlocks" ? "rgba(20,10,38,0.76)" : kind === "stoneVillage" || kind === "skiVillage" ? "rgba(76,58,44,0.8)" : "rgba(12,22,26,0.78)";
+      roundRect(px, -bh, bw, bh, 3);
+      ctx.fill();
+      if (kind === "stoneVillage" || kind === "skiVillage") {
+        ctx.fillStyle = kind === "skiVillage" ? "rgba(244,251,248,0.52)" : "rgba(146,64,42,0.82)";
+        ctx.beginPath();
+        ctx.moveTo(px - 4, -bh);
+        ctx.lineTo(px + bw / 2, -bh - 20);
+        ctx.lineTo(px + bw + 4, -bh);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillStyle = i % 2 ? `${accent}88` : `${light}77`;
+        for (let yy = 10; yy < bh - 8; yy += 20) ctx.fillRect(px + 8, -bh + yy, bw - 16, 4);
+      }
+    }
+  } else if (kind === "pierRails" || kind === "drawBridge" || kind === "canopyBridge" || kind === "riverBridge") {
+    ctx.strokeStyle = kind === "pierRails" ? "rgba(117,86,47,0.74)" : `${accent}66`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-90 * side, -8);
+    ctx.lineTo(90 * side, -20);
+    ctx.moveTo(-88 * side, 8);
+    ctx.lineTo(88 * side, -4);
+    for (let i = -4; i <= 4; i += 1) {
+      ctx.moveTo(i * 21 * side, -28);
+      ctx.lineTo(i * 21 * side, 16);
+    }
+    ctx.stroke();
+  } else if (kind === "roadCut" || kind === "butte" || kind === "duneRidge" || kind === "switchbackWall") {
+    ctx.fillStyle = kind === "switchbackWall" ? "rgba(112,132,128,0.42)" : kind === "duneRidge" ? "rgba(255,183,74,0.36)" : "rgba(158,84,48,0.42)";
+    ctx.beginPath();
+    ctx.moveTo(-98, 24);
+    ctx.lineTo(-48, -52);
+    ctx.lineTo(-14, -8);
+    ctx.lineTo(32, -66);
+    ctx.lineTo(96, 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.16)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-62, 4);
+    ctx.quadraticCurveTo(0, -16, 70, 2);
+    ctx.stroke();
+  } else if (kind === "stoneTunnel" || kind === "alpsTunnel") {
+    ctx.fillStyle = "rgba(5,8,7,0.84)";
+    roundRect(-74, -72, 148, 82, 12);
+    ctx.fill();
+    ctx.strokeStyle = `${accent}88`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 50, 42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (kind === "runwayBeacon" || kind === "radarTower") {
+    ctx.strokeStyle = "rgba(205,218,214,0.62)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 18);
+    ctx.lineTo(0, -84);
+    ctx.stroke();
+    ctx.strokeStyle = `${accent}aa`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -88, kind === "radarTower" ? 26 : 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = `${light}aa`;
+    ctx.beginPath();
+    ctx.arc(0, -88, 5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === "cropRows" || kind === "countyRoad" || kind === "grainElevator") {
+    if (kind === "grainElevator") {
+      ctx.fillStyle = "rgba(198,205,198,0.58)";
+      roundRect(-18, -84, 36, 92, 8);
+      ctx.fill();
+      ctx.fillStyle = "rgba(148,42,34,0.78)";
+      roundRect(24 * side, -52, 62 * side, 58, 4);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "rgba(187,242,74,0.28)";
+      ctx.lineWidth = 3;
+      for (let i = -4; i <= 4; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(i * 16, -28);
+        ctx.quadraticCurveTo(i * 18 + side * 18, -6, i * 20 + side * 36, 22);
+        ctx.stroke();
+      }
+    }
+  } else if (kind === "rallyCamp" || kind === "wetMarket" || kind === "beachHouse") {
+    ctx.fillStyle = "rgba(5,8,7,0.72)";
+    roundRect(-56, -38, 112, 46, 5);
+    ctx.fill();
+    ctx.fillStyle = kind === "beachHouse" ? `${light}88` : `${accent}88`;
+    ctx.beginPath();
+    ctx.moveTo(-62, -38);
+    ctx.lineTo(0, -64);
+    ctx.lineTo(62, -38);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.22)";
+    ctx.fillRect(-36, -24, 18, 22);
+    ctx.fillRect(18, -24, 18, 22);
+  } else if (kind === "coastalWall" || kind === "lookoutRail" || kind === "snowFence") {
+    ctx.strokeStyle = kind === "snowFence" ? "rgba(244,251,248,0.48)" : "rgba(205,218,214,0.42)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-88 * side, -4);
+    ctx.lineTo(88 * side, -14);
+    ctx.moveTo(-88 * side, 10);
+    ctx.lineTo(88 * side, 0);
+    for (let i = -4; i <= 4; i += 1) {
+      ctx.moveTo(i * 20 * side, -20);
+      ctx.lineTo(i * 20 * side, 18);
+    }
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = `${accent}33`;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 70, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawRealWorldForegroundDepthPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const alpha = phoneMode ? 0.24 : 0.34;
+  const motion = (raceState.roadOffset || 0) * 1.05;
+  ctx.save();
+  for (let side = -1; side <= 1; side += 2) {
+    const shoulder = ctx.createLinearGradient(0, h * 0.58, 0, h);
+    shoulder.addColorStop(0, "rgba(0,0,0,0)");
+    shoulder.addColorStop(1, place === "snow" ? "rgba(244,251,248,0.16)" : place === "desert" || place === "canyon" ? "rgba(132,72,38,0.18)" : "rgba(5,8,7,0.42)");
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = shoulder;
+    ctx.beginPath();
+    ctx.moveTo(perspectiveRoadCenter(w, 0.58) + side * realWorldRoadHalf(roadTop, roadBottom, 0.58), h * 0.58);
+    ctx.lineTo(side < 0 ? 0 : w, h * 0.58);
+    ctx.lineTo(side < 0 ? 0 : w, h + 10);
+    ctx.lineTo(perspectiveRoadCenter(w, 1) + side * realWorldRoadHalf(roadTop, roadBottom, 1) * 0.86, h + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    const postCount = phoneMode ? 5 : 8;
+    for (let i = 0; i < postCount; i += 1) {
+      const y = h * 0.62 + (((i * 96 + motion + side * 44) % (h * 0.46 + 120)) - 54);
+      if (y < h * 0.58 || y > h + 28) continue;
+      const t = Math.max(0.58, Math.min(1.12, (y - horizon) / Math.max(1, h - horizon)));
+      const half = realWorldRoadHalf(roadTop, roadBottom, t);
+      const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.035 + seededUnit(seed, i + 210) * 0.08));
+      const s = 0.5 + t * 0.72;
+      ctx.globalAlpha = alpha + t * 0.16;
+      if (i % 3 === 0) {
+        ctx.fillStyle = "rgba(5,8,7,0.82)";
+        roundRect(x - side * 4, y - 24 * s, side * 8, 42 * s, 3);
+        ctx.fill();
+        ctx.fillStyle = `${design.accent || theme[1]}88`;
+        ctx.beginPath();
+        ctx.ellipse(x, y - 29 * s, 8 * s, 4 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (i % 3 === 1) {
+        ctx.fillStyle = place === "city" || place === "tokyo" ? "rgba(150,160,156,0.28)" : "rgba(117,86,47,0.3)";
+        roundRect(x - side * 18 * s, y - 4 * s, side * 36 * s, 8 * s, 3);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = place === "snow" ? "rgba(244,251,248,0.52)" : place === "desert" ? "rgba(255,183,74,0.32)" : "rgba(54,217,138,0.24)";
+        ctx.beginPath();
+        ctx.ellipse(x, y, 18 * s, 6 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
   ctx.restore();
 }
 
