@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 73;
+const starterGarageVersion = 74;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -3988,11 +3988,12 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v73:${place}:${route.scene}`);
+  const seed = hashText(`v74:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldRouteAtmospherePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRouteSectorPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawRealWorldLivingRoutePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldPlaceIdentityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldAmbientLifePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldDistrictMotionPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -4034,6 +4035,268 @@ function drawRealWorldRouteSectorPass(w, h, horizon, roadTop, roadBottom, place,
   drawRouteSectorRoadEdgeDetail(w, h, horizon, roadTop, roadBottom, stage, place, design, theme, sectorSeed, motion, phoneMode);
   drawRouteSectorDistantSet(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, sectorSeed, motion, phoneMode);
   drawRouteSectorRoadsideStory(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, sectorSeed, motion, phoneMode);
+  ctx.restore();
+}
+
+function drawRealWorldLivingRoutePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  if (phoneCleanRoadActive()) return;
+  const phoneMode = phoneGraphicsActive();
+  const length = raceLength();
+  const progress = length ? Math.max(0, Math.min(1, raceState.distance / length)) : 0;
+  const stage = routeStageInfo(place, progress);
+  const route = routeWorldInfo(place);
+  const livingSeed = hashText(`v74-living:${place}:${stage.label}:${route.scene}`);
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  ctx.globalAlpha = phoneMode ? 0.42 : 0.58;
+  drawLivingRouteActivityZones(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, livingSeed, motion, phoneMode);
+  drawLivingRoutePeopleClusters(w, h, horizon, roadTop, roadBottom, stage, place, design, theme, livingSeed, motion, phoneMode);
+  drawLivingRouteServiceVehicles(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, livingSeed, motion, phoneMode);
+  ctx.restore();
+}
+
+function livingRouteActivitySet(place, stage) {
+  if (stage.prop === "checkpoint") return ["cameraCrew", "marshalGroup", "finishBarrier", "sponsorTent", "timerBoard"];
+  if (stage.prop === "tunnel") return ["maintenanceTruck", "tunnelCrew", "emergencyBay", "arrowBoard", "serviceDoor"];
+  if (stage.prop === "bridge" || stage.prop === "pier") return ["bridgeCrew", "navLightCrew", "inspectionVan", "barrierCrew", "waterfrontCrowd"];
+  const sets = {
+    coast: ["lifeguardTruck", "beachSpectators", "surfShopStand", "cameraCrew", "roadCrew"],
+    city: ["parkedSedan", "deliveryVan", "sidewalkCrowd", "foodKiosk", "trafficWorker"],
+    canyon: ["rangerTruck", "photoPullout", "supportTent", "roadCrew", "lookoutCrowd"],
+    alpine: ["rescueTruck", "skiSpectators", "chaletStand", "snowCrew", "shuttleVan"],
+    harbor: ["forkliftCrew", "dockWorker", "containerLift", "serviceTruck", "marinaCrowd"],
+    snow: ["plowTruck", "skiSpectators", "warmingTent", "snowCrew", "rescueTruck"],
+    airfield: ["fuelTruck", "baggageCart", "groundCrew", "beaconCrew", "hangarVan"],
+    freight: ["semiParked", "weighCrew", "yardForklift", "fuelTruck", "loadingCrew"],
+    farm: ["farmPickup", "hayCrew", "produceStand", "tractorCrew", "countyCrowd"],
+    tokyo: ["taxiQueue", "neonCrowd", "deliveryVan", "railWorker", "foodKiosk"],
+    desert: ["supportTruck", "rallyCrew", "checkpointTent", "shadeCrew", "waterTruck"],
+    rainforest: ["marketCrowd", "bridgeCrew", "riverGuide", "rainShelter", "supportTruck"],
+    europe: ["villageCrowd", "cafeStand", "marshalGroup", "tourVan", "stoneCrew"]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawLivingRouteActivityZones(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 6 : 10;
+  const set = livingRouteActivitySet(place, stage);
+  ctx.save();
+  for (let i = 0; i < count; i += 1) {
+    const y = horizon + (((i * 156 + motion * 0.54 + stage.index * 73 + seed * 0.003) % (h - horizon + 250)) - 78);
+    if (y < horizon + 2 || y > h + 80) continue;
+    const t = Math.max(0.06, Math.min(1.12, (y - horizon) / Math.max(1, h - horizon)));
+    const side = i % 2 === 0 ? -1 : 1;
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const x = perspectiveRoadCenter(w, t) + side * (half * (0.98 + seededUnit(seed, i + 11) * 0.36) + w * 0.04);
+    const scale = (0.36 + t * (phoneMode ? 0.82 : 1.08));
+    const kind = set[(i + Math.floor(seed % set.length)) % set.length];
+    drawLivingRouteActivityProp(kind, x, y, scale, side, route, place, design, theme, seed + i * 47);
+  }
+  ctx.restore();
+}
+
+function drawLivingRoutePeopleClusters(w, h, horizon, roadTop, roadBottom, stage, place, design, theme, seed, motion, phoneMode) {
+  const clusters = phoneMode ? 5 : 9;
+  ctx.save();
+  ctx.globalAlpha *= phoneMode ? 0.72 : 0.84;
+  for (let i = 0; i < clusters; i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const y = horizon + (((i * 181 + motion * 0.46 + stage.index * 39) % (h - horizon + 240)) - 82);
+    if (y < horizon || y > h + 72) continue;
+    const t = Math.max(0.05, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const x = perspectiveRoadCenter(w, t) + side * (half * (1.05 + seededUnit(seed, i + 70) * 0.42) + w * 0.02);
+    const scale = 0.34 + t * (phoneMode ? 0.66 : 0.86);
+    drawLivingPeopleCluster(x, y, scale, side, place, design, theme, seed + i * 61);
+  }
+  ctx.restore();
+}
+
+function drawLivingRouteServiceVehicles(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 4 : 7;
+  const set = livingRouteServiceVehicleSet(place, stage);
+  ctx.save();
+  ctx.globalAlpha *= phoneMode ? 0.68 : 0.82;
+  for (let i = 0; i < count; i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const y = horizon + (((i * 226 + motion * 0.36 + seed * 0.004) % (h - horizon + 260)) - 88);
+    if (y < horizon + 8 || y > h + 86) continue;
+    const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const x = perspectiveRoadCenter(w, t) + side * (half * (1.16 + seededUnit(seed, i + 120) * 0.34) + w * 0.035);
+    const scale = 0.38 + t * (phoneMode ? 0.72 : 0.94);
+    const kind = set[(i + stage.index) % set.length];
+    drawLivingServiceVehicle(kind, x, y, scale, side, route, place, design, theme, seed + i * 71);
+  }
+  ctx.restore();
+}
+
+function livingRouteServiceVehicleSet(place, stage) {
+  if (stage.prop === "checkpoint") return ["marshalCar", "cameraVan", "medicalCart"];
+  if (stage.prop === "tunnel") return ["maintenanceTruck", "arrowTruck", "rescueVan"];
+  if (stage.prop === "bridge" || stage.prop === "pier") return ["inspectionVan", "utilityTruck", "serviceCart"];
+  const sets = {
+    coast: ["lifeguardTruck", "cameraVan", "utilityTruck"],
+    city: ["deliveryVan", "taxiQueue", "utilityTruck"],
+    canyon: ["rangerTruck", "supportTruck", "cameraVan"],
+    alpine: ["rescueVan", "shuttleVan", "snowService"],
+    harbor: ["yardForklift", "utilityTruck", "dockCart"],
+    snow: ["plowTruck", "rescueVan", "snowService"],
+    airfield: ["fuelTruck", "baggageCart", "serviceCart"],
+    freight: ["semiParked", "fuelTruck", "yardForklift"],
+    farm: ["farmPickup", "tractorCrew", "utilityTruck"],
+    tokyo: ["taxiQueue", "deliveryVan", "serviceCart"],
+    desert: ["supportTruck", "waterTruck", "cameraVan"],
+    rainforest: ["supportTruck", "marketVan", "utilityTruck"],
+    europe: ["tourVan", "marshalCar", "utilityTruck"]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawLivingRouteActivityProp(kind, x, y, scale, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "rgba(0,0,0,0.24)";
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 56, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (kind.includes("Tent") || kind.includes("Stand") || kind.includes("Kiosk") || kind.includes("Shelter") || kind.includes("Shop") || kind.includes("Awning")) {
+    ctx.fillStyle = "rgba(5,8,7,0.72)";
+    roundRect(-52, -38, 104, 56, 6);
+    ctx.fill();
+    ctx.fillStyle = `${accent}88`;
+    ctx.beginPath();
+    ctx.moveTo(-62, -38);
+    ctx.lineTo(0, -70);
+    ctx.lineTo(62, -38);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = `${light}88`;
+    ctx.fillRect(-38, -18, 76, 6);
+  } else if (kind.includes("Crew") || kind.includes("Worker") || kind.includes("Spectators") || kind.includes("Crowd") || kind.includes("Group")) {
+    drawLivingPeopleCluster(0, 2, 1, side, place, design, theme, seed);
+    ctx.strokeStyle = `${light}66`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-58 * side, 12);
+    ctx.lineTo(58 * side, 4);
+    ctx.stroke();
+  } else if (kind.includes("Barrier") || kind === "arrowBoard" || kind === "timerBoard") {
+    ctx.strokeStyle = `${light}70`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-64, 12);
+    ctx.lineTo(64, 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.78)";
+    roundRect(-42, -42, 84, 30, 5);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.font = "900 9px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(kind === "timerBoard" ? "TIME" : "KEEP OUT", 0, -23, 70);
+  } else {
+    drawLivingServiceVehicle(kind, 0, 0, 0.9, side, route, place, design, theme, seed);
+  }
+  ctx.restore();
+}
+
+function drawLivingPeopleCluster(x, y, scale, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  const coats = [accent, light, "#f4fbf8", "#ff5b6b", "#36d98a"];
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  const count = 5 + Math.floor(seededUnit(seed, 2) * 5);
+  for (let i = 0; i < count; i += 1) {
+    const px = (i - count / 2) * 12 * side + Math.sin(seed + i) * 3;
+    const py = -8 + (i % 3) * 5;
+    ctx.fillStyle = coats[(i + Math.floor(seed)) % coats.length];
+    ctx.beginPath();
+    ctx.arc(px, py - 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `${coats[(i + 1) % coats.length]}cc`;
+    roundRect(px - 4, py - 10, 8, 18, 3);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(5,8,7,0.44)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px - 5, py + 8);
+    ctx.lineTo(px - 8, py + 16);
+    ctx.moveTo(px + 5, py + 8);
+    ctx.lineTo(px + 8, py + 16);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawLivingServiceVehicle(kind, x, y, scale, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  const longBody = kind.includes("Truck") || kind.includes("semi") || kind.includes("fuel") || kind.includes("plow") || kind.includes("maintenance") || kind.includes("arrow");
+  const compact = kind.includes("Cart") || kind.includes("Forklift") || kind.includes("baggage") || kind.includes("tractor");
+  const paint = kind.includes("rescue") || kind.includes("medical") ? "#f4fbf8"
+    : kind.includes("fuel") || kind.includes("taxi") ? "#ffd166"
+      : kind.includes("farm") || kind.includes("tractor") ? "#36d98a"
+        : kind.includes("plow") || kind.includes("snow") ? "#dce8ef"
+          : accent;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * side, scale);
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, 18, longBody ? 62 : 44, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = paint;
+  if (compact) {
+    roundRect(-30, -18, 60, 32, 5);
+  } else {
+    roundRect(longBody ? -58 : -42, -22, longBody ? 116 : 84, 38, 6);
+  }
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.78)";
+  ctx.fillRect(longBody ? -40 : -24, -14, longBody ? 28 : 20, 13);
+  ctx.fillRect(longBody ? 8 : 8, -14, longBody ? 30 : 20, 13);
+  ctx.fillStyle = "#050807";
+  ctx.beginPath();
+  ctx.arc(longBody ? -38 : -26, 18, 8, 0, Math.PI * 2);
+  ctx.arc(longBody ? 38 : 26, 18, 8, 0, Math.PI * 2);
+  ctx.fill();
+  if (kind.includes("arrow")) {
+    ctx.fillStyle = "rgba(5,8,7,0.86)";
+    roundRect(12, -48, 48, 24, 4);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(24, -42);
+    ctx.lineTo(48, -36);
+    ctx.lineTo(24, -30);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind.includes("plow")) {
+    ctx.fillStyle = `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(58, -10);
+    ctx.lineTo(82, 8);
+    ctx.lineTo(58, 24);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind.includes("fuel")) {
+    ctx.strokeStyle = "rgba(5,8,7,0.54)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(10, -2, 16, 0, Math.PI * 2);
+    ctx.stroke();
+  } else if (kind.includes("marshal") || kind.includes("camera")) {
+    ctx.fillStyle = `${light}aa`;
+    ctx.beginPath();
+    ctx.arc(0, -28, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
