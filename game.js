@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 74;
+const starterGarageVersion = 75;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -3988,7 +3988,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v74:${place}:${route.scene}`);
+  const seed = hashText(`v75:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldRouteAtmospherePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -4000,6 +4000,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldRouteSignaturePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawRealWorldSurfaceLightingPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldPavementStoryPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadRulePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldLightShadowPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -5323,6 +5324,174 @@ function drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, des
 
   drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawRealWorldSurfaceLightingPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const cleanPhone = phoneCleanRoadActive();
+  const profile = realWorldSurfaceLightingProfile(place);
+  const speedFactor = Math.min(1.5, Math.max(0.18, (raceState.speed || 0) / 180));
+  const motion = (raceState.roadOffset || 0) * (0.74 + speedFactor * 0.42);
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  drawSurfaceCrownAndShoulderLight(w, h, horizon, roadTop, roadBottom, profile, design, theme, phoneMode);
+  if (!cleanPhone) {
+    drawSurfaceMaterialStreaks(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+    drawSurfaceTireRubberAndSeams(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+  }
+  drawSurfaceMovingReflectionPass(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function realWorldSurfaceLightingProfile(place) {
+  const profiles = {
+    coast: { sheen: "spray", highlight: "rgba(70,217,255,0.26)", shadow: "rgba(4,14,17,0.24)", material: "salt" },
+    city: { sheen: "wet", highlight: "rgba(244,251,248,0.22)", shadow: "rgba(0,0,0,0.3)", material: "asphalt" },
+    canyon: { sheen: "dry", highlight: "rgba(255,183,74,0.18)", shadow: "rgba(62,25,10,0.28)", material: "dust" },
+    alpine: { sheen: "snow", highlight: "rgba(244,251,248,0.3)", shadow: "rgba(22,43,48,0.25)", material: "ice" },
+    harbor: { sheen: "wet", highlight: "rgba(70,217,255,0.24)", shadow: "rgba(0,0,0,0.32)", material: "dock" },
+    snow: { sheen: "snow", highlight: "rgba(244,251,248,0.34)", shadow: "rgba(22,43,48,0.28)", material: "ice" },
+    airfield: { sheen: "runway", highlight: "rgba(255,209,102,0.22)", shadow: "rgba(0,0,0,0.24)", material: "runway" },
+    freight: { sheen: "industrial", highlight: "rgba(255,209,102,0.2)", shadow: "rgba(0,0,0,0.3)", material: "diesel" },
+    farm: { sheen: "dry", highlight: "rgba(187,242,74,0.14)", shadow: "rgba(62,42,18,0.26)", material: "dirt" },
+    tokyo: { sheen: "night", highlight: "rgba(255,79,216,0.28)", shadow: "rgba(0,0,0,0.36)", material: "wetNeon" },
+    desert: { sheen: "heat", highlight: "rgba(255,183,74,0.22)", shadow: "rgba(72,38,14,0.26)", material: "sand" },
+    rainforest: { sheen: "wet", highlight: "rgba(54,217,138,0.22)", shadow: "rgba(0,24,12,0.32)", material: "mud" },
+    europe: { sheen: "stone", highlight: "rgba(220,232,239,0.22)", shadow: "rgba(0,0,0,0.26)", material: "stone" }
+  };
+  return profiles[place] || profiles.city;
+}
+
+function drawSurfaceCrownAndShoulderLight(w, h, horizon, roadTop, roadBottom, profile, design, theme, phoneMode) {
+  const rows = phoneMode ? 7 : 10;
+  ctx.save();
+  ctx.globalAlpha = phoneMode ? 0.14 : 0.2;
+  for (let i = 0; i < rows; i += 1) {
+    const t = 0.1 + i / rows * 0.94;
+    const y = horizon + (h - horizon) * t;
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * 0.66;
+    const glintW = Math.max(10, half * (0.16 + t * 0.08));
+    const glintH = Math.max(2, 4 + t * 14);
+    const crown = ctx.createLinearGradient(center - half, y, center + half, y);
+    crown.addColorStop(0, profile.shadow);
+    crown.addColorStop(0.42, "rgba(255,255,255,0)");
+    crown.addColorStop(0.5, profile.highlight);
+    crown.addColorStop(0.58, "rgba(255,255,255,0)");
+    crown.addColorStop(1, profile.shadow);
+    ctx.fillStyle = crown;
+    roundRect(center - half, y - glintH * 0.5, half * 2, glintH, Math.max(2, glintH * 0.35));
+    ctx.fill();
+    if (profile.sheen === "night" || profile.sheen === "wet") {
+      ctx.globalCompositeOperation = "screen";
+      ctx.fillStyle = profile.highlight;
+      roundRect(center - glintW / 2, y - glintH * 0.5, glintW, glintH, glintH * 0.5);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+    }
+  }
+  ctx.restore();
+}
+
+function drawSurfaceMaterialStreaks(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 10 : 18;
+  ctx.save();
+  for (let i = 0; i < count; i += 1) {
+    const y = horizon + (((i * 91 + motion * 0.8 + seed * 0.002) % (h - horizon + 180)) - 54);
+    if (y < horizon || y > h + 28) continue;
+    const t = Math.max(0.05, Math.min(1.06, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = -1.55 + seededUnit(seed, i + 30) * 3.1;
+    const x = realWorldRoadX(w, lane, t);
+    const len = (22 + seededUnit(seed, i + 40) * 86) * (0.38 + t);
+    const thickness = (2 + seededUnit(seed, i + 50) * 8) * (0.44 + t * 0.8);
+    const style = surfaceMaterialStyle(profile.material, design, theme, seed + i);
+    ctx.globalAlpha = phoneMode ? 0.08 + t * 0.045 : 0.12 + t * 0.09;
+    ctx.fillStyle = style;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((seededUnit(seed, i + 60) - 0.5) * 0.12);
+    roundRect(-len / 2, -thickness / 2, len, thickness, Math.max(1.5, thickness * 0.45));
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function surfaceMaterialStyle(material, design, theme, seed) {
+  if (material === "ice") return seededUnit(seed, 1) > 0.5 ? "rgba(244,251,248,0.42)" : "rgba(70,217,255,0.2)";
+  if (material === "sand" || material === "dust") return "rgba(255,183,74,0.3)";
+  if (material === "dirt" || material === "mud") return material === "mud" ? "rgba(16,50,28,0.36)" : "rgba(117,86,47,0.34)";
+  if (material === "runway") return "rgba(255,209,102,0.28)";
+  if (material === "diesel") return seededUnit(seed, 2) > 0.55 ? "rgba(0,0,0,0.38)" : "rgba(255,209,102,0.2)";
+  if (material === "wetNeon") return seededUnit(seed, 3) > 0.45 ? `${design.accent || theme[1]}44` : "rgba(244,251,248,0.2)";
+  if (material === "salt") return "rgba(244,251,248,0.22)";
+  if (material === "stone") return "rgba(220,232,239,0.2)";
+  return "rgba(0,0,0,0.28)";
+}
+
+function drawSurfaceTireRubberAndSeams(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const seamCount = phoneMode ? 7 : 12;
+  ctx.save();
+  ctx.lineCap = "round";
+  for (let i = 0; i < seamCount; i += 1) {
+    const y = horizon + (((i * 128 + motion * 0.62 + seed * 0.004) % (h - horizon + 220)) - 74);
+    if (y < horizon || y > h + 34) continue;
+    const t = Math.max(0.05, Math.min(1.05, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = i % 3 === 0 ? 0 : i % 2 === 0 ? -0.72 : 0.72;
+    const x = realWorldRoadX(w, lane, t);
+    const len = (52 + seededUnit(seed, i + 140) * 112) * (0.42 + t * 0.9);
+    ctx.globalAlpha = phoneMode ? 0.09 + t * 0.05 : 0.13 + t * 0.08;
+    ctx.strokeStyle = profile.sheen === "snow" ? "rgba(22,43,48,0.24)" : "rgba(0,0,0,0.36)";
+    ctx.lineWidth = Math.max(1, (1.4 + t * 3.2) * (i % 3 === 0 ? 1.2 : 0.75));
+    ctx.beginPath();
+    ctx.moveTo(x - len * 0.45, y);
+    ctx.quadraticCurveTo(x, y + Math.sin(seed + i) * 4, x + len * 0.48, y + 1 + t * 2);
+    ctx.stroke();
+    if (i % 4 === 0) {
+      drawPerspectivePavementQuad(w, horizon, lane, y + 10 + t * 8, 3 + t * 9, laneWidth() * (0.46 + t * 0.18), "rgba(244,251,248,0.12)");
+    }
+  }
+  ctx.restore();
+}
+
+function drawSurfaceMovingReflectionPass(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 5 : 9;
+  const night = profile.sheen === "night" || raceIsNight(selectedRace);
+  const wet = profile.sheen === "wet" || profile.sheen === "spray" || profile.sheen === "night" || profile.sheen === "snow";
+  ctx.save();
+  if (wet || night) ctx.globalCompositeOperation = "screen";
+  for (let i = 0; i < count; i += 1) {
+    const y = horizon + (((i * 176 + motion * 0.5 + seed * 0.005) % (h - horizon + 260)) - 86);
+    if (y < horizon || y > h + 46) continue;
+    const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = i % 2 === 0 ? -1.1 : 1.1;
+    const x = realWorldRoadX(w, lane + (seededUnit(seed, i + 210) - 0.5) * 0.5, t);
+    const width = (22 + seededUnit(seed, i + 220) * 76) * (0.42 + t);
+    const height = (5 + seededUnit(seed, i + 230) * 18) * (0.46 + t * 0.72);
+    const color = wet ? profile.highlight : surfaceMaterialStyle(profile.material, design, theme, seed + i);
+    ctx.globalAlpha = phoneMode ? 0.07 + t * 0.06 : 0.1 + t * 0.09;
+    const grad = ctx.createRadialGradient(x, y, 1, x, y, Math.max(width, height));
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(x, y, width, height, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+  if (profile.sheen === "heat") {
+    ctx.globalAlpha = phoneMode ? 0.08 : 0.12;
+    ctx.strokeStyle = "rgba(255,183,74,0.32)";
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 6; i += 1) {
+      const y = horizon + h * (0.09 + i * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.28, y);
+      ctx.bezierCurveTo(w * 0.38, y - 8, w * 0.56, y + 8, w * 0.72, y - 3);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 

@@ -1,5 +1,5 @@
 ﻿<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v74. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, README/how-to-play notes, expanded real-world detail passes, and the v74 living-world roadside activity layer.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v75. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, README/how-to-play notes, expanded real-world detail passes, and the v75 surface-lighting road material layer.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -2062,7 +2062,7 @@ const glCanvas = $(&quot;#glCanvas&quot;);
 
 const storeKey = &quot;velocityVaultProfilesV1&quot;;
 const saveKey = &quot;velocityVaultSavedRaceV1&quot;;
-const starterGarageVersion = 74;
+const starterGarageVersion = 75;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -6041,7 +6041,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === &quot;cockpit&quot; ? h * 0.27 : cameraMode === &quot;hood&quot; ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === &quot;cockpit&quot; ? w * 0.11 : cameraMode === &quot;hood&quot; ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === &quot;cockpit&quot; ? w * 1.02 : cameraMode === &quot;hood&quot; ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v74:${place}:${route.scene}`);
+  const seed = hashText(`v75:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldRouteAtmospherePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -6053,6 +6053,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldRouteSignaturePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawRealWorldSurfaceLightingPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldPavementStoryPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRoadRulePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldLightShadowPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -7376,6 +7377,174 @@ function drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, des
 
   drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawRealWorldSurfaceLightingPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const cleanPhone = phoneCleanRoadActive();
+  const profile = realWorldSurfaceLightingProfile(place);
+  const speedFactor = Math.min(1.5, Math.max(0.18, (raceState.speed || 0) / 180));
+  const motion = (raceState.roadOffset || 0) * (0.74 + speedFactor * 0.42);
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  drawSurfaceCrownAndShoulderLight(w, h, horizon, roadTop, roadBottom, profile, design, theme, phoneMode);
+  if (!cleanPhone) {
+    drawSurfaceMaterialStreaks(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+    drawSurfaceTireRubberAndSeams(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+  }
+  drawSurfaceMovingReflectionPass(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function realWorldSurfaceLightingProfile(place) {
+  const profiles = {
+    coast: { sheen: &quot;spray&quot;, highlight: &quot;rgba(70,217,255,0.26)&quot;, shadow: &quot;rgba(4,14,17,0.24)&quot;, material: &quot;salt&quot; },
+    city: { sheen: &quot;wet&quot;, highlight: &quot;rgba(244,251,248,0.22)&quot;, shadow: &quot;rgba(0,0,0,0.3)&quot;, material: &quot;asphalt&quot; },
+    canyon: { sheen: &quot;dry&quot;, highlight: &quot;rgba(255,183,74,0.18)&quot;, shadow: &quot;rgba(62,25,10,0.28)&quot;, material: &quot;dust&quot; },
+    alpine: { sheen: &quot;snow&quot;, highlight: &quot;rgba(244,251,248,0.3)&quot;, shadow: &quot;rgba(22,43,48,0.25)&quot;, material: &quot;ice&quot; },
+    harbor: { sheen: &quot;wet&quot;, highlight: &quot;rgba(70,217,255,0.24)&quot;, shadow: &quot;rgba(0,0,0,0.32)&quot;, material: &quot;dock&quot; },
+    snow: { sheen: &quot;snow&quot;, highlight: &quot;rgba(244,251,248,0.34)&quot;, shadow: &quot;rgba(22,43,48,0.28)&quot;, material: &quot;ice&quot; },
+    airfield: { sheen: &quot;runway&quot;, highlight: &quot;rgba(255,209,102,0.22)&quot;, shadow: &quot;rgba(0,0,0,0.24)&quot;, material: &quot;runway&quot; },
+    freight: { sheen: &quot;industrial&quot;, highlight: &quot;rgba(255,209,102,0.2)&quot;, shadow: &quot;rgba(0,0,0,0.3)&quot;, material: &quot;diesel&quot; },
+    farm: { sheen: &quot;dry&quot;, highlight: &quot;rgba(187,242,74,0.14)&quot;, shadow: &quot;rgba(62,42,18,0.26)&quot;, material: &quot;dirt&quot; },
+    tokyo: { sheen: &quot;night&quot;, highlight: &quot;rgba(255,79,216,0.28)&quot;, shadow: &quot;rgba(0,0,0,0.36)&quot;, material: &quot;wetNeon&quot; },
+    desert: { sheen: &quot;heat&quot;, highlight: &quot;rgba(255,183,74,0.22)&quot;, shadow: &quot;rgba(72,38,14,0.26)&quot;, material: &quot;sand&quot; },
+    rainforest: { sheen: &quot;wet&quot;, highlight: &quot;rgba(54,217,138,0.22)&quot;, shadow: &quot;rgba(0,24,12,0.32)&quot;, material: &quot;mud&quot; },
+    europe: { sheen: &quot;stone&quot;, highlight: &quot;rgba(220,232,239,0.22)&quot;, shadow: &quot;rgba(0,0,0,0.26)&quot;, material: &quot;stone&quot; }
+  };
+  return profiles[place] || profiles.city;
+}
+
+function drawSurfaceCrownAndShoulderLight(w, h, horizon, roadTop, roadBottom, profile, design, theme, phoneMode) {
+  const rows = phoneMode ? 7 : 10;
+  ctx.save();
+  ctx.globalAlpha = phoneMode ? 0.14 : 0.2;
+  for (let i = 0; i &lt; rows; i += 1) {
+    const t = 0.1 + i / rows * 0.94;
+    const y = horizon + (h - horizon) * t;
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * 0.66;
+    const glintW = Math.max(10, half * (0.16 + t * 0.08));
+    const glintH = Math.max(2, 4 + t * 14);
+    const crown = ctx.createLinearGradient(center - half, y, center + half, y);
+    crown.addColorStop(0, profile.shadow);
+    crown.addColorStop(0.42, &quot;rgba(255,255,255,0)&quot;);
+    crown.addColorStop(0.5, profile.highlight);
+    crown.addColorStop(0.58, &quot;rgba(255,255,255,0)&quot;);
+    crown.addColorStop(1, profile.shadow);
+    ctx.fillStyle = crown;
+    roundRect(center - half, y - glintH * 0.5, half * 2, glintH, Math.max(2, glintH * 0.35));
+    ctx.fill();
+    if (profile.sheen === &quot;night&quot; || profile.sheen === &quot;wet&quot;) {
+      ctx.globalCompositeOperation = &quot;screen&quot;;
+      ctx.fillStyle = profile.highlight;
+      roundRect(center - glintW / 2, y - glintH * 0.5, glintW, glintH, glintH * 0.5);
+      ctx.fill();
+      ctx.globalCompositeOperation = &quot;source-over&quot;;
+    }
+  }
+  ctx.restore();
+}
+
+function drawSurfaceMaterialStreaks(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 10 : 18;
+  ctx.save();
+  for (let i = 0; i &lt; count; i += 1) {
+    const y = horizon + (((i * 91 + motion * 0.8 + seed * 0.002) % (h - horizon + 180)) - 54);
+    if (y &lt; horizon || y &gt; h + 28) continue;
+    const t = Math.max(0.05, Math.min(1.06, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = -1.55 + seededUnit(seed, i + 30) * 3.1;
+    const x = realWorldRoadX(w, lane, t);
+    const len = (22 + seededUnit(seed, i + 40) * 86) * (0.38 + t);
+    const thickness = (2 + seededUnit(seed, i + 50) * 8) * (0.44 + t * 0.8);
+    const style = surfaceMaterialStyle(profile.material, design, theme, seed + i);
+    ctx.globalAlpha = phoneMode ? 0.08 + t * 0.045 : 0.12 + t * 0.09;
+    ctx.fillStyle = style;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((seededUnit(seed, i + 60) - 0.5) * 0.12);
+    roundRect(-len / 2, -thickness / 2, len, thickness, Math.max(1.5, thickness * 0.45));
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function surfaceMaterialStyle(material, design, theme, seed) {
+  if (material === &quot;ice&quot;) return seededUnit(seed, 1) &gt; 0.5 ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(70,217,255,0.2)&quot;;
+  if (material === &quot;sand&quot; || material === &quot;dust&quot;) return &quot;rgba(255,183,74,0.3)&quot;;
+  if (material === &quot;dirt&quot; || material === &quot;mud&quot;) return material === &quot;mud&quot; ? &quot;rgba(16,50,28,0.36)&quot; : &quot;rgba(117,86,47,0.34)&quot;;
+  if (material === &quot;runway&quot;) return &quot;rgba(255,209,102,0.28)&quot;;
+  if (material === &quot;diesel&quot;) return seededUnit(seed, 2) &gt; 0.55 ? &quot;rgba(0,0,0,0.38)&quot; : &quot;rgba(255,209,102,0.2)&quot;;
+  if (material === &quot;wetNeon&quot;) return seededUnit(seed, 3) &gt; 0.45 ? `${design.accent || theme[1]}44` : &quot;rgba(244,251,248,0.2)&quot;;
+  if (material === &quot;salt&quot;) return &quot;rgba(244,251,248,0.22)&quot;;
+  if (material === &quot;stone&quot;) return &quot;rgba(220,232,239,0.2)&quot;;
+  return &quot;rgba(0,0,0,0.28)&quot;;
+}
+
+function drawSurfaceTireRubberAndSeams(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const seamCount = phoneMode ? 7 : 12;
+  ctx.save();
+  ctx.lineCap = &quot;round&quot;;
+  for (let i = 0; i &lt; seamCount; i += 1) {
+    const y = horizon + (((i * 128 + motion * 0.62 + seed * 0.004) % (h - horizon + 220)) - 74);
+    if (y &lt; horizon || y &gt; h + 34) continue;
+    const t = Math.max(0.05, Math.min(1.05, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = i % 3 === 0 ? 0 : i % 2 === 0 ? -0.72 : 0.72;
+    const x = realWorldRoadX(w, lane, t);
+    const len = (52 + seededUnit(seed, i + 140) * 112) * (0.42 + t * 0.9);
+    ctx.globalAlpha = phoneMode ? 0.09 + t * 0.05 : 0.13 + t * 0.08;
+    ctx.strokeStyle = profile.sheen === &quot;snow&quot; ? &quot;rgba(22,43,48,0.24)&quot; : &quot;rgba(0,0,0,0.36)&quot;;
+    ctx.lineWidth = Math.max(1, (1.4 + t * 3.2) * (i % 3 === 0 ? 1.2 : 0.75));
+    ctx.beginPath();
+    ctx.moveTo(x - len * 0.45, y);
+    ctx.quadraticCurveTo(x, y + Math.sin(seed + i) * 4, x + len * 0.48, y + 1 + t * 2);
+    ctx.stroke();
+    if (i % 4 === 0) {
+      drawPerspectivePavementQuad(w, horizon, lane, y + 10 + t * 8, 3 + t * 9, laneWidth() * (0.46 + t * 0.18), &quot;rgba(244,251,248,0.12)&quot;);
+    }
+  }
+  ctx.restore();
+}
+
+function drawSurfaceMovingReflectionPass(w, h, horizon, roadTop, roadBottom, profile, design, theme, seed, motion, phoneMode) {
+  const count = phoneMode ? 5 : 9;
+  const night = profile.sheen === &quot;night&quot; || raceIsNight(selectedRace);
+  const wet = profile.sheen === &quot;wet&quot; || profile.sheen === &quot;spray&quot; || profile.sheen === &quot;night&quot; || profile.sheen === &quot;snow&quot;;
+  ctx.save();
+  if (wet || night) ctx.globalCompositeOperation = &quot;screen&quot;;
+  for (let i = 0; i &lt; count; i += 1) {
+    const y = horizon + (((i * 176 + motion * 0.5 + seed * 0.005) % (h - horizon + 260)) - 86);
+    if (y &lt; horizon || y &gt; h + 46) continue;
+    const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const lane = i % 2 === 0 ? -1.1 : 1.1;
+    const x = realWorldRoadX(w, lane + (seededUnit(seed, i + 210) - 0.5) * 0.5, t);
+    const width = (22 + seededUnit(seed, i + 220) * 76) * (0.42 + t);
+    const height = (5 + seededUnit(seed, i + 230) * 18) * (0.46 + t * 0.72);
+    const color = wet ? profile.highlight : surfaceMaterialStyle(profile.material, design, theme, seed + i);
+    ctx.globalAlpha = phoneMode ? 0.07 + t * 0.06 : 0.1 + t * 0.09;
+    const grad = ctx.createRadialGradient(x, y, 1, x, y, Math.max(width, height));
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(x, y, width, height, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = &quot;source-over&quot;;
+  if (profile.sheen === &quot;heat&quot;) {
+    ctx.globalAlpha = phoneMode ? 0.08 : 0.12;
+    ctx.strokeStyle = &quot;rgba(255,183,74,0.32)&quot;;
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i &lt; 6; i += 1) {
+      const y = horizon + h * (0.09 + i * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.28, y);
+      ctx.bezierCurveTo(w * 0.38, y - 8, w * 0.56, y + 8, w * 0.72, y - 3);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -15007,7 +15176,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v74&quot;;
+const cacheName = &quot;velocity-vault-v75&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15152,6 +15321,7 @@ Real-world style visuals:
 - The v72 route-atmosphere pass adds believable world edges around the race surface: place-specific shoulder terrain, water/wave/dock edges, city curbs, neon sidewalk glow, farm rows, desert sand, canyon rock, snow banks, runway and freight-yard service lines, micro landmarks such as kiosks, signs, cones, hay bales, guard posts, lamps, and subtle route weather like rain, snow, dust, sea spray, leaves, and night glow while keeping the main driving lane visible.
 - The v73 route-sector pass makes scenery change more clearly as each race progresses: each sector gets unique horizon set pieces, sector boards, edge markings, tunnel lamps, bridge cables, checkpoint crews, city storefronts, airfield lights, freight-yard signs, farm gates, coastal props, and stage-specific roadside details so the route reads less like a repeating backdrop and more like driving through changing real places.
 - The v74 living-world pass adds active roadside life outside the racing line: parked and service vehicles, route crews, spectators, workers, tents, kiosks, food stands, traffic signals, marshal cars, rescue trucks, fuel trucks, forklifts, farm pickups, snow plows, airfield carts, freight-yard activity, and place-specific crowd clusters so each route feels occupied without hiding the road or touch controls.
+- The v75 surface-lighting pass gives the road more physical material feel: subtle road crown, moving wet/gloss reflections, rubber and seam marks, route-specific pavement streaks, coastal spray sheen, snow/ice shine, desert heat shimmer, farm dirt, freight diesel marks, runway glints, and neon night reflections while preserving a flat, readable phone driving lane.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
