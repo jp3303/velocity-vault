@@ -1,5 +1,5 @@
-﻿<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v76. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, README/how-to-play notes, expanded real-world detail passes, and the v76 depth-infrastructure layer.</p>
+<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}p{font-family:Arial,sans-serif;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v77 Apex hosting package. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, README/how-to-play notes, expanded real-world detail passes, v76 depth-infrastructure layer, and Apex Vault Command Cloud deployment files.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -15506,7 +15506,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v76&quot;;
+const cacheName = &quot;velocity-vault-v77-apex&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15516,7 +15516,10 @@ const appShell = [
   &quot;./game.js&quot;,
   &quot;./manifest.webmanifest&quot;,
   &quot;./app-icon.svg&quot;,
-  &quot;./README.md&quot;
+  &quot;./README.md&quot;,
+  &quot;./apex-vault-command-cloud.json&quot;,
+  &quot;./APEX-VAULT-COMMAND-CLOUD.md&quot;,
+  &quot;./_headers&quot;
 ];
 
 self.addEventListener(&quot;install&quot;, (event) =&gt; {
@@ -15707,7 +15710,26 @@ Velocity Vault is now a Progressive Web App. To play it everywhere without this 
 
 After installation, the service worker caches the game files for offline play. The app can then launch from the phone or computer home screen without your PC being awake.
 
-Good hosting options include GitHub Pages, Netlify, Cloudflare Pages, Vercel, or any HTTPS web host. The temporary local download link from this PC is useful for transfer, but it cannot keep the phone app available after this computer turns off.
+Good hosting options include Apex Vault Command Cloud, GitHub Pages, Netlify, Cloudflare Pages, Vercel, or any HTTPS web host. The temporary local download link from this PC is useful for transfer, but it cannot keep the phone app available after this computer turns off.
+
+## Host On Apex Vault Command Cloud
+
+Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment. Upload `VelocityVault-ApexVaultCommandCloud-Upload.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
+
+Recommended Apex settings:
+
+- App type: static web app, static site, or PWA.
+- Entry file: `index.html`.
+- HTTPS: on.
+- Service workers/offline app support: on.
+- Unknown route fallback: `index.html`.
+- Required backend/runtime: none.
+- Environment variables: none.
+- Security headers: use `_headers` or `apex-vault-command-cloud.json`.
+
+The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
+
+After publishing, open the secure Apex link on the phone, then use the browser&#39;s `Install`, `Add to Phone`, or `Add to Home Screen` option.
 
 ## Put It On This Computer
 
@@ -15752,7 +15774,192 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 - Controller support uses the browser Gamepad API only.
 - The PIN is only for casual local separation between players; it is not a replacement for operating-system account security.
 </pre>
+<h2>APEX-VAULT-COMMAND-CLOUD.md</h2><pre># Apex Vault Command Cloud Hosting
+
+Velocity Vault is ready to host as a secure static Progressive Web App on Apex Vault Command Cloud.
+
+## What To Upload
+
+Use `VelocityVault-ApexVaultCommandCloud-Upload.zip`.
+
+The ZIP contains the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+
+## Apex Setup
+
+1. Create a new static web app, static site, or PWA deployment in Apex Vault Command Cloud.
+2. Upload the ZIP contents, or connect the GitHub repository and point the deploy root at the repository root.
+3. Set the entry file to `index.html`.
+4. Turn on HTTPS.
+5. Turn on service workers or PWA/offline support if Apex asks for that setting.
+6. Set unknown route fallback to `index.html`.
+7. Apply the security headers from `_headers` or `apex-vault-command-cloud.json`.
+8. Publish the site and open the secure browser link on a phone or computer.
+9. Install it from the browser menu with `Install`, `Add to Phone`, or `Add to Home Screen`.
+
+## Required Files
+
+- `index.html`
+- `styles.css`
+- `game.js`
+- `phone-asset-pipeline.js`
+- `webgl-pipeline.js`
+- `manifest.webmanifest`
+- `sw.js`
+- `app-icon.svg`
+- `README.md`
+- `APEX-VAULT-COMMAND-CLOUD.md`
+- `apex-vault-command-cloud.json`
+- `_headers`
+- `.nojekyll`
+
+## Security Profile
+
+- Local-only game code.
+- No third-party scripts.
+- No CDN dependencies.
+- No remote images, fonts, shaders, models, or audio.
+- No backend database needed.
+- Driver profiles, coins, upgrades, vehicle builds, saved races, and optional PIN hashes stay in the browser&#39;s local storage on each device.
+- HTTPS is required for phone installation and reliable service-worker caching.
+
+## After Publishing
+
+Send the secure Apex link to testers. Each phone can install the game like an app, then play offline after the first full load.
+
+If Apex gives you a custom domain option, point the domain to this deployment and keep HTTPS enabled.
+</pre>
+<h2>apex-vault-command-cloud.json</h2><pre>{
+  &quot;appName&quot;: &quot;Velocity Vault&quot;,
+  &quot;deploymentName&quot;: &quot;velocity-vault&quot;,
+  &quot;version&quot;: &quot;v77-apex-hosting&quot;,
+  &quot;description&quot;: &quot;Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.&quot;,
+  &quot;runtime&quot;: &quot;static-pwa&quot;,
+  &quot;entry&quot;: &quot;index.html&quot;,
+  &quot;rootDirectory&quot;: &quot;.&quot;,
+  &quot;requiredHttps&quot;: true,
+  &quot;installablePwa&quot;: true,
+  &quot;offlineSupport&quot;: true,
+  &quot;serviceWorker&quot;: &quot;sw.js&quot;,
+  &quot;manifest&quot;: &quot;manifest.webmanifest&quot;,
+  &quot;assets&quot;: [
+    &quot;index.html&quot;,
+    &quot;styles.css&quot;,
+    &quot;game.js&quot;,
+    &quot;phone-asset-pipeline.js&quot;,
+    &quot;webgl-pipeline.js&quot;,
+    &quot;manifest.webmanifest&quot;,
+    &quot;sw.js&quot;,
+    &quot;app-icon.svg&quot;,
+    &quot;README.md&quot;,
+    &quot;APEX-VAULT-COMMAND-CLOUD.md&quot;,
+    &quot;_headers&quot;,
+    &quot;.nojekyll&quot;
+  ],
+  &quot;routes&quot;: [
+    {
+      &quot;path&quot;: &quot;/&quot;,
+      &quot;serve&quot;: &quot;index.html&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/index.html&quot;,
+      &quot;serve&quot;: &quot;index.html&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/*&quot;,
+      &quot;serve&quot;: &quot;index.html&quot;,
+      &quot;fallbackOnly&quot;: true
+    }
+  ],
+  &quot;mimeTypes&quot;: {
+    &quot;.html&quot;: &quot;text/html; charset=utf-8&quot;,
+    &quot;.css&quot;: &quot;text/css; charset=utf-8&quot;,
+    &quot;.js&quot;: &quot;text/javascript; charset=utf-8&quot;,
+    &quot;.webmanifest&quot;: &quot;application/manifest+json; charset=utf-8&quot;,
+    &quot;.svg&quot;: &quot;image/svg+xml&quot;,
+    &quot;.md&quot;: &quot;text/markdown; charset=utf-8&quot;
+  },
+  &quot;securityHeaders&quot;: {
+    &quot;Content-Security-Policy&quot;: &quot;default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; connect-src &#39;self&#39;; manifest-src &#39;self&#39;; worker-src &#39;self&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot;,
+    &quot;Referrer-Policy&quot;: &quot;no-referrer&quot;,
+    &quot;X-Content-Type-Options&quot;: &quot;nosniff&quot;,
+    &quot;X-Frame-Options&quot;: &quot;DENY&quot;,
+    &quot;Permissions-Policy&quot;: &quot;camera=(), microphone=(), geolocation=(), payment=(), usb=(), xr-spatial-tracking=(), fullscreen=(self), gamepad=(self)&quot;,
+    &quot;Cross-Origin-Opener-Policy&quot;: &quot;same-origin&quot;,
+    &quot;Cross-Origin-Resource-Policy&quot;: &quot;same-origin&quot;
+  },
+  &quot;cacheRules&quot;: [
+    {
+      &quot;path&quot;: &quot;/index.html&quot;,
+      &quot;cacheControl&quot;: &quot;no-cache&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/sw.js&quot;,
+      &quot;cacheControl&quot;: &quot;no-cache&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/manifest.webmanifest&quot;,
+      &quot;cacheControl&quot;: &quot;public, max-age=3600&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/*.js&quot;,
+      &quot;cacheControl&quot;: &quot;public, max-age=31536000&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/*.css&quot;,
+      &quot;cacheControl&quot;: &quot;public, max-age=31536000&quot;
+    },
+    {
+      &quot;path&quot;: &quot;/*.svg&quot;,
+      &quot;cacheControl&quot;: &quot;public, max-age=31536000&quot;
+    }
+  ],
+  &quot;environmentVariables&quot;: [],
+  &quot;networkPolicy&quot;: {
+    &quot;outboundCallsRequired&quot;: false,
+    &quot;thirdPartyScriptsRequired&quot;: false,
+    &quot;databaseRequired&quot;: false
+  },
+  &quot;uploadChecklist&quot;: [
+    &quot;Upload the contents of VelocityVault-ApexVaultCommandCloud-Upload.zip to Apex Vault Command Cloud as a static web/PWA app.&quot;,
+    &quot;Set index.html as the entry file and the deployment root as the uploaded folder root.&quot;,
+    &quot;Require HTTPS so phone installation and service-worker offline play work correctly.&quot;,
+    &quot;Enable SPA fallback to index.html for unknown paths.&quot;,
+    &quot;Apply _headers or the equivalent security headers in this manifest.&quot;,
+    &quot;After deployment, open the secure URL on a phone and use Add to Home Screen or Install.&quot;
+  ]
+}
+</pre>
+<h2>_headers</h2><pre>/*
+  Content-Security-Policy: default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; connect-src &#39;self&#39;; manifest-src &#39;self&#39;; worker-src &#39;self&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), xr-spatial-tracking=(), fullscreen=(self), gamepad=(self)
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000
+</pre>
 <h2>.nojekyll</h2><pre># Serve Velocity Vault as plain static files.
 </pre>
 </body></html>
-

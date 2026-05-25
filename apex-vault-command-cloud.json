@@ -1,0 +1,100 @@
+{
+  "appName": "Velocity Vault",
+  "deploymentName": "velocity-vault",
+  "version": "v77-apex-hosting",
+  "description": "Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.",
+  "runtime": "static-pwa",
+  "entry": "index.html",
+  "rootDirectory": ".",
+  "requiredHttps": true,
+  "installablePwa": true,
+  "offlineSupport": true,
+  "serviceWorker": "sw.js",
+  "manifest": "manifest.webmanifest",
+  "assets": [
+    "index.html",
+    "styles.css",
+    "game.js",
+    "phone-asset-pipeline.js",
+    "webgl-pipeline.js",
+    "manifest.webmanifest",
+    "sw.js",
+    "app-icon.svg",
+    "README.md",
+    "APEX-VAULT-COMMAND-CLOUD.md",
+    "_headers",
+    ".nojekyll"
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "serve": "index.html"
+    },
+    {
+      "path": "/index.html",
+      "serve": "index.html"
+    },
+    {
+      "path": "/*",
+      "serve": "index.html",
+      "fallbackOnly": true
+    }
+  ],
+  "mimeTypes": {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".webmanifest": "application/manifest+json; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".md": "text/markdown; charset=utf-8"
+  },
+  "securityHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), xr-spatial-tracking=(), fullscreen=(self), gamepad=(self)",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin"
+  },
+  "cacheRules": [
+    {
+      "path": "/index.html",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/sw.js",
+      "cacheControl": "no-cache"
+    },
+    {
+      "path": "/manifest.webmanifest",
+      "cacheControl": "public, max-age=3600"
+    },
+    {
+      "path": "/*.js",
+      "cacheControl": "public, max-age=31536000"
+    },
+    {
+      "path": "/*.css",
+      "cacheControl": "public, max-age=31536000"
+    },
+    {
+      "path": "/*.svg",
+      "cacheControl": "public, max-age=31536000"
+    }
+  ],
+  "environmentVariables": [],
+  "networkPolicy": {
+    "outboundCallsRequired": false,
+    "thirdPartyScriptsRequired": false,
+    "databaseRequired": false
+  },
+  "uploadChecklist": [
+    "Upload the contents of VelocityVault-ApexVaultCommandCloud-Upload.zip to Apex Vault Command Cloud as a static web/PWA app.",
+    "Set index.html as the entry file and the deployment root as the uploaded folder root.",
+    "Require HTTPS so phone installation and service-worker offline play work correctly.",
+    "Enable SPA fallback to index.html for unknown paths.",
+    "Apply _headers or the equivalent security headers in this manifest.",
+    "After deployment, open the secure URL on a phone and use Add to Home Screen or Install."
+  ]
+}

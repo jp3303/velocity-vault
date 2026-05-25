@@ -143,7 +143,26 @@ Velocity Vault is now a Progressive Web App. To play it everywhere without this 
 
 After installation, the service worker caches the game files for offline play. The app can then launch from the phone or computer home screen without your PC being awake.
 
-Good hosting options include GitHub Pages, Netlify, Cloudflare Pages, Vercel, or any HTTPS web host. The temporary local download link from this PC is useful for transfer, but it cannot keep the phone app available after this computer turns off.
+Good hosting options include Apex Vault Command Cloud, GitHub Pages, Netlify, Cloudflare Pages, Vercel, or any HTTPS web host. The temporary local download link from this PC is useful for transfer, but it cannot keep the phone app available after this computer turns off.
+
+## Host On Apex Vault Command Cloud
+
+Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment. Upload `VelocityVault-ApexVaultCommandCloud-Upload.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
+
+Recommended Apex settings:
+
+- App type: static web app, static site, or PWA.
+- Entry file: `index.html`.
+- HTTPS: on.
+- Service workers/offline app support: on.
+- Unknown route fallback: `index.html`.
+- Required backend/runtime: none.
+- Environment variables: none.
+- Security headers: use `_headers` or `apex-vault-command-cloud.json`.
+
+The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
+
+After publishing, open the secure Apex link on the phone, then use the browser's `Install`, `Add to Phone`, or `Add to Home Screen` option.
 
 ## Put It On This Computer
 
