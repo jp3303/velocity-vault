@@ -4006,9 +4006,15 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v82:${place}:${route.scene}`);
+  const seed = hashText(`v83:${place}:${route.scene}:${selectedVehicle().type}`);
+  const worldMode = raceWorldViewMode(selectedVehicle(), place);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
+  if (worldMode === "air" || worldMode === "water") {
+    drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+    ctx.restore();
+    return;
+  }
   drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRouteAtmospherePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRouteSectorPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -4038,11 +4044,240 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   const stage = routeStageInfo(place, progress);
   const route = routeWorldInfo(place);
   const motion = raceState.roadOffset || 0;
+  const worldMode = raceWorldViewMode(selectedVehicle(), place);
   ctx.save();
-  drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  if (worldMode === "air") {
+    drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
+    ctx.restore();
+    return;
+  }
+  if (worldMode === "water") {
+    drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
+    ctx.restore();
+    return;
+  }
   drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function raceWorldViewMode(vehicle = selectedVehicle(), place = selectedRace && selectedRace.place) {
+  if (vehicle && vehicle.type === "boat") return "water";
+  if (vehicle && (vehicle.type === "airplane" || vehicle.type === "helicopter")) return "air";
+  return place === "harbor" && vehicle && vehicle.class === "water" ? "water" : "road";
+}
+
+function drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const water = ctx.createLinearGradient(0, horizon, 0, h);
+  water.addColorStop(0, "rgba(75,216,255,0.44)");
+  water.addColorStop(0.48, "rgba(12,72,86,0.72)");
+  water.addColorStop(1, "rgba(2,24,32,0.94)");
+  ctx.fillStyle = water;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  ctx.globalCompositeOperation = "screen";
+  for (let i = 0; i < (phoneMode ? 24 : 34); i += 1) {
+    const y = horizon + (((i * 82 + motion * 1.55 + seed * 0.01) % (h - horizon + 180)) - 70);
+    if (y < horizon || y > h + 40) continue;
+    const t = Math.max(0.02, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * (0.42 + seededUnit(seed, i) * 0.18);
+    ctx.strokeStyle = i % 3 === 0 ? "rgba(244,251,248,0.46)" : "rgba(70,217,255,0.38)";
+    ctx.lineWidth = 1.2 + t * (phoneMode ? 5.2 : 4.4);
+    ctx.globalAlpha = 0.2 + t * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(center - half, y + Math.sin(i) * 6);
+    ctx.quadraticCurveTo(center, y + 8 + t * 18, center + half, y + Math.cos(i) * 6);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "source-over";
+  for (let i = 0; i < (phoneMode ? 10 : 14); i += 1) {
+    const distance = raceState.distance + i * 230 + seededUnit(seed, i + 80) * 120;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (0.96 + seededUnit(seed, i + 90) * 0.18), distance);
+    if (!pos || pos.y < horizon || pos.y > h + 50) continue;
+    drawWaterBuoy(pos.x, pos.y, Math.max(0.22, pos.scale * 0.82), side, theme, seed + i * 19);
+  }
+  for (let i = 0; i < (phoneMode ? 5 : 7); i += 1) {
+    const distance = raceState.distance + 340 + i * 420 + seededUnit(seed, i + 170) * 160;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (1.28 + seededUnit(seed, i + 180) * 0.18), distance);
+    if (!pos || pos.y < horizon || pos.y > h + 60) continue;
+    drawWaterSceneBoat(pos.x, pos.y, Math.max(0.28, pos.scale * 0.76), side, theme, seed + i * 31);
+  }
+  ctx.restore();
+
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 8 : 12);
+  const bank = ctx.createLinearGradient(0, horizon, 0, h);
+  bank.addColorStop(0, "rgba(180,150,96,0.24)");
+  bank.addColorStop(0.48, "rgba(38,72,58,0.5)");
+  bank.addColorStop(1, "rgba(16,34,28,0.86)");
+  ctx.fillStyle = bank;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  const shorelineProps = ["marinaDock", "lighthouse", "dockLight", "warehouse", "container", "serviceTruck", "routeSign"];
+  for (let i = -1; i < (phoneMode ? 10 : 14); i += 1) {
+    const distance = raceState.distance + i * 250 + seededUnit(seed, i + 240) * 120;
+    const side = seededUnit(seed, i + 250) > 0.48 ? 1 : -1;
+    const pos = roadObjectPos(side * 2.05, distance);
+    if (!pos || pos.y < horizon - 24 || pos.y > h + 90) continue;
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 18 : 28);
+    const scale = Math.max(0.32, Math.min(phoneMode ? 1.48 : 1.68, pos.scale * (0.88 + (pos.depth || 0.5) * 0.56)));
+    ctx.globalAlpha = Math.min(0.96, 0.72 + (pos.depth || 0.4) * 0.24);
+    drawGroundLockedDriveByShadow(x, pos.y, scale * 0.9, side, theme);
+    drawGroundLockedPlaceProp(shorelineProps[Math.abs(i) % shorelineProps.length], x, pos.y, scale, side, place, route, design, theme, seed + i * 61);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, `${theme[0]}ee`);
+  sky.addColorStop(0.42, "rgba(30,76,100,0.86)");
+  sky.addColorStop(1, "rgba(8,18,28,0.94)");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  const groundTop = h * (phoneMode ? 0.54 : 0.58);
+  const ground = ctx.createLinearGradient(0, groundTop, 0, h);
+  ground.addColorStop(0, "rgba(34,86,68,0.1)");
+  ground.addColorStop(0.48, "rgba(42,72,54,0.28)");
+  ground.addColorStop(1, "rgba(13,28,24,0.62)");
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, groundTop, w, h - groundTop);
+  for (let i = 0; i < (phoneMode ? 24 : 34); i += 1) {
+    const x = ((i * 137 - motion * 0.18 + seed * 0.02) % (w + 220)) - 110;
+    const y = groundTop + ((i * 47 + motion * 0.08) % Math.max(1, h - groundTop + 80)) - 40;
+    const patchW = 54 + seededUnit(seed, i + 10) * (phoneMode ? 96 : 150);
+    const patchH = 18 + seededUnit(seed, i + 20) * 42;
+    ctx.fillStyle = i % 4 === 0 ? "rgba(255,209,102,0.18)" : i % 3 === 0 ? "rgba(70,217,255,0.12)" : "rgba(36,217,138,0.16)";
+    roundRect(x, y, patchW, patchH, 3);
+    ctx.fill();
+  }
+
+  ctx.globalCompositeOperation = "screen";
+  for (let i = 0; i < (phoneMode ? 12 : 18); i += 1) {
+    const x = ((i * 113 - motion * 0.28 + seed * 0.01) % (w + 180)) - 90;
+    const y = h * (0.16 + seededUnit(seed, i + 50) * 0.48);
+    const cloudW = 60 + seededUnit(seed, i + 60) * (phoneMode ? 88 : 130);
+    ctx.fillStyle = "rgba(244,251,248,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, cloudW * 0.42, cloudW * 0.12, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + cloudW * 0.28, y + 3, cloudW * 0.34, cloudW * 0.11, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - cloudW * 0.22, y + 5, cloudW * 0.3, cloudW * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  for (let i = 0; i < (phoneMode ? 8 : 10); i += 1) {
+    const distance = raceState.distance + 240 + i * 330 + seededUnit(seed, i + 110) * 130;
+    const center = roadObjectPos(0, distance);
+    if (!center || center.y < horizon - 40 || center.y > h + 60) continue;
+    const gateScale = Math.max(0.34, center.scale * (phoneMode ? 0.86 : 0.96));
+    drawAirGate(center.x, center.y - gateScale * 36, gateScale, theme, seed + i * 17);
+  }
+  for (let i = 0; i < (phoneMode ? 5 : 7); i += 1) {
+    const distance = raceState.distance + 400 + i * 520 + seededUnit(seed, i + 150) * 160;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (1.2 + seededUnit(seed, i + 160) * 0.28), distance);
+    if (!pos || pos.y < horizon || pos.y > h + 80) continue;
+    drawAirTrafficSilhouette(pos.x, pos.y - pos.scale * 30, Math.max(0.24, pos.scale * 0.78), side, theme, seed + i * 29);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawWaterBuoy(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "rgba(0,0,0,0.38)";
+  ctx.beginPath();
+  ctx.ellipse(0, 12, 26, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = side < 0 ? "#ff5b6b" : "#ffd166";
+  ctx.beginPath();
+  ctx.moveTo(0, -34);
+  ctx.lineTo(18, 8);
+  ctx.lineTo(-18, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(244,251,248,0.86)";
+  ctx.fillRect(-14, -8, 28, 8);
+  ctx.restore();
+}
+
+function drawWaterSceneBoat(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "rgba(70,217,255,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(side * -10, 16, 62, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = seededUnit(seed, 1) > 0.5 ? "#f4fbf8" : theme[1] || "#46d9ff";
+  ctx.beginPath();
+  ctx.moveTo(-54, -10);
+  ctx.lineTo(44, -18);
+  ctx.lineTo(62, -2);
+  ctx.lineTo(42, 14);
+  ctx.lineTo(-42, 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.78)";
+  roundRect(-12, -34, 42, 20, 5);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawAirGate(x, y, scale, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = theme[1] || "#46d9ff";
+  ctx.lineWidth = 5;
+  ctx.globalAlpha = 0.68;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 78, 34, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(244,251,248,0.54)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-78, 0);
+  ctx.lineTo(-110, 0);
+  ctx.moveTo(78, 0);
+  ctx.lineTo(110, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAirTrafficSilhouette(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * side, scale);
+  ctx.fillStyle = "rgba(244,251,248,0.78)";
+  ctx.beginPath();
+  ctx.moveTo(-58, 0);
+  ctx.lineTo(48, -9);
+  ctx.lineTo(66, 0);
+  ctx.lineTo(48, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = theme[2] || "#ffd166";
+  ctx.beginPath();
+  ctx.moveTo(-8, -4);
+  ctx.lineTo(24, -44);
+  ctx.lineTo(34, -38);
+  ctx.lineTo(16, -3);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -4187,7 +4422,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     const stage = routeStageInfo(place, progress);
     const props = routeDriveByProps(place, stage);
     const side = seededUnit(seed, index + 22) > 0.5 ? 1 : -1;
-    const lane = side * (1.72 + seededUnit(seed, index + 33) * 0.48);
+    const lane = side * (2.04 + seededUnit(seed, index + 33) * 0.5);
     const projected = roadObjectPos(lane, baseDistance);
     if (!projected || projected.y < horizon - 36 || projected.y > h + 110) continue;
     drawList.push({
@@ -4203,7 +4438,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     });
     if (index % 4 === 0) {
       const otherSide = -side;
-      const companionLane = otherSide * (1.62 + seededUnit(seed, index + 44) * 0.38);
+      const companionLane = otherSide * (1.94 + seededUnit(seed, index + 44) * 0.42);
       const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
       const companionProgress = Math.max(0, Math.min(1, companionDistance / length));
       const companionStage = routeStageInfo(place, companionProgress);
@@ -4226,11 +4461,11 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
   }
   drawList.sort((a, b) => a.y - b.y);
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 10 : 14);
   drawList.forEach((item) => {
     const near = Math.max(0, Math.min(1, item.depth || 0));
-    const screenMargin = phoneMode ? 14 : 42;
-    const x = Math.max(-screenMargin, Math.min(w + screenMargin, item.x));
-    const scale = Math.max(0.34, Math.min(phoneMode ? 1.82 : 2.02, item.scale * (phoneMode ? 1.03 : 1.08) * (0.9 + near * 0.62)));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, item.y, item.side, item.x, phoneMode, phoneMode ? 18 : 28);
+    const scale = Math.max(0.32, Math.min(phoneMode ? 1.66 : 1.86, item.scale * (phoneMode ? 0.96 : 1.02) * (0.86 + near * 0.54)));
     if (near > 0.42 && seededUnit(item.seed, 8) > 0.4) {
       ctx.save();
       ctx.globalAlpha = phoneMode ? 0.46 + near * 0.22 : 0.36 + near * 0.2;
@@ -4263,6 +4498,7 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
   const count = phoneMode ? 12 : 20;
   const span = h - horizon + 320;
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 6 : 10);
   for (let i = 0; i < count; i += 1) {
     const y = horizon + (((i * 116 + motion * (0.82 + seededUnit(seed, i) * 0.2) + seed * 0.003) % span) - 76);
     if (y < horizon + 4 || y > h + 70) continue;
@@ -4270,7 +4506,8 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const shoulder = half * (1.06 + seededUnit(seed, i + 40) * 0.2) + w * (0.018 + seededUnit(seed, i + 60) * 0.035);
-    const x = perspectiveRoadCenter(w, t) + side * shoulder;
+    const projectedX = perspectiveRoadCenter(w, t) + side * shoulder;
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 10 : 18);
     const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
     const kind = props[i % props.length];
     ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
@@ -4283,13 +4520,15 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
 function drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const rows = phoneMode ? 6 : 8;
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 2 : 4);
   for (let i = 0; i < rows; i += 1) {
     const t = 0.54 + i / Math.max(1, rows - 1) * 0.48;
     const y = horizon + (h - horizon) * t + ((motion * 0.45 + i * 29) % 52) - 26;
     if (y < horizon || y > h + 48) continue;
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const x = perspectiveRoadCenter(w, t) + side * (half * 0.96 + w * 0.02);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half * 0.96 + w * 0.02);
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 4 : 8);
     const scale = 0.42 + t * (phoneMode ? 0.78 : 0.92);
     ctx.globalAlpha = phoneMode ? 0.72 : 0.64;
     drawGroundLockedPlaceProp(i % 3 === 0 ? "curbBlock" : i % 3 === 1 ? "reflectorPost" : "lowBarrier", x, y, scale, side, place, route, design, theme, seed + i * 97);
@@ -6159,6 +6398,26 @@ function clipRealWorldRoad(w, h, horizon, roadTop, roadBottom) {
   ctx.lineTo(perspectiveRoadCenter(w, 1) - roadBottom * 0.67, h + 18);
   ctx.closePath();
   ctx.clip();
+}
+
+function clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, padding = 0) {
+  ctx.beginPath();
+  ctx.rect(-w * 0.2, horizon - h * 0.12, w * 1.4, h * 1.24);
+  ctx.moveTo(perspectiveRoadCenter(w, 0) - roadTop * 0.86 - padding, horizon - 8);
+  ctx.lineTo(perspectiveRoadCenter(w, 0) + roadTop * 0.86 + padding, horizon - 8);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) + roadBottom * 0.67 + padding, h + 24);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) - roadBottom * 0.67 - padding, h + 24);
+  ctx.closePath();
+  ctx.clip("evenodd");
+}
+
+function roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, extra = 0) {
+  const t = Math.max(0, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+  const edge = perspectiveRoadCenter(w, t) + side * realWorldRoadHalf(roadTop, roadBottom, t);
+  const clearance = extra + w * (phoneMode ? 0.045 : 0.038) + t * w * (phoneMode ? 0.08 : 0.065);
+  const safe = edge + side * clearance;
+  if (side < 0) return Math.max(-w * 0.16, Math.min(projectedX, safe));
+  return Math.min(w * 1.16, Math.max(projectedX, safe));
 }
 
 function drawPerspectivePavementQuad(w, horizon, lane, y, length, width, style) {

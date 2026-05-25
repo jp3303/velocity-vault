@@ -15,8 +15,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;
 </head>
 <body>
 <h1>Velocity Vault Code Source</h1>
-<p class="meta">Generated 2026-05-25 16:00:59 for the v82 drive-by world visibility build.</p>
-<p>This PDF/HTML companion contains the current standalone game source, including the updated phone and browser scenery pass, service worker cache version, Apex Vault Command Cloud notes, and hosting files.</p>
+<p class="meta">Generated 2026-05-25 16:12:24 for the v83 world surface-view build.</p>
+<p>This PDF/HTML companion contains the current standalone game source, including clipped roadside scenery, dedicated boat-water views, dedicated aircraft-sky views, service worker cache version, Apex Vault Command Cloud notes, and hosting files.</p>
 <h2>index.html</h2>
 <pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
@@ -6079,9 +6079,15 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === &quot;cockpit&quot; ? h * 0.27 : cameraMode === &quot;hood&quot; ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === &quot;cockpit&quot; ? w * 0.11 : cameraMode === &quot;hood&quot; ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === &quot;cockpit&quot; ? w * 1.02 : cameraMode === &quot;hood&quot; ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v82:${place}:${route.scene}`);
+  const seed = hashText(`v83:${place}:${route.scene}:${selectedVehicle().type}`);
+  const worldMode = raceWorldViewMode(selectedVehicle(), place);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
+  if (worldMode === &quot;air&quot; || worldMode === &quot;water&quot;) {
+    drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+    ctx.restore();
+    return;
+  }
   drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRouteAtmospherePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldRouteSectorPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -6111,11 +6117,240 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   const stage = routeStageInfo(place, progress);
   const route = routeWorldInfo(place);
   const motion = raceState.roadOffset || 0;
+  const worldMode = raceWorldViewMode(selectedVehicle(), place);
   ctx.save();
-  drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  if (worldMode === &quot;air&quot;) {
+    drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
+    ctx.restore();
+    return;
+  }
+  if (worldMode === &quot;water&quot;) {
+    drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
+    ctx.restore();
+    return;
+  }
   drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function raceWorldViewMode(vehicle = selectedVehicle(), place = selectedRace &amp;&amp; selectedRace.place) {
+  if (vehicle &amp;&amp; vehicle.type === &quot;boat&quot;) return &quot;water&quot;;
+  if (vehicle &amp;&amp; (vehicle.type === &quot;airplane&quot; || vehicle.type === &quot;helicopter&quot;)) return &quot;air&quot;;
+  return place === &quot;harbor&quot; &amp;&amp; vehicle &amp;&amp; vehicle.class === &quot;water&quot; ? &quot;water&quot; : &quot;road&quot;;
+}
+
+function drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const water = ctx.createLinearGradient(0, horizon, 0, h);
+  water.addColorStop(0, &quot;rgba(75,216,255,0.44)&quot;);
+  water.addColorStop(0.48, &quot;rgba(12,72,86,0.72)&quot;);
+  water.addColorStop(1, &quot;rgba(2,24,32,0.94)&quot;);
+  ctx.fillStyle = water;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  ctx.globalCompositeOperation = &quot;screen&quot;;
+  for (let i = 0; i &lt; (phoneMode ? 24 : 34); i += 1) {
+    const y = horizon + (((i * 82 + motion * 1.55 + seed * 0.01) % (h - horizon + 180)) - 70);
+    if (y &lt; horizon || y &gt; h + 40) continue;
+    const t = Math.max(0.02, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * (0.42 + seededUnit(seed, i) * 0.18);
+    ctx.strokeStyle = i % 3 === 0 ? &quot;rgba(244,251,248,0.46)&quot; : &quot;rgba(70,217,255,0.38)&quot;;
+    ctx.lineWidth = 1.2 + t * (phoneMode ? 5.2 : 4.4);
+    ctx.globalAlpha = 0.2 + t * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(center - half, y + Math.sin(i) * 6);
+    ctx.quadraticCurveTo(center, y + 8 + t * 18, center + half, y + Math.cos(i) * 6);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = &quot;source-over&quot;;
+  for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
+    const distance = raceState.distance + i * 230 + seededUnit(seed, i + 80) * 120;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (0.96 + seededUnit(seed, i + 90) * 0.18), distance);
+    if (!pos || pos.y &lt; horizon || pos.y &gt; h + 50) continue;
+    drawWaterBuoy(pos.x, pos.y, Math.max(0.22, pos.scale * 0.82), side, theme, seed + i * 19);
+  }
+  for (let i = 0; i &lt; (phoneMode ? 5 : 7); i += 1) {
+    const distance = raceState.distance + 340 + i * 420 + seededUnit(seed, i + 170) * 160;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (1.28 + seededUnit(seed, i + 180) * 0.18), distance);
+    if (!pos || pos.y &lt; horizon || pos.y &gt; h + 60) continue;
+    drawWaterSceneBoat(pos.x, pos.y, Math.max(0.28, pos.scale * 0.76), side, theme, seed + i * 31);
+  }
+  ctx.restore();
+
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 8 : 12);
+  const bank = ctx.createLinearGradient(0, horizon, 0, h);
+  bank.addColorStop(0, &quot;rgba(180,150,96,0.24)&quot;);
+  bank.addColorStop(0.48, &quot;rgba(38,72,58,0.5)&quot;);
+  bank.addColorStop(1, &quot;rgba(16,34,28,0.86)&quot;);
+  ctx.fillStyle = bank;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  const shorelineProps = [&quot;marinaDock&quot;, &quot;lighthouse&quot;, &quot;dockLight&quot;, &quot;warehouse&quot;, &quot;container&quot;, &quot;serviceTruck&quot;, &quot;routeSign&quot;];
+  for (let i = -1; i &lt; (phoneMode ? 10 : 14); i += 1) {
+    const distance = raceState.distance + i * 250 + seededUnit(seed, i + 240) * 120;
+    const side = seededUnit(seed, i + 250) &gt; 0.48 ? 1 : -1;
+    const pos = roadObjectPos(side * 2.05, distance);
+    if (!pos || pos.y &lt; horizon - 24 || pos.y &gt; h + 90) continue;
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 18 : 28);
+    const scale = Math.max(0.32, Math.min(phoneMode ? 1.48 : 1.68, pos.scale * (0.88 + (pos.depth || 0.5) * 0.56)));
+    ctx.globalAlpha = Math.min(0.96, 0.72 + (pos.depth || 0.4) * 0.24);
+    drawGroundLockedDriveByShadow(x, pos.y, scale * 0.9, side, theme);
+    drawGroundLockedPlaceProp(shorelineProps[Math.abs(i) % shorelineProps.length], x, pos.y, scale, side, place, route, design, theme, seed + i * 61);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, `${theme[0]}ee`);
+  sky.addColorStop(0.42, &quot;rgba(30,76,100,0.86)&quot;);
+  sky.addColorStop(1, &quot;rgba(8,18,28,0.94)&quot;);
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  const groundTop = h * (phoneMode ? 0.54 : 0.58);
+  const ground = ctx.createLinearGradient(0, groundTop, 0, h);
+  ground.addColorStop(0, &quot;rgba(34,86,68,0.1)&quot;);
+  ground.addColorStop(0.48, &quot;rgba(42,72,54,0.28)&quot;);
+  ground.addColorStop(1, &quot;rgba(13,28,24,0.62)&quot;);
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, groundTop, w, h - groundTop);
+  for (let i = 0; i &lt; (phoneMode ? 24 : 34); i += 1) {
+    const x = ((i * 137 - motion * 0.18 + seed * 0.02) % (w + 220)) - 110;
+    const y = groundTop + ((i * 47 + motion * 0.08) % Math.max(1, h - groundTop + 80)) - 40;
+    const patchW = 54 + seededUnit(seed, i + 10) * (phoneMode ? 96 : 150);
+    const patchH = 18 + seededUnit(seed, i + 20) * 42;
+    ctx.fillStyle = i % 4 === 0 ? &quot;rgba(255,209,102,0.18)&quot; : i % 3 === 0 ? &quot;rgba(70,217,255,0.12)&quot; : &quot;rgba(36,217,138,0.16)&quot;;
+    roundRect(x, y, patchW, patchH, 3);
+    ctx.fill();
+  }
+
+  ctx.globalCompositeOperation = &quot;screen&quot;;
+  for (let i = 0; i &lt; (phoneMode ? 12 : 18); i += 1) {
+    const x = ((i * 113 - motion * 0.28 + seed * 0.01) % (w + 180)) - 90;
+    const y = h * (0.16 + seededUnit(seed, i + 50) * 0.48);
+    const cloudW = 60 + seededUnit(seed, i + 60) * (phoneMode ? 88 : 130);
+    ctx.fillStyle = &quot;rgba(244,251,248,0.22)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(x, y, cloudW * 0.42, cloudW * 0.12, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + cloudW * 0.28, y + 3, cloudW * 0.34, cloudW * 0.11, 0, 0, Math.PI * 2);
+    ctx.ellipse(x - cloudW * 0.22, y + 5, cloudW * 0.3, cloudW * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = &quot;source-over&quot;;
+
+  for (let i = 0; i &lt; (phoneMode ? 8 : 10); i += 1) {
+    const distance = raceState.distance + 240 + i * 330 + seededUnit(seed, i + 110) * 130;
+    const center = roadObjectPos(0, distance);
+    if (!center || center.y &lt; horizon - 40 || center.y &gt; h + 60) continue;
+    const gateScale = Math.max(0.34, center.scale * (phoneMode ? 0.86 : 0.96));
+    drawAirGate(center.x, center.y - gateScale * 36, gateScale, theme, seed + i * 17);
+  }
+  for (let i = 0; i &lt; (phoneMode ? 5 : 7); i += 1) {
+    const distance = raceState.distance + 400 + i * 520 + seededUnit(seed, i + 150) * 160;
+    const side = i % 2 === 0 ? -1 : 1;
+    const pos = roadObjectPos(side * (1.2 + seededUnit(seed, i + 160) * 0.28), distance);
+    if (!pos || pos.y &lt; horizon || pos.y &gt; h + 80) continue;
+    drawAirTrafficSilhouette(pos.x, pos.y - pos.scale * 30, Math.max(0.24, pos.scale * 0.78), side, theme, seed + i * 29);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawWaterBuoy(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = &quot;rgba(0,0,0,0.38)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(0, 12, 26, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = side &lt; 0 ? &quot;#ff5b6b&quot; : &quot;#ffd166&quot;;
+  ctx.beginPath();
+  ctx.moveTo(0, -34);
+  ctx.lineTo(18, 8);
+  ctx.lineTo(-18, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = &quot;rgba(244,251,248,0.86)&quot;;
+  ctx.fillRect(-14, -8, 28, 8);
+  ctx.restore();
+}
+
+function drawWaterSceneBoat(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = &quot;rgba(70,217,255,0.22)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(side * -10, 16, 62, 13, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = seededUnit(seed, 1) &gt; 0.5 ? &quot;#f4fbf8&quot; : theme[1] || &quot;#46d9ff&quot;;
+  ctx.beginPath();
+  ctx.moveTo(-54, -10);
+  ctx.lineTo(44, -18);
+  ctx.lineTo(62, -2);
+  ctx.lineTo(42, 14);
+  ctx.lineTo(-42, 16);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = &quot;rgba(5,8,7,0.78)&quot;;
+  roundRect(-12, -34, 42, 20, 5);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawAirGate(x, y, scale, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = theme[1] || &quot;#46d9ff&quot;;
+  ctx.lineWidth = 5;
+  ctx.globalAlpha = 0.68;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 78, 34, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = &quot;rgba(244,251,248,0.54)&quot;;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-78, 0);
+  ctx.lineTo(-110, 0);
+  ctx.moveTo(78, 0);
+  ctx.lineTo(110, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAirTrafficSilhouette(x, y, scale, side, theme, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * side, scale);
+  ctx.fillStyle = &quot;rgba(244,251,248,0.78)&quot;;
+  ctx.beginPath();
+  ctx.moveTo(-58, 0);
+  ctx.lineTo(48, -9);
+  ctx.lineTo(66, 0);
+  ctx.lineTo(48, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = theme[2] || &quot;#ffd166&quot;;
+  ctx.beginPath();
+  ctx.moveTo(-8, -4);
+  ctx.lineTo(24, -44);
+  ctx.lineTo(34, -38);
+  ctx.lineTo(16, -3);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
@@ -6260,7 +6495,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     const stage = routeStageInfo(place, progress);
     const props = routeDriveByProps(place, stage);
     const side = seededUnit(seed, index + 22) &gt; 0.5 ? 1 : -1;
-    const lane = side * (1.72 + seededUnit(seed, index + 33) * 0.48);
+    const lane = side * (2.04 + seededUnit(seed, index + 33) * 0.5);
     const projected = roadObjectPos(lane, baseDistance);
     if (!projected || projected.y &lt; horizon - 36 || projected.y &gt; h + 110) continue;
     drawList.push({
@@ -6276,7 +6511,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     });
     if (index % 4 === 0) {
       const otherSide = -side;
-      const companionLane = otherSide * (1.62 + seededUnit(seed, index + 44) * 0.38);
+      const companionLane = otherSide * (1.94 + seededUnit(seed, index + 44) * 0.42);
       const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
       const companionProgress = Math.max(0, Math.min(1, companionDistance / length));
       const companionStage = routeStageInfo(place, companionProgress);
@@ -6299,11 +6534,11 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
   }
   drawList.sort((a, b) =&gt; a.y - b.y);
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 10 : 14);
   drawList.forEach((item) =&gt; {
     const near = Math.max(0, Math.min(1, item.depth || 0));
-    const screenMargin = phoneMode ? 14 : 42;
-    const x = Math.max(-screenMargin, Math.min(w + screenMargin, item.x));
-    const scale = Math.max(0.34, Math.min(phoneMode ? 1.82 : 2.02, item.scale * (phoneMode ? 1.03 : 1.08) * (0.9 + near * 0.62)));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, item.y, item.side, item.x, phoneMode, phoneMode ? 18 : 28);
+    const scale = Math.max(0.32, Math.min(phoneMode ? 1.66 : 1.86, item.scale * (phoneMode ? 0.96 : 1.02) * (0.86 + near * 0.54)));
     if (near &gt; 0.42 &amp;&amp; seededUnit(item.seed, 8) &gt; 0.4) {
       ctx.save();
       ctx.globalAlpha = phoneMode ? 0.46 + near * 0.22 : 0.36 + near * 0.2;
@@ -6336,6 +6571,7 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
   const count = phoneMode ? 12 : 20;
   const span = h - horizon + 320;
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 6 : 10);
   for (let i = 0; i &lt; count; i += 1) {
     const y = horizon + (((i * 116 + motion * (0.82 + seededUnit(seed, i) * 0.2) + seed * 0.003) % span) - 76);
     if (y &lt; horizon + 4 || y &gt; h + 70) continue;
@@ -6343,7 +6579,8 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const shoulder = half * (1.06 + seededUnit(seed, i + 40) * 0.2) + w * (0.018 + seededUnit(seed, i + 60) * 0.035);
-    const x = perspectiveRoadCenter(w, t) + side * shoulder;
+    const projectedX = perspectiveRoadCenter(w, t) + side * shoulder;
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 10 : 18);
     const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
     const kind = props[i % props.length];
     ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
@@ -6356,13 +6593,15 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
 function drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const rows = phoneMode ? 6 : 8;
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 2 : 4);
   for (let i = 0; i &lt; rows; i += 1) {
     const t = 0.54 + i / Math.max(1, rows - 1) * 0.48;
     const y = horizon + (h - horizon) * t + ((motion * 0.45 + i * 29) % 52) - 26;
     if (y &lt; horizon || y &gt; h + 48) continue;
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const x = perspectiveRoadCenter(w, t) + side * (half * 0.96 + w * 0.02);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half * 0.96 + w * 0.02);
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 4 : 8);
     const scale = 0.42 + t * (phoneMode ? 0.78 : 0.92);
     ctx.globalAlpha = phoneMode ? 0.72 : 0.64;
     drawGroundLockedPlaceProp(i % 3 === 0 ? &quot;curbBlock&quot; : i % 3 === 1 ? &quot;reflectorPost&quot; : &quot;lowBarrier&quot;, x, y, scale, side, place, route, design, theme, seed + i * 97);
@@ -8232,6 +8471,26 @@ function clipRealWorldRoad(w, h, horizon, roadTop, roadBottom) {
   ctx.lineTo(perspectiveRoadCenter(w, 1) - roadBottom * 0.67, h + 18);
   ctx.closePath();
   ctx.clip();
+}
+
+function clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, padding = 0) {
+  ctx.beginPath();
+  ctx.rect(-w * 0.2, horizon - h * 0.12, w * 1.4, h * 1.24);
+  ctx.moveTo(perspectiveRoadCenter(w, 0) - roadTop * 0.86 - padding, horizon - 8);
+  ctx.lineTo(perspectiveRoadCenter(w, 0) + roadTop * 0.86 + padding, horizon - 8);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) + roadBottom * 0.67 + padding, h + 24);
+  ctx.lineTo(perspectiveRoadCenter(w, 1) - roadBottom * 0.67 - padding, h + 24);
+  ctx.closePath();
+  ctx.clip(&quot;evenodd&quot;);
+}
+
+function roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, extra = 0) {
+  const t = Math.max(0, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+  const edge = perspectiveRoadCenter(w, t) + side * realWorldRoadHalf(roadTop, roadBottom, t);
+  const clearance = extra + w * (phoneMode ? 0.045 : 0.038) + t * w * (phoneMode ? 0.08 : 0.065);
+  const safe = edge + side * clearance;
+  if (side &lt; 0) return Math.max(-w * 0.16, Math.min(projectedX, safe));
+  return Math.min(w * 1.16, Math.max(projectedX, safe));
 }
 
 function drawPerspectivePavementQuad(w, horizon, lane, y, length, width, style) {
@@ -16165,7 +16424,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v82-drive-by-world&quot;;
+const cacheName = &quot;velocity-vault-v83-world-surface-views&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -16315,6 +16574,7 @@ Real-world style visuals:
 - The v76 depth-infrastructure pass adds more real-world scale behind the race: parallax city blocks, mountains, dunes, water spans, fields, ports, rail yards, sound walls, guardrails, snow fences, stone walls, power lines, tram wires, lift cables, gantries, bridge cables, beacons, and far-side traffic silhouettes so the route feels deeper without putting clutter in the driving line.
 - The v81 ground-visibility pass tightens player hit detection to the visible car position, reduces ahead-of-car side-scrape damage, brightens the readable road surface, and adds grounded real-world props such as storefronts, streetlights, guardrails, parked vehicles, crowds, route signs, barns, fences, containers, hangars, palms, rocks, pines, and barriers that sit on the roadside instead of floating in the haze.
 - The v82 drive-by world pass spaces larger, brighter roadside landmarks by real route distance, sorts them far-to-near, and changes the landmark set by race sector so you drive past grounded billboards, bridges, tunnel portals, service stations, docks, traffic lights, homes, grandstands, towers, barns, shops, crowds, and route signs instead of seeing one repeated backdrop.
+- The v83 surface-view pass keeps scenery outside the drivable road, paints the road back over shoulder props so details no longer cut through the lane, and adds dedicated water and air views: boat races now get a water channel with shorelines, docks, buoys, and other boats, while airplane and helicopter races get clouds, flight gates, distant terrain, and aircraft silhouettes instead of road scenery.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
