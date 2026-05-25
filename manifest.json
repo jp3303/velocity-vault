@@ -2,7 +2,7 @@
   "name": "Velocity Vault",
   "short_name": "Velocity",
   "description": "A standalone racing game with local profiles, upgrades, missions, controller support, and offline play.",
-  "id": "/velocity-vault/",
+  "id": "/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

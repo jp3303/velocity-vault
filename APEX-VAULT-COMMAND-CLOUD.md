@@ -8,7 +8,7 @@ Target host: `https://apexvault.duckdns.org/`
 
 Use `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`.
 
-The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest as `manifest.json`, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
 
 ## Apex Setup
 
@@ -29,7 +29,7 @@ The ZIP contains `index.html` at the top level, plus the playable game, PWA mani
 - `game.js`
 - `phone-asset-pipeline.js`
 - `webgl-pipeline.js`
-- `manifest.webmanifest`
+- `manifest.json`
 - `sw.js`
 - `app-icon.svg`
 - `README.md`

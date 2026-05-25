@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v78-apex-duckdns";
+const cacheName = "velocity-vault-v79-apex-manifest-json";
 const appShell = [
   "./",
   "./index.html",
@@ -8,7 +8,7 @@ const appShell = [
   "./phone-asset-pipeline.js",
   "./webgl-pipeline.js",
   "./game.js",
-  "./manifest.webmanifest",
+  "./manifest.json",
   "./app-icon.svg",
   "./README.md",
   "./apex-vault-command-cloud.json",

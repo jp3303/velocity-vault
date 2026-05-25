@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}p{font-family:Arial,sans-serif;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v78 Apex DuckDNS static upload. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, README/how-to-play notes, expanded real-world detail passes, v76 depth-infrastructure layer, and Apex Vault Command Cloud deployment files for https://apexvault.duckdns.org/.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v79 Apex manifest-json static upload. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, README/how-to-play notes, expanded real-world detail passes, v76 depth-infrastructure layer, and Apex Vault Command Cloud deployment files for https://apexvault.duckdns.org/.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -12,7 +12,7 @@
   &lt;meta name=&quot;apple-mobile-web-app-capable&quot; content=&quot;yes&quot;&gt;
   &lt;meta name=&quot;apple-mobile-web-app-title&quot; content=&quot;Velocity Vault&quot;&gt;
   &lt;title&gt;Velocity Vault&lt;/title&gt;
-  &lt;link rel=&quot;manifest&quot; href=&quot;manifest.webmanifest&quot;&gt;
+  &lt;link rel=&quot;manifest&quot; href=&quot;manifest.json&quot;&gt;
   &lt;link rel=&quot;icon&quot; href=&quot;app-icon.svg&quot; type=&quot;image/svg+xml&quot;&gt;
   &lt;link rel=&quot;apple-touch-icon&quot; href=&quot;app-icon.svg&quot;&gt;
   &lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;
@@ -15474,11 +15474,11 @@ drawFrame();
   window.VelocityWebGLPipeline = VelocityWebGLPipeline;
 }());
 </pre>
-<h2>manifest.webmanifest</h2><pre>{
+<h2>manifest.json</h2><pre>{
   &quot;name&quot;: &quot;Velocity Vault&quot;,
   &quot;short_name&quot;: &quot;Velocity&quot;,
   &quot;description&quot;: &quot;A standalone racing game with local profiles, upgrades, missions, controller support, and offline play.&quot;,
-  &quot;id&quot;: &quot;/velocity-vault/&quot;,
+  &quot;id&quot;: &quot;/&quot;,
   &quot;start_url&quot;: &quot;./index.html&quot;,
   &quot;scope&quot;: &quot;./&quot;,
   &quot;display&quot;: &quot;standalone&quot;,
@@ -15506,7 +15506,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v78-apex-duckdns&quot;;
+const cacheName = &quot;velocity-vault-v79-apex-manifest-json&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15514,7 +15514,7 @@ const appShell = [
   &quot;./phone-asset-pipeline.js&quot;,
   &quot;./webgl-pipeline.js&quot;,
   &quot;./game.js&quot;,
-  &quot;./manifest.webmanifest&quot;,
+  &quot;./manifest.json&quot;,
   &quot;./app-icon.svg&quot;,
   &quot;./README.md&quot;,
   &quot;./apex-vault-command-cloud.json&quot;,
@@ -15727,6 +15727,7 @@ Recommended Apex settings:
 - Environment variables: none.
 - Security headers: use `_headers` or `apex-vault-command-cloud.json`.
 - ZIP shape: `index.html` must be at the top level of the ZIP, not inside another folder.
+- Apex-safe manifest: the upload bundle uses `manifest.json` instead of `.webmanifest` because Apex blocks `.webmanifest` assets.
 
 The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
 
@@ -15785,7 +15786,7 @@ Target host: `https://apexvault.duckdns.org/`
 
 Use `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`.
 
-The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest as `manifest.json`, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
 
 ## Apex Setup
 
@@ -15806,7 +15807,7 @@ The ZIP contains `index.html` at the top level, plus the playable game, PWA mani
 - `game.js`
 - `phone-asset-pipeline.js`
 - `webgl-pipeline.js`
-- `manifest.webmanifest`
+- `manifest.json`
 - `sw.js`
 - `app-icon.svg`
 - `README.md`
@@ -15834,7 +15835,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
 <h2>apex-vault-command-cloud.json</h2><pre>{
   &quot;appName&quot;: &quot;Velocity Vault&quot;,
   &quot;deploymentName&quot;: &quot;velocity-vault&quot;,
-  &quot;version&quot;: &quot;v78-apex-duckdns-static-upload&quot;,
+  &quot;version&quot;: &quot;v79-apex-manifest-json-upload&quot;,
   &quot;siteUrl&quot;: &quot;https://apexvault.duckdns.org/&quot;,
   &quot;description&quot;: &quot;Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.&quot;,
   &quot;runtime&quot;: &quot;static-pwa&quot;,
@@ -15844,14 +15845,14 @@ If Apex gives you a custom domain option, point the domain to this deployment an
   &quot;installablePwa&quot;: true,
   &quot;offlineSupport&quot;: true,
   &quot;serviceWorker&quot;: &quot;sw.js&quot;,
-  &quot;manifest&quot;: &quot;manifest.webmanifest&quot;,
+  &quot;manifest&quot;: &quot;manifest.json&quot;,
   &quot;assets&quot;: [
     &quot;index.html&quot;,
     &quot;styles.css&quot;,
     &quot;game.js&quot;,
     &quot;phone-asset-pipeline.js&quot;,
     &quot;webgl-pipeline.js&quot;,
-    &quot;manifest.webmanifest&quot;,
+    &quot;manifest.json&quot;,
     &quot;sw.js&quot;,
     &quot;app-icon.svg&quot;,
     &quot;README.md&quot;,
@@ -15878,7 +15879,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
     &quot;.html&quot;: &quot;text/html; charset=utf-8&quot;,
     &quot;.css&quot;: &quot;text/css; charset=utf-8&quot;,
     &quot;.js&quot;: &quot;text/javascript; charset=utf-8&quot;,
-    &quot;.webmanifest&quot;: &quot;application/manifest+json; charset=utf-8&quot;,
+    &quot;.json&quot;: &quot;application/json; charset=utf-8&quot;,
     &quot;.svg&quot;: &quot;image/svg+xml&quot;,
     &quot;.md&quot;: &quot;text/markdown; charset=utf-8&quot;
   },
@@ -15901,7 +15902,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
       &quot;cacheControl&quot;: &quot;no-cache&quot;
     },
     {
-      &quot;path&quot;: &quot;/manifest.webmanifest&quot;,
+      &quot;path&quot;: &quot;/manifest.json&quot;,
       &quot;cacheControl&quot;: &quot;public, max-age=3600&quot;
     },
     {
@@ -15948,7 +15949,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
 /sw.js
   Cache-Control: no-cache
 
-/manifest.webmanifest
+/manifest.json
   Content-Type: application/manifest+json; charset=utf-8
   Cache-Control: public, max-age=3600
 
