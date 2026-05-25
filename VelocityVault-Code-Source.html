@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}p{font-family:Arial,sans-serif;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v80 Apex safe-assets static upload. The Apex ZIP contains only accepted app asset types while the full local source package keeps documentation and deployment notes.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v81 ground visibility and hitbox tuning. Tightens player collision windows to the visible car, brightens road readability, and adds grounded world props while keeping the Apex ZIP limited to safe upload asset types.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -3957,7 +3957,7 @@ function updateOpponents(dt, maxSpeed) {
     opponent.bumpCooldown = Math.max(0, (opponent.bumpCooldown || 0) - dt);
     const phoneMode = phoneGraphicsActive();
     const laneOverlap = Math.abs(opponent.lane - raceState.lane);
-    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) &lt; (phoneMode ? 42 : 54) &amp;&amp; laneOverlap &lt; (phoneMode ? 0.72 : 0.78);
+    const wheelToWheel = Math.abs(opponent.distance - raceState.distance) &lt; (phoneMode ? 24 : 32) &amp;&amp; laneOverlap &lt; (phoneMode ? 0.56 : 0.64);
     if (wheelToWheel &amp;&amp; opponent.bumpCooldown &lt;= 0 &amp;&amp; raceState.resetTimer &lt;= 0) {
       opponent.bumpCooldown = phoneMode ? 1.45 : 1.15;
       const side = Math.sign(opponent.lane - raceState.lane) || (index % 2 ? -1 : 1);
@@ -4093,29 +4093,48 @@ function choosePhoneSpawnLane() {
   return slots.find((lane) =&gt; !busy(lane)) ?? slots.find((lane) =&gt; Math.abs(lane - raceState.lane) &gt; 1.05) ?? -1.95;
 }
 
+function collisionScreenYForObject(object) {
+  const distance = ensureRoadDistance(object);
+  const lane = Number(object &amp;&amp; object.lane) || 0;
+  const projected = roadObjectPos(lane, distance);
+  if (projected &amp;&amp; Number.isFinite(projected.y)) return projected.y;
+  return roadObjectY(object);
+}
+
+function playerContactWindow(kind = &quot;traffic&quot;, phoneMode = phoneGraphicsActive()) {
+  if (phoneMode) {
+    return kind === &quot;civilian&quot;
+      ? { lane: 0.2, ahead: 8, behind: 9, scrapeLane: 0.24, scrapeAhead: 10, scrapeBehind: -8 }
+      : kind === &quot;police&quot;
+        ? { lane: 0.26, ahead: 12, behind: 12, scrapeLane: 0.46, scrapeAhead: 16, scrapeBehind: -12 }
+        : { lane: 0.24, ahead: 10, behind: 10, scrapeLane: 0.42, scrapeAhead: 14, scrapeBehind: -10 };
+  }
+  return kind === &quot;civilian&quot;
+    ? { lane: 0.24, ahead: 10, behind: 7, scrapeLane: 0.28, scrapeAhead: 12, scrapeBehind: -7 }
+    : kind === &quot;police&quot;
+      ? { lane: 0.34, ahead: 22, behind: 18, scrapeLane: 0.58, scrapeAhead: 26, scrapeBehind: -18 }
+      : { lane: 0.32, ahead: 18, behind: 16, scrapeLane: 0.54, scrapeAhead: 22, scrapeBehind: -16 };
+}
+
 function playerVehicleContact(object, kind = &quot;traffic&quot;) {
   const objectLane = Number(object &amp;&amp; object.lane) || 0;
   const laneGap = Math.abs(objectLane - raceState.lane);
   const gap = ensureRoadDistance(object) - raceState.distance;
-  if (phoneGraphicsActive()) {
-    const laneLimit = kind === &quot;civilian&quot; ? 0.24 : kind === &quot;police&quot; ? 0.32 : 0.3;
-    const aheadLimit = kind === &quot;civilian&quot; ? 18 : kind === &quot;police&quot; ? 28 : 24;
-    const behindLimit = kind === &quot;civilian&quot; ? 10 : kind === &quot;police&quot; ? 16 : 14;
+  const phoneMode = phoneGraphicsActive();
+  const contactWindow = playerContactWindow(kind, phoneMode);
+  if (phoneMode) {
     return {
-      laneHit: laneGap &lt; laneLimit,
-      yHit: gap &gt; -behindLimit &amp;&amp; gap &lt; aheadLimit,
+      laneHit: laneGap &lt; contactWindow.lane,
+      yHit: gap &gt; -contactWindow.behind &amp;&amp; gap &lt; contactWindow.ahead,
       gap,
       laneGap
     };
   }
-  const screenY = roadObjectY(object);
-  const laneLimit = kind === &quot;civilian&quot; ? 0.3 : kind === &quot;police&quot; ? 0.42 : 0.4;
-  const aheadLimit = kind === &quot;civilian&quot; ? 18 : kind === &quot;police&quot; ? 46 : 40;
-  const behindLimit = kind === &quot;civilian&quot; ? 8 : kind === &quot;police&quot; ? 24 : 22;
-  const screenAligned = screenY &gt; canvas.height * 0.64 &amp;&amp; screenY &lt; canvas.height * 1.02;
+  const screenY = collisionScreenYForObject(object);
+  const screenAligned = screenY &gt; canvas.height * 0.7 &amp;&amp; screenY &lt; canvas.height * 1.02;
   return {
-    laneHit: laneGap &lt; laneLimit,
-    yHit: gap &gt; -behindLimit &amp;&amp; gap &lt; aheadLimit &amp;&amp; screenAligned,
+    laneHit: laneGap &lt; contactWindow.lane,
+    yHit: gap &gt; -contactWindow.behind &amp;&amp; gap &lt; contactWindow.ahead &amp;&amp; screenAligned,
     gap,
     screenY,
     laneGap
@@ -4125,18 +4144,17 @@ function playerVehicleContact(object, kind = &quot;traffic&quot;) {
 function visiblePlayerVehicleContact(object, kind = &quot;traffic&quot;) {
   const contact = playerVehicleContact(object, kind);
   const gap = Number.isFinite(contact.gap) ? contact.gap : ensureRoadDistance(object) - raceState.distance;
-  const screenY = Number.isFinite(contact.screenY) ? contact.screenY : roadObjectY(object);
+  const screenY = Number.isFinite(contact.screenY) ? contact.screenY : collisionScreenYForObject(object);
   const phoneMode = phoneGraphicsActive();
-  const visibleTop = phoneMode ? canvas.height * 0.5 : canvas.height * 0.58;
+  const visibleTop = phoneMode ? canvas.height * 0.58 : canvas.height * 0.66;
   const visibleBottom = phoneMode ? canvas.height * 1.02 : canvas.height * 0.98;
-  const aheadLimit = phoneMode
-    ? (kind === &quot;civilian&quot; ? 18 : kind === &quot;police&quot; ? 26 : 22)
-    : (kind === &quot;civilian&quot; ? 18 : kind === &quot;police&quot; ? 48 : 42);
-  const rearForgiveness = phoneMode ? -8 : kind === &quot;civilian&quot; ? -8 : -26;
+  const contactWindow = playerContactWindow(kind, phoneMode);
+  const aheadLimit = contactWindow.ahead;
+  const rearForgiveness = -contactWindow.behind;
   const visible = screenY &gt;= visibleTop &amp;&amp; screenY &lt;= visibleBottom;
   const avoidableOverlap = gap &gt;= rearForgiveness &amp;&amp; gap &lt;= aheadLimit;
-  const sideScrapeLane = kind === &quot;civilian&quot; ? 0.32 : kind === &quot;police&quot; ? (phoneMode ? 0.7 : 0.78) : (phoneMode ? 0.66 : 0.74);
-  const sideScrapeGap = gap &gt;= (phoneMode ? -22 : -32) &amp;&amp; gap &lt;= (kind === &quot;police&quot; ? (phoneMode ? 46 : 60) : (phoneMode ? 42 : 52));
+  const sideScrapeLane = contactWindow.scrapeLane;
+  const sideScrapeGap = gap &gt;= contactWindow.scrapeBehind &amp;&amp; gap &lt;= contactWindow.scrapeAhead;
   const sideScrape = kind !== &quot;civilian&quot; &amp;&amp; contact.laneGap &lt; sideScrapeLane &amp;&amp; visible &amp;&amp; sideScrapeGap;
   return {
     ...contact,
@@ -4151,7 +4169,7 @@ function updateHazardWarning(object, kind = &quot;traffic&quot;) {
   if (!raceState.active || raceState.resetTimer &gt; 0) return;
   const gap = ensureRoadDistance(object) - raceState.distance;
   const laneGap = Math.abs((Number(object &amp;&amp; object.lane) || 0) - raceState.lane);
-  const screenY = roadObjectY(object);
+  const screenY = collisionScreenYForObject(object);
   const phoneMode = phoneGraphicsActive();
   const warningRange = phoneMode ? 260 : 190;
   if (gap &gt; 38 &amp;&amp; gap &lt; warningRange &amp;&amp; laneGap &lt; 0.96 &amp;&amp; screenY &gt; canvas.height * 0.42 &amp;&amp; screenY &lt; canvas.height * 0.88) {
@@ -6041,7 +6059,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === &quot;cockpit&quot; ? h * 0.27 : cameraMode === &quot;hood&quot; ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === &quot;cockpit&quot; ? w * 0.11 : cameraMode === &quot;hood&quot; ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === &quot;cockpit&quot; ? w * 1.02 : cameraMode === &quot;hood&quot; ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v76:${place}:${route.scene}`);
+  const seed = hashText(`v81:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -6062,6 +6080,357 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldForegroundDepthPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldNearsideInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  ctx.restore();
+}
+
+function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const length = raceLength();
+  const progress = length ? Math.max(0, Math.min(1, raceState.distance / length)) : 0;
+  const stage = routeStageInfo(place, progress);
+  const route = routeWorldInfo(place);
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode) {
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const roadWash = ctx.createLinearGradient(0, horizon, 0, h);
+  roadWash.addColorStop(0, phoneMode ? &quot;rgba(26,36,34,0.18)&quot; : &quot;rgba(26,36,34,0.12)&quot;);
+  roadWash.addColorStop(0.52, phoneMode ? &quot;rgba(8,12,12,0.32)&quot; : &quot;rgba(8,12,12,0.24)&quot;);
+  roadWash.addColorStop(1, phoneMode ? &quot;rgba(0,0,0,0.48)&quot; : &quot;rgba(0,0,0,0.34)&quot;);
+  ctx.fillStyle = roadWash;
+  ctx.fillRect(0, horizon, w, h - horizon);
+
+  const edgeColor = place === &quot;desert&quot; || place === &quot;farm&quot; || place === &quot;canyon&quot; ? &quot;rgba(255,209,102,0.74)&quot; : &quot;rgba(244,251,248,0.78)&quot;;
+  for (let side = -1; side &lt;= 1; side += 2) {
+    ctx.strokeStyle = edgeColor;
+    ctx.lineWidth = Math.max(3, w * (phoneMode ? 0.008 : 0.006));
+    ctx.globalAlpha = phoneMode ? 0.72 : 0.62;
+    ctx.beginPath();
+    ctx.moveTo(perspectiveRoadCenter(w, 0.04) + side * roadTop * 0.78, horizon + 3);
+    ctx.lineTo(perspectiveRoadCenter(w, 1) + side * roadBottom * 0.54, h + 8);
+    ctx.stroke();
+
+    ctx.strokeStyle = side &lt; 0 ? &quot;rgba(255,91,107,0.58)&quot; : &quot;rgba(70,217,255,0.52)&quot;;
+    ctx.lineWidth = Math.max(5, w * (phoneMode ? 0.012 : 0.008));
+    ctx.globalAlpha = phoneMode ? 0.5 : 0.38;
+    ctx.beginPath();
+    ctx.moveTo(perspectiveRoadCenter(w, 0.08) + side * roadTop * 0.98, horizon + 7);
+    ctx.lineTo(perspectiveRoadCenter(w, 1) + side * roadBottom * 0.66, h + 14);
+    ctx.stroke();
+  }
+
+  const span = h - horizon + 240;
+  const laneAlpha = phoneMode ? 0.68 : 0.58;
+  ctx.globalCompositeOperation = &quot;screen&quot;;
+  for (let lane = -1.5; lane &lt;= 1.5; lane += 1) {
+    for (let i = 0; i &lt; (phoneMode ? 12 : 16); i += 1) {
+      const y = horizon + (((i * 118 + motion * 1.5 + lane * 37) % span) - 76);
+      if (y &lt; horizon || y &gt; h + 55) continue;
+      const t = Math.max(0.03, Math.min(1.06, (y - horizon) / Math.max(1, h - horizon)));
+      const dashH = 14 + t * (phoneMode ? 62 : 74);
+      const dashW = 5 + t * (phoneMode ? 10 : 12);
+      ctx.globalAlpha = laneAlpha * (0.42 + t * 0.58);
+      drawPerspectivePavementQuad(w, horizon, lane, y, dashH, dashW, lane === -1.5 || lane === 1.5 ? &quot;rgba(255,209,102,0.92)&quot; : &quot;rgba(244,251,248,0.92)&quot;);
+    }
+  }
+  ctx.globalCompositeOperation = &quot;source-over&quot;;
+
+  for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
+    const y = horizon + (((i * 94 + motion * 0.9 + seed * 0.002) % span) - 42);
+    if (y &lt; horizon || y &gt; h + 30) continue;
+    const t = Math.max(0.05, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * 0.6;
+    ctx.globalAlpha = phoneMode ? 0.16 + t * 0.12 : 0.12 + t * 0.1;
+    ctx.fillStyle = i % 2 ? &quot;rgba(244,251,248,0.3)&quot; : &quot;rgba(0,0,0,0.68)&quot;;
+    roundRect(center - half, y, half * 2, 3 + t * 9, Math.max(2, 2 + t * 3));
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function groundLockedPlaceProps(place, stage) {
+  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;barrier&quot;, &quot;wallLamp&quot;, &quot;tunnelFan&quot;, &quot;routeSign&quot;];
+  if (stage &amp;&amp; (stage.prop === &quot;bridge&quot; || stage.prop === &quot;pier&quot;)) return [&quot;bridgeRail&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;routeSign&quot;];
+  const props = {
+    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;seaWall&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    city: [&quot;storefront&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;busStop&quot;, &quot;crowd&quot;],
+    canyon: [&quot;rockFace&quot;, &quot;guardPost&quot;, &quot;desertScrub&quot;, &quot;curveBoard&quot;, &quot;tourVan&quot;],
+    alpine: [&quot;pine&quot;, &quot;stoneWall&quot;, &quot;chalet&quot;, &quot;snowPost&quot;, &quot;spectators&quot;],
+    harbor: [&quot;container&quot;, &quot;dockLight&quot;, &quot;warehouse&quot;, &quot;craneBase&quot;, &quot;serviceTruck&quot;],
+    snow: [&quot;pine&quot;, &quot;snowFence&quot;, &quot;lodge&quot;, &quot;skiPost&quot;, &quot;spectators&quot;],
+    airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;towerSign&quot;, &quot;barrier&quot;],
+    freight: [&quot;container&quot;, &quot;railSignal&quot;, &quot;truckStop&quot;, &quot;fence&quot;, &quot;serviceTruck&quot;],
+    farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;],
+    tokyo: [&quot;neonShop&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;, &quot;expressSign&quot;],
+    desert: [&quot;dune&quot;, &quot;desertScrub&quot;, &quot;supportTent&quot;, &quot;rallyMarker&quot;, &quot;rockFace&quot;],
+    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;waterfallSign&quot;, &quot;crowd&quot;],
+    europe: [&quot;stoneWall&quot;, &quot;cafe&quot;, &quot;tramPost&quot;, &quot;villageHouse&quot;, &quot;spectators&quot;]
+  };
+  return props[place] || props.city;
+}
+
+function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
+  const props = groundLockedPlaceProps(place, stage);
+  const count = phoneMode ? 18 : 28;
+  const span = h - horizon + 320;
+  ctx.save();
+  for (let i = 0; i &lt; count; i += 1) {
+    const y = horizon + (((i * 116 + motion * (0.82 + seededUnit(seed, i) * 0.2) + seed * 0.003) % span) - 76);
+    if (y &lt; horizon + 4 || y &gt; h + 70) continue;
+    const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+    const side = i % 2 === 0 ? -1 : 1;
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const shoulder = half * (1.06 + seededUnit(seed, i + 40) * 0.2) + w * (0.018 + seededUnit(seed, i + 60) * 0.035);
+    const x = perspectiveRoadCenter(w, t) + side * shoulder;
+    const scale = (0.34 + t * (phoneMode ? 0.92 : 1.12)) * (0.88 + seededUnit(seed, i + 80) * 0.24);
+    const kind = props[i % props.length];
+    ctx.globalAlpha = Math.min(0.95, (phoneMode ? 0.58 : 0.68) + t * 0.22);
+    drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
+  const rows = phoneMode ? 6 : 8;
+  ctx.save();
+  for (let i = 0; i &lt; rows; i += 1) {
+    const t = 0.54 + i / Math.max(1, rows - 1) * 0.48;
+    const y = horizon + (h - horizon) * t + ((motion * 0.45 + i * 29) % 52) - 26;
+    if (y &lt; horizon || y &gt; h + 48) continue;
+    const side = i % 2 === 0 ? -1 : 1;
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const x = perspectiveRoadCenter(w, t) + side * (half * 0.96 + w * 0.02);
+    const scale = 0.42 + t * (phoneMode ? 0.78 : 0.92);
+    ctx.globalAlpha = phoneMode ? 0.72 : 0.64;
+    drawGroundLockedPlaceProp(i % 3 === 0 ? &quot;curbBlock&quot; : i % 3 === 1 ? &quot;reflectorPost&quot; : &quot;lowBarrier&quot;, x, y, scale, side, place, route, design, theme, seed + i * 97);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed) {
+  const accent = design.accent || theme[1] || &quot;#46d9ff&quot;;
+  const light = design.light || theme[2] || &quot;#ffd166&quot;;
+  const label = route &amp;&amp; route.scene ? route.scene : &quot;Route&quot;;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = &quot;rgba(0,0,0,0.46)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(0, 4, 42, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = &quot;rgba(244,251,248,0.34)&quot;;
+  roundRect(-34, -2, 68, 5, 3);
+  ctx.fill();
+
+  if (kind === &quot;streetLight&quot; || kind === &quot;lamp&quot; || kind === &quot;dockLight&quot; || kind === &quot;runwayLight&quot; || kind === &quot;wallLamp&quot;) {
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.84)&quot;;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -74);
+    ctx.stroke();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.arc(0, -82, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = &quot;screen&quot;;
+    ctx.fillStyle = `${light}44`;
+    ctx.beginPath();
+    ctx.ellipse(0, -40, 22, 52, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = &quot;source-over&quot;;
+  } else if (kind === &quot;palm&quot; || kind === &quot;pine&quot; || kind === &quot;canopyTree&quot; || kind === &quot;desertScrub&quot;) {
+    ctx.fillStyle = kind === &quot;desertScrub&quot; ? &quot;rgba(92,118,48,0.86)&quot; : kind === &quot;palm&quot; ? &quot;rgba(39,124,78,0.9)&quot; : &quot;rgba(24,88,56,0.92)&quot;;
+    if (kind === &quot;desertScrub&quot;) {
+      for (let i = -2; i &lt;= 2; i += 1) {
+        ctx.beginPath();
+        ctx.ellipse(i * 11, -8 - Math.abs(i) * 2, 15, 22, i * 0.24, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = kind === &quot;palm&quot; ? &quot;rgba(132,88,48,0.9)&quot; : &quot;rgba(72,54,34,0.9)&quot;;
+      roundRect(-5, -72, 10, 74, 4);
+      ctx.fill();
+      ctx.fillStyle = kind === &quot;palm&quot; ? &quot;rgba(44,146,82,0.94)&quot; : &quot;rgba(24,94,58,0.94)&quot;;
+      for (let i = 0; i &lt; 6; i += 1) {
+        ctx.save();
+        ctx.translate(0, -76);
+        ctx.rotate(i * Math.PI / 3 + (kind === &quot;palm&quot; ? 0.18 : 0));
+        ctx.beginPath();
+        ctx.ellipse(24, 0, kind === &quot;palm&quot; ? 34 : 18, kind === &quot;palm&quot; ? 8 : 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  } else if (kind === &quot;storefront&quot; || kind === &quot;neonShop&quot; || kind === &quot;cafe&quot; || kind === &quot;villageHouse&quot; || kind === &quot;beachHouse&quot; || kind === &quot;chalet&quot; || kind === &quot;lodge&quot; || kind === &quot;barn&quot; || kind === &quot;warehouse&quot; || kind === &quot;hangar&quot;) {
+    const buildingColor = kind === &quot;barn&quot; ? &quot;rgba(154,44,36,0.92)&quot; : kind === &quot;neonShop&quot; ? &quot;rgba(18,12,34,0.94)&quot; : kind === &quot;warehouse&quot; || kind === &quot;hangar&quot; ? &quot;rgba(36,46,46,0.92)&quot; : &quot;rgba(42,54,52,0.92)&quot;;
+    ctx.fillStyle = buildingColor;
+    roundRect(-58, -72, 116, 72, 6);
+    ctx.fill();
+    ctx.fillStyle = kind === &quot;barn&quot; || kind === &quot;chalet&quot; || kind === &quot;lodge&quot; || kind === &quot;villageHouse&quot; ? light : accent;
+    ctx.beginPath();
+    ctx.moveTo(-66, -72);
+    ctx.lineTo(0, -112);
+    ctx.lineTo(66, -72);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(244,251,248,0.62)&quot;;
+    for (let i = -1; i &lt;= 1; i += 1) roundRect(i * 32 - 8, -52, 16, 18, 3);
+    ctx.fillStyle = &quot;rgba(5,8,7,0.86)&quot;;
+    roundRect(-10, -30, 20, 30, 3);
+    ctx.fill();
+    if (kind === &quot;neonShop&quot; || kind === &quot;storefront&quot; || kind === &quot;cafe&quot;) {
+      ctx.fillStyle = `${accent}cc`;
+      roundRect(-44, -84, 88, 16, 4);
+      ctx.fill();
+    }
+  } else if (kind === &quot;parkedCar&quot; || kind === &quot;tourVan&quot; || kind === &quot;serviceTruck&quot; || kind === &quot;serviceCart&quot; || kind === &quot;tractorParked&quot;) {
+    ctx.fillStyle = kind === &quot;tractorParked&quot; ? &quot;#bbf24a&quot; : kind === &quot;serviceTruck&quot; ? light : accent;
+    roundRect(-48, -28, 96, 28, 7);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.78)&quot;;
+    roundRect(-26, -42, 44, 20, 5);
+    ctx.fill();
+    ctx.fillStyle = &quot;#020303&quot;;
+    ctx.beginPath();
+    ctx.arc(-28, 0, kind === &quot;tractorParked&quot; ? 13 : 9, 0, Math.PI * 2);
+    ctx.arc(28, 0, kind === &quot;tractorParked&quot; ? 16 : 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(244,251,248,0.72)&quot;;
+    ctx.fillRect(-44, -18, 10, 5);
+    ctx.fillRect(34, -18, 10, 5);
+  } else if (kind === &quot;crowd&quot; || kind === &quot;spectators&quot;) {
+    for (let i = -4; i &lt;= 4; i += 1) {
+      const color = i % 3 === 0 ? accent : i % 3 === 1 ? light : &quot;#f4fbf8&quot;;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(i * 12, -38 - (i % 2) * 4, 5, 0, Math.PI * 2);
+      ctx.fill();
+      roundRect(i * 12 - 4, -34, 8, 28, 3);
+      ctx.fill();
+    }
+    ctx.strokeStyle = &quot;rgba(244,251,248,0.58)&quot;;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-66, -8);
+    ctx.lineTo(66, -8);
+    ctx.stroke();
+  } else if (kind === &quot;routeSign&quot; || kind === &quot;curveBoard&quot; || kind === &quot;towerSign&quot; || kind === &quot;expressSign&quot; || kind === &quot;waterfallSign&quot; || kind === &quot;busStop&quot; || kind === &quot;rallyMarker&quot;) {
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.8)&quot;;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-28, 0);
+    ctx.lineTo(-28, -54);
+    ctx.moveTo(28, 0);
+    ctx.lineTo(28, -54);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.9)&quot;;
+    roundRect(-72, -92, 144, 44, 6);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = &quot;#f4fbf8&quot;;
+    ctx.font = &quot;900 12px system-ui&quot;;
+    ctx.textAlign = &quot;center&quot;;
+    ctx.textBaseline = &quot;middle&quot;;
+    ctx.fillText(label.toUpperCase(), 0, -72, 126);
+    ctx.fillStyle = light;
+    ctx.fillRect(-54, -55, 108, 5);
+  } else if (kind === &quot;rockFace&quot; || kind === &quot;dune&quot; || kind === &quot;hayBales&quot; || kind === &quot;container&quot;) {
+    const fill = kind === &quot;container&quot; ? &quot;rgba(36,69,82,0.92)&quot; : kind === &quot;hayBales&quot; || kind === &quot;dune&quot; ? &quot;rgba(205,148,62,0.88)&quot; : &quot;rgba(144,79,49,0.88)&quot;;
+    ctx.fillStyle = fill;
+    if (kind === &quot;container&quot;) {
+      for (let i = 0; i &lt; 3; i += 1) {
+        roundRect(-62 + i * 42, -34 - i % 2 * 10, 38, 34, 4);
+        ctx.fill();
+      }
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+      ctx.lineWidth = 2;
+      for (let i = -2; i &lt;= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(i * 24, -34);
+        ctx.lineTo(i * 24, 0);
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(-72, 0);
+      ctx.lineTo(-44, -52);
+      ctx.lineTo(-8, -32);
+      ctx.lineTo(24, -76);
+      ctx.lineTo(72, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.18)&quot;;
+      roundRect(-40, -26, 72, 7, 4);
+      ctx.fill();
+    }
+  } else if (kind === &quot;fence&quot; || kind === &quot;snowFence&quot; || kind === &quot;woodRail&quot; || kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; || kind === &quot;bridgeRail&quot; || kind === &quot;guardPost&quot; || kind === &quot;lowBarrier&quot; || kind === &quot;curbBlock&quot; || kind === &quot;reflectorPost&quot; || kind === &quot;barrier&quot;) {
+    ctx.strokeStyle = kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; ? &quot;rgba(192,202,196,0.86)&quot; : kind === &quot;snowFence&quot; ? &quot;rgba(244,251,248,0.88)&quot; : `${light}cc`;
+    ctx.lineWidth = kind === &quot;reflectorPost&quot; ? 5 : 6;
+    ctx.beginPath();
+    if (kind === &quot;reflectorPost&quot;) {
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -46);
+    } else {
+      ctx.moveTo(-76, -20);
+      ctx.lineTo(76, -28);
+      ctx.moveTo(-76, -4);
+      ctx.lineTo(76, -12);
+      for (let i = -2; i &lt;= 2; i += 1) {
+        ctx.moveTo(i * 32, -42);
+        ctx.lineTo(i * 32, 4);
+      }
+    }
+    ctx.stroke();
+    if (kind === &quot;reflectorPost&quot;) {
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(0, -48, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (kind === &quot;craneBase&quot; || kind === &quot;windmill&quot; || kind === &quot;tramPost&quot; || kind === &quot;skiPost&quot; || kind === &quot;railSignal&quot; || kind === &quot;tunnelFan&quot;) {
+    ctx.strokeStyle = `${light}cc`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -96);
+    ctx.moveTo(-34, -72);
+    ctx.lineTo(48, -88);
+    ctx.stroke();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(0, -98, 9, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === &quot;waterEdge&quot; || kind === &quot;marketStand&quot; || kind === &quot;supportTent&quot; || kind === &quot;truckStop&quot;) {
+    ctx.fillStyle = kind === &quot;waterEdge&quot; ? &quot;rgba(70,217,255,0.22)&quot; : &quot;rgba(36,46,44,0.9)&quot;;
+    roundRect(-70, -38, 140, 38, 5);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(-78, -38);
+    ctx.lineTo(0, -72);
+    ctx.lineTo(78, -38);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.fillStyle = &quot;rgba(42,54,52,0.86)&quot;;
+    roundRect(-52, -48, 104, 48, 6);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -6072,7 +6441,7 @@ function drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom
   const progress = length ? Math.max(0, Math.min(1, raceState.distance / length)) : 0;
   const stage = routeStageInfo(place, progress);
   const route = routeWorldInfo(place);
-  const depthSeed = hashText(`v76-depth:${place}:${stage.label}:${route.scene}`);
+  const depthSeed = hashText(`v81-depth:${place}:${stage.label}:${route.scene}`);
   const motion = raceState.roadOffset || 0;
   ctx.save();
   drawDepthParallaxBands(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, depthSeed, motion, phoneMode);
@@ -15506,7 +15875,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v80-apex-safe-assets&quot;;
+const cacheName = &quot;velocity-vault-v81-ground-visibility&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15652,6 +16021,7 @@ Real-world style visuals:
 - The v74 living-world pass adds active roadside life outside the racing line: parked and service vehicles, route crews, spectators, workers, tents, kiosks, food stands, traffic signals, marshal cars, rescue trucks, fuel trucks, forklifts, farm pickups, snow plows, airfield carts, freight-yard activity, and place-specific crowd clusters so each route feels occupied without hiding the road or touch controls.
 - The v75 surface-lighting pass gives the road more physical material feel: subtle road crown, moving wet/gloss reflections, rubber and seam marks, route-specific pavement streaks, coastal spray sheen, snow/ice shine, desert heat shimmer, farm dirt, freight diesel marks, runway glints, and neon night reflections while preserving a flat, readable phone driving lane.
 - The v76 depth-infrastructure pass adds more real-world scale behind the race: parallax city blocks, mountains, dunes, water spans, fields, ports, rail yards, sound walls, guardrails, snow fences, stone walls, power lines, tram wires, lift cables, gantries, bridge cables, beacons, and far-side traffic silhouettes so the route feels deeper without putting clutter in the driving line.
+- The v81 ground-visibility pass tightens player hit detection to the visible car position, reduces ahead-of-car side-scrape damage, brightens the readable road surface, and adds grounded real-world props such as storefronts, streetlights, guardrails, parked vehicles, crowds, route signs, barns, fences, containers, hangars, palms, rocks, pines, and barriers that sit on the roadside instead of floating in the haze.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

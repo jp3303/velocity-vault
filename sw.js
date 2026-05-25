@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v80-apex-safe-assets";
+const cacheName = "velocity-vault-v81-ground-visibility";
 const appShell = [
   "./",
   "./index.html",
