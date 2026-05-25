@@ -161,6 +161,7 @@ Recommended Apex settings:
 - Security headers: use `_headers` or `apex-vault-command-cloud.json`.
 - ZIP shape: `index.html` must be at the top level of the ZIP, not inside another folder.
 - Apex-safe manifest: the upload bundle uses `manifest.json` instead of `.webmanifest` because Apex blocks `.webmanifest` assets.
+- Apex-safe asset list: the upload bundle excludes `.md`, `.pdf`, `.webmanifest`, extensionless, and underscore-prefixed files because Apex blocks some non-app asset types.
 
 The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
 

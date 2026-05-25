@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v79-apex-manifest-json";
+const cacheName = "velocity-vault-v80-apex-safe-assets";
 const appShell = [
   "./",
   "./index.html",
@@ -9,11 +9,7 @@ const appShell = [
   "./webgl-pipeline.js",
   "./game.js",
   "./manifest.json",
-  "./app-icon.svg",
-  "./README.md",
-  "./apex-vault-command-cloud.json",
-  "./APEX-VAULT-COMMAND-CLOUD.md",
-  "./_headers"
+  "./app-icon.svg"
 ];
 
 self.addEventListener("install", (event) => {

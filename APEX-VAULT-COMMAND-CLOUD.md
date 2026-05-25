@@ -8,7 +8,9 @@ Target host: `https://apexvault.duckdns.org/`
 
 Use `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`.
 
-The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest as `manifest.json`, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+The ZIP contains `index.html` at the top level, plus only the playable game files Apex should accept: `.html`, `.css`, `.js`, `.json`, and `.svg`. It does not include `.md`, `.pdf`, `.webmanifest`, extensionless, or underscore-prefixed files because the Apex upload gate blocks some non-app asset types.
+
+It does not need a database, server runtime, paid API, or external asset host.
 
 ## Apex Setup
 
@@ -32,11 +34,8 @@ The ZIP contains `index.html` at the top level, plus the playable game, PWA mani
 - `manifest.json`
 - `sw.js`
 - `app-icon.svg`
-- `README.md`
-- `APEX-VAULT-COMMAND-CLOUD.md`
-- `apex-vault-command-cloud.json`
-- `_headers`
-- `.nojekyll`
+
+The local project still keeps the README, Apex notes, source PDF, and deployment manifest outside the Apex upload ZIP.
 
 ## Security Profile
 

@@ -1,7 +1,7 @@
 {
   "appName": "Velocity Vault",
   "deploymentName": "velocity-vault",
-  "version": "v79-apex-manifest-json-upload",
+  "version": "v80-apex-safe-static-assets",
   "siteUrl": "https://apexvault.duckdns.org/",
   "description": "Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.",
   "runtime": "static-pwa",
@@ -20,11 +20,7 @@
     "webgl-pipeline.js",
     "manifest.json",
     "sw.js",
-    "app-icon.svg",
-    "README.md",
-    "APEX-VAULT-COMMAND-CLOUD.md",
-    "_headers",
-    ".nojekyll"
+    "app-icon.svg"
   ],
   "routes": [
     {
@@ -46,8 +42,7 @@
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
-    ".svg": "image/svg+xml",
-    ".md": "text/markdown; charset=utf-8"
+    ".svg": "image/svg+xml"
   },
   "securityHeaders": {
     "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
@@ -92,10 +87,11 @@
   },
   "uploadChecklist": [
     "Upload VelocityVault-ApexVaultCommandCloud-StaticBundle.zip to https://apexvault.duckdns.org/ as a static web/PWA app.",
+    "The upload ZIP intentionally excludes .md, .pdf, .webmanifest, extensionless, and underscore-prefixed files because the Apex upload gate blocks some non-app asset types.",
     "Set index.html as the entry file and the deployment root as the uploaded folder root.",
     "Require HTTPS so phone installation and service-worker offline play work correctly.",
     "Enable SPA fallback to index.html for unknown paths.",
-    "Apply _headers or the equivalent security headers in this manifest.",
+    "Apply the equivalent security headers in this manifest if Apex exposes a header settings screen.",
     "After deployment, open the secure URL on a phone and use Add to Home Screen or Install."
   ]
 }
