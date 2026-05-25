@@ -147,7 +147,7 @@ Good hosting options include Apex Vault Command Cloud, GitHub Pages, Netlify, Cl
 
 ## Host On Apex Vault Command Cloud
 
-Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment. Upload `VelocityVault-ApexVaultCommandCloud-Upload.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
+Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment at `https://apexvault.duckdns.org/`. Upload `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
 
 Recommended Apex settings:
 
@@ -159,6 +159,7 @@ Recommended Apex settings:
 - Required backend/runtime: none.
 - Environment variables: none.
 - Security headers: use `_headers` or `apex-vault-command-cloud.json`.
+- ZIP shape: `index.html` must be at the top level of the ZIP, not inside another folder.
 
 The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
 

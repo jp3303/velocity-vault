@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v77-apex";
+const cacheName = "velocity-vault-v78-apex-duckdns";
 const appShell = [
   "./",
   "./index.html",

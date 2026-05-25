@@ -1,7 +1,8 @@
 {
   "appName": "Velocity Vault",
   "deploymentName": "velocity-vault",
-  "version": "v77-apex-hosting",
+  "version": "v78-apex-duckdns-static-upload",
+  "siteUrl": "https://apexvault.duckdns.org/",
   "description": "Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.",
   "runtime": "static-pwa",
   "entry": "index.html",
@@ -90,7 +91,7 @@
     "databaseRequired": false
   },
   "uploadChecklist": [
-    "Upload the contents of VelocityVault-ApexVaultCommandCloud-Upload.zip to Apex Vault Command Cloud as a static web/PWA app.",
+    "Upload VelocityVault-ApexVaultCommandCloud-StaticBundle.zip to https://apexvault.duckdns.org/ as a static web/PWA app.",
     "Set index.html as the entry file and the deployment root as the uploaded folder root.",
     "Require HTTPS so phone installation and service-worker offline play work correctly.",
     "Enable SPA fallback to index.html for unknown paths.",

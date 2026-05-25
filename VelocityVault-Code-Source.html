@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}p{font-family:Arial,sans-serif;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v77 Apex hosting package. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, Pages marker, README/how-to-play notes, expanded real-world detail passes, v76 depth-infrastructure layer, and Apex Vault Command Cloud deployment files.</p>
+<h1>Velocity Vault Source Code</h1><p>Updated build: v78 Apex DuckDNS static upload. Includes gameplay, styling, WebGL, phone assets, app manifest, service worker, icon, README/how-to-play notes, expanded real-world detail passes, v76 depth-infrastructure layer, and Apex Vault Command Cloud deployment files for https://apexvault.duckdns.org/.</p>
 <h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -15506,7 +15506,7 @@ drawFrame();
 </pre>
 <h2>sw.js</h2><pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v77-apex&quot;;
+const cacheName = &quot;velocity-vault-v78-apex-duckdns&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15714,7 +15714,7 @@ Good hosting options include Apex Vault Command Cloud, GitHub Pages, Netlify, Cl
 
 ## Host On Apex Vault Command Cloud
 
-Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment. Upload `VelocityVault-ApexVaultCommandCloud-Upload.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
+Velocity Vault is prepared for Apex Vault Command Cloud as a secure static PWA deployment at `https://apexvault.duckdns.org/`. Upload `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`, or connect the GitHub repository and use the repository root as the static deploy root.
 
 Recommended Apex settings:
 
@@ -15726,6 +15726,7 @@ Recommended Apex settings:
 - Required backend/runtime: none.
 - Environment variables: none.
 - Security headers: use `_headers` or `apex-vault-command-cloud.json`.
+- ZIP shape: `index.html` must be at the top level of the ZIP, not inside another folder.
 
 The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
 
@@ -15778,11 +15779,13 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 
 Velocity Vault is ready to host as a secure static Progressive Web App on Apex Vault Command Cloud.
 
+Target host: `https://apexvault.duckdns.org/`
+
 ## What To Upload
 
-Use `VelocityVault-ApexVaultCommandCloud-Upload.zip`.
+Use `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`.
 
-The ZIP contains the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
 
 ## Apex Setup
 
@@ -15831,7 +15834,8 @@ If Apex gives you a custom domain option, point the domain to this deployment an
 <h2>apex-vault-command-cloud.json</h2><pre>{
   &quot;appName&quot;: &quot;Velocity Vault&quot;,
   &quot;deploymentName&quot;: &quot;velocity-vault&quot;,
-  &quot;version&quot;: &quot;v77-apex-hosting&quot;,
+  &quot;version&quot;: &quot;v78-apex-duckdns-static-upload&quot;,
+  &quot;siteUrl&quot;: &quot;https://apexvault.duckdns.org/&quot;,
   &quot;description&quot;: &quot;Standalone secure PWA racing game prepared for Apex Vault Command Cloud static hosting.&quot;,
   &quot;runtime&quot;: &quot;static-pwa&quot;,
   &quot;entry&quot;: &quot;index.html&quot;,
@@ -15920,7 +15924,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
     &quot;databaseRequired&quot;: false
   },
   &quot;uploadChecklist&quot;: [
-    &quot;Upload the contents of VelocityVault-ApexVaultCommandCloud-Upload.zip to Apex Vault Command Cloud as a static web/PWA app.&quot;,
+    &quot;Upload VelocityVault-ApexVaultCommandCloud-StaticBundle.zip to https://apexvault.duckdns.org/ as a static web/PWA app.&quot;,
     &quot;Set index.html as the entry file and the deployment root as the uploaded folder root.&quot;,
     &quot;Require HTTPS so phone installation and service-worker offline play work correctly.&quot;,
     &quot;Enable SPA fallback to index.html for unknown paths.&quot;,

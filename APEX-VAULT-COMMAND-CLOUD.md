@@ -2,11 +2,13 @@
 
 Velocity Vault is ready to host as a secure static Progressive Web App on Apex Vault Command Cloud.
 
+Target host: `https://apexvault.duckdns.org/`
+
 ## What To Upload
 
-Use `VelocityVault-ApexVaultCommandCloud-Upload.zip`.
+Use `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip`.
 
-The ZIP contains the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
+The ZIP contains `index.html` at the top level, plus the playable game, PWA manifest, service worker, icon, security header template, and Apex deployment manifest. It does not need a database, server runtime, paid API, or external asset host.
 
 ## Apex Setup
 
