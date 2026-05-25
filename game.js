@@ -4006,7 +4006,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === "cockpit" ? w * 0.11 : cameraMode === "hood" ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === "cockpit" ? w * 1.02 : cameraMode === "hood" ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v81:${place}:${route.scene}`);
+  const seed = hashText(`v82:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -4040,6 +4040,7 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   const motion = raceState.roadOffset || 0;
   ctx.save();
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   ctx.restore();
@@ -4126,9 +4127,140 @@ function groundLockedPlaceProps(place, stage) {
   return props[place] || props.city;
 }
 
+function routeDriveByProps(place, stage) {
+  const stageProps = {
+    tunnel: ["tunnelPortal", "wallLamp", "barrier", "trafficSignal", "routeSign"],
+    bridge: ["overpassPier", "bridgeRail", "billboard", "lamp", "routeSign"],
+    pier: ["marinaDock", "dockLight", "lighthouse", "bridgeRail", "routeSign"],
+    checkpoint: ["grandstand", "checkpointArch", "crowd", "billboard", "routeSign"],
+    beacon: ["runwayLight", "controlTower", "hangar", "serviceCart", "billboard"],
+    hangar: ["hangar", "serviceTruck", "controlTower", "runwayLight", "routeSign"],
+    plane: ["serviceCart", "controlTower", "hangar", "runwayLight", "billboard"],
+    barn: ["barn", "fence", "hayBales", "tractorParked", "windmill"],
+    tractor: ["tractorParked", "hayBales", "fence", "barn", "routeSign"],
+    field: ["fence", "barn", "windmill", "hayBales", "serviceStation"],
+    crane: ["container", "craneBase", "warehouse", "serviceTruck", "billboard"],
+    trailer: ["truckStop", "serviceTruck", "container", "billboard", "trafficSignal"],
+    village: ["villageHouse", "cafe", "stoneWall", "tramPost", "crowd"],
+    mountain: ["pine", "chalet", "stoneWall", "billboard", "routeSign"],
+    pine: ["pine", "lodge", "snowFence", "spectators", "routeSign"],
+    palm: ["palm", "beachHouse", "serviceStation", "spectators", "routeSign"],
+    tower: ["storefront", "billboard", "trafficSignal", "pedestrianBridge", "crowd"],
+    neon: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "crowd"],
+    cliff: ["rockFace", "curveBoard", "guardPost", "tourVan", "routeSign"],
+    dune: ["dune", "supportTent", "rallyMarker", "desertScrub", "serviceTruck"],
+    canopy: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"]
+  };
+  if (stage && stageProps[stage.prop]) return stageProps[stage.prop];
+  const props = {
+    coast: ["palm", "beachHouse", "lighthouse", "billboard", "spectators", "routeSign"],
+    city: ["storefront", "trafficSignal", "billboard", "pedestrianBridge", "parkedCar", "crowd"],
+    canyon: ["rockFace", "curveBoard", "tourVan", "supportTent", "routeSign", "guardPost"],
+    alpine: ["pine", "chalet", "stoneWall", "skiPost", "spectators", "routeSign"],
+    harbor: ["container", "craneBase", "warehouse", "marinaDock", "serviceTruck", "dockLight"],
+    snow: ["pine", "lodge", "snowFence", "skiPost", "spectators", "routeSign"],
+    airfield: ["runwayLight", "hangar", "controlTower", "serviceCart", "billboard", "barrier"],
+    freight: ["truckStop", "container", "railSignal", "serviceTruck", "billboard", "trafficSignal"],
+    farm: ["fence", "barn", "tractorParked", "hayBales", "windmill", "serviceStation"],
+    tokyo: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "parkedCar", "crowd"],
+    desert: ["dune", "supportTent", "rallyMarker", "desertScrub", "rockFace", "serviceTruck"],
+    rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd", "routeSign"],
+    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "billboard", "spectators"]
+  };
+  return props[place] || props.city;
+}
+
+function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const length = Math.max(1, raceLength());
+  const spacing = phoneMode ? 210 : 205;
+  const lookBehind = phoneMode ? 180 : 240;
+  const lookAhead = phoneMode ? 2200 : 2600;
+  const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
+  const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
+  const drawList = [];
+  for (let index = first; index <= last; index += 1) {
+    const baseDistance = index * spacing + seededUnit(seed, index + 11) * spacing * 0.44;
+    if (baseDistance < 0 || baseDistance > length + lookAhead * 0.25) continue;
+    const gap = baseDistance - raceState.distance;
+    if (gap < -lookBehind || gap > lookAhead) continue;
+    const progress = Math.max(0, Math.min(1, baseDistance / length));
+    const stage = routeStageInfo(place, progress);
+    const props = routeDriveByProps(place, stage);
+    const side = seededUnit(seed, index + 22) > 0.5 ? 1 : -1;
+    const lane = side * (1.72 + seededUnit(seed, index + 33) * 0.48);
+    const projected = roadObjectPos(lane, baseDistance);
+    if (!projected || projected.y < horizon - 36 || projected.y > h + 110) continue;
+    drawList.push({
+      x: projected.x,
+      y: projected.y,
+      scale: projected.scale,
+      depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
+      side,
+      kind: props[Math.abs(index) % props.length],
+      stage,
+      seed: seed + index * 131,
+      distance: baseDistance
+    });
+    if (index % 4 === 0) {
+      const otherSide = -side;
+      const companionLane = otherSide * (1.62 + seededUnit(seed, index + 44) * 0.38);
+      const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
+      const companionProgress = Math.max(0, Math.min(1, companionDistance / length));
+      const companionStage = routeStageInfo(place, companionProgress);
+      const companionProps = routeDriveByProps(place, companionStage);
+      const companion = roadObjectPos(companionLane, companionDistance);
+      if (companion && companion.y >= horizon - 36 && companion.y <= h + 110) {
+        drawList.push({
+          x: companion.x,
+          y: companion.y,
+          scale: companion.scale,
+          depth: companion.depth || Math.max(0, Math.min(1, (companion.y - horizon) / Math.max(1, h - horizon))),
+          side: otherSide,
+          kind: companionProps[(Math.abs(index) + 2) % companionProps.length],
+          stage: companionStage,
+          seed: seed + index * 151,
+          distance: companionDistance
+        });
+      }
+    }
+  }
+  drawList.sort((a, b) => a.y - b.y);
+  ctx.save();
+  drawList.forEach((item) => {
+    const near = Math.max(0, Math.min(1, item.depth || 0));
+    const screenMargin = phoneMode ? 14 : 42;
+    const x = Math.max(-screenMargin, Math.min(w + screenMargin, item.x));
+    const scale = Math.max(0.34, Math.min(phoneMode ? 1.82 : 2.02, item.scale * (phoneMode ? 1.03 : 1.08) * (0.9 + near * 0.62)));
+    if (near > 0.42 && seededUnit(item.seed, 8) > 0.4) {
+      ctx.save();
+      ctx.globalAlpha = phoneMode ? 0.46 + near * 0.22 : 0.36 + near * 0.2;
+      drawGroundLockedDriveByShadow(x, item.y, scale, item.side, theme);
+      ctx.restore();
+    }
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.88 : 0.84) + near * 0.18);
+    drawGroundLockedPlaceProp(item.kind, x, item.y, scale, item.side, place, Object.assign({}, route, { scene: item.stage.label || route.scene }), design, theme, item.seed);
+  });
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawGroundLockedDriveByShadow(x, y, scale, side, theme) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "rgba(0,0,0,0.68)";
+  ctx.beginPath();
+  ctx.ellipse(side * -4, 10, 92, 15, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `${theme[1] || "#46d9ff"}33`;
+  roundRect(-84, 0, 168, 7, 4);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const props = groundLockedPlaceProps(place, stage);
-  const count = phoneMode ? 18 : 28;
+  const count = phoneMode ? 12 : 20;
   const span = h - horizon + 320;
   ctx.save();
   for (let i = 0; i < count; i += 1) {
@@ -4139,9 +4271,9 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const shoulder = half * (1.06 + seededUnit(seed, i + 40) * 0.2) + w * (0.018 + seededUnit(seed, i + 60) * 0.035);
     const x = perspectiveRoadCenter(w, t) + side * shoulder;
-    const scale = (0.34 + t * (phoneMode ? 0.92 : 1.12)) * (0.88 + seededUnit(seed, i + 80) * 0.24);
+    const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
     const kind = props[i % props.length];
-    ctx.globalAlpha = Math.min(0.95, (phoneMode ? 0.58 : 0.68) + t * 0.22);
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
     drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
   }
   ctx.restore();
@@ -4173,12 +4305,12 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = "rgba(0,0,0,0.46)";
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
   ctx.beginPath();
-  ctx.ellipse(0, 4, 42, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 5, 58, 10, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(244,251,248,0.34)";
-  roundRect(-34, -2, 68, 5, 3);
+  ctx.fillStyle = "rgba(244,251,248,0.42)";
+  roundRect(-46, -2, 92, 5, 3);
   ctx.fill();
 
   if (kind === "streetLight" || kind === "lamp" || kind === "dockLight" || kind === "runwayLight" || kind === "wallLamp") {
@@ -4234,7 +4366,10 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = "rgba(244,251,248,0.62)";
-    for (let i = -1; i <= 1; i += 1) roundRect(i * 32 - 8, -52, 16, 18, 3);
+    for (let i = -1; i <= 1; i += 1) {
+      roundRect(i * 32 - 8, -52, 16, 18, 3);
+      ctx.fill();
+    }
     ctx.fillStyle = "rgba(5,8,7,0.86)";
     roundRect(-10, -30, 20, 30, 3);
     ctx.fill();
@@ -4274,6 +4409,137 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.moveTo(-66, -8);
     ctx.lineTo(66, -8);
     ctx.stroke();
+  } else if (kind === "billboard") {
+    ctx.strokeStyle = "rgba(214,226,221,0.82)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-48, 0);
+    ctx.lineTo(-48, -84);
+    ctx.moveTo(48, 0);
+    ctx.lineTo(48, -84);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.94)";
+    roundRect(-96, -132, 192, 60, 7);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = "900 16px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label.toUpperCase(), 0, -108, 162);
+    ctx.fillStyle = light;
+    ctx.font = "900 10px system-ui";
+    ctx.fillText("NEXT SECTOR", 0, -87, 142);
+    ctx.fillStyle = `${accent}66`;
+    ctx.fillRect(-84, -76, 168, 5);
+  } else if (kind === "trafficSignal") {
+    ctx.strokeStyle = "rgba(214,226,221,0.84)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -92);
+    ctx.lineTo(52, -92);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.94)";
+    roundRect(48, -116, 28, 64, 8);
+    ctx.fill();
+    ["#ff3348", "#ffd166", "#36d98a"].forEach((color, index) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(62, -102 + index * 19, 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = `${accent}66`;
+    roundRect(-62, -70, 74, 18, 4);
+    ctx.fill();
+  } else if (kind === "pedestrianBridge" || kind === "overpassPier" || kind === "tunnelPortal" || kind === "checkpointArch") {
+    ctx.strokeStyle = kind === "checkpointArch" ? light : "rgba(214,226,221,0.76)";
+    ctx.lineWidth = kind === "tunnelPortal" ? 9 : 7;
+    ctx.beginPath();
+    ctx.moveTo(-94, 0);
+    ctx.lineTo(-94, -104);
+    ctx.moveTo(94, 0);
+    ctx.lineTo(94, -104);
+    ctx.moveTo(-108, -104);
+    ctx.lineTo(108, -104);
+    ctx.stroke();
+    ctx.fillStyle = kind === "tunnelPortal" ? "rgba(5,8,7,0.9)" : "rgba(22,32,32,0.86)";
+    if (kind === "tunnelPortal") {
+      ctx.beginPath();
+      ctx.arc(0, -4, 88, Math.PI, 0);
+      ctx.lineTo(88, 0);
+      ctx.lineTo(-88, 0);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      roundRect(-116, -126, 232, 34, 6);
+      ctx.fill();
+    }
+    ctx.fillStyle = kind === "checkpointArch" ? accent : light;
+    ctx.font = "900 14px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(kind === "checkpointArch" ? "CHECKPOINT" : label.toUpperCase(), 0, -109, 170);
+  } else if (kind === "serviceStation") {
+    ctx.fillStyle = "rgba(28,38,36,0.94)";
+    roundRect(-86, -54, 172, 54, 7);
+    ctx.fill();
+    ctx.fillStyle = light;
+    roundRect(-98, -86, 196, 24, 5);
+    ctx.fill();
+    ctx.fillStyle = `${accent}dd`;
+    ctx.fillRect(-84, -78, 168, 6);
+    ctx.strokeStyle = "rgba(214,226,221,0.72)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-62, 0);
+    ctx.lineTo(-62, -62);
+    ctx.moveTo(62, 0);
+    ctx.lineTo(62, -62);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(5,8,7,0.86)";
+    roundRect(-32, -42, 24, 42, 4);
+    ctx.fill();
+    roundRect(12, -42, 24, 42, 4);
+    ctx.fill();
+  } else if (kind === "lighthouse" || kind === "controlTower") {
+    ctx.fillStyle = kind === "lighthouse" ? "rgba(238,242,232,0.92)" : "rgba(198,215,212,0.9)";
+    roundRect(-24, -112, 48, 112, 8);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-38, -136, 76, 28, 6);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(0, -122, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = `${accent}33`;
+    ctx.beginPath();
+    ctx.ellipse(0, -122, 92, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+  } else if (kind === "marinaDock") {
+    ctx.fillStyle = "rgba(70,217,255,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 108, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(214,180,112,0.84)";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-96, -12);
+    ctx.lineTo(96, -20);
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.moveTo(i * 30, -18);
+      ctx.lineTo(i * 30, 18);
+    }
+    ctx.stroke();
+    ctx.fillStyle = `${light}aa`;
+    ctx.beginPath();
+    ctx.arc(72, -46, 8, 0, Math.PI * 2);
+    ctx.fill();
   } else if (kind === "routeSign" || kind === "curveBoard" || kind === "towerSign" || kind === "expressSign" || kind === "waterfallSign" || kind === "busStop" || kind === "rallyMarker") {
     ctx.strokeStyle = "rgba(214,226,221,0.8)";
     ctx.lineWidth = 4;

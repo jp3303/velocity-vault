@@ -1,11 +1,29 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Source Code</title><style>body{font-family:Consolas,monospace;background:#f8faf9;color:#111;margin:32px}h1{font-family:Arial,sans-serif}h2{font-family:Arial,sans-serif;margin-top:32px;border-bottom:2px solid #111;padding-bottom:6px}p{font-family:Arial,sans-serif;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;background:#fff;border:1px solid #ccc;padding:14px}</style></head><body>
-<h1>Velocity Vault Source Code</h1><p>Updated build: v81 ground visibility and hitbox tuning. Tightens player collision windows to the visible car, brightens road readability, and adds grounded world props while keeping the Apex ZIP limited to safe upload asset types.</p>
-<h2>index.html</h2><pre>&lt;!doctype html&gt;
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Velocity Vault Code Source</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;color:#17202a;margin:0;padding:32px;line-height:1.35}
+h1{font-size:30px;margin:0 0 8px}
+h2{font-size:20px;margin:28px 0 10px;border-bottom:2px solid #1f7a8c;padding-bottom:6px}
+p{max-width:960px}
+pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;border-radius:8px;padding:16px;font:12px/1.45 Consolas,"Courier New",monospace;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.meta{color:#4a5b66;font-size:14px}
+</style>
+</head>
+<body>
+<h1>Velocity Vault Code Source</h1>
+<p class="meta">Generated 2026-05-25 16:00:59 for the v82 drive-by world visibility build.</p>
+<p>This PDF/HTML companion contains the current standalone game source, including the updated phone and browser scenery pass, service worker cache version, Apex Vault Command Cloud notes, and hosting files.</p>
+<h2>index.html</h2>
+<pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
   &lt;meta charset=&quot;utf-8&quot;&gt;
   &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1, viewport-fit=cover&quot;&gt;
-  &lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; connect-src &#39;self&#39;; manifest-src &#39;self&#39;; worker-src &#39;self&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot;&gt;
+  &lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;self&#x27;; script-src &#x27;self&#x27;; style-src &#x27;self&#x27;; img-src &#x27;self&#x27; data:; connect-src &#x27;self&#x27;; manifest-src &#x27;self&#x27;; worker-src &#x27;self&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests&quot;&gt;
   &lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
   &lt;meta name=&quot;theme-color&quot; content=&quot;#09100f&quot;&gt;
   &lt;meta name=&quot;mobile-web-app-capable&quot; content=&quot;yes&quot;&gt;
@@ -208,7 +226,8 @@
 &lt;/body&gt;
 &lt;/html&gt;
 </pre>
-<h2>styles.css</h2><pre>:root {
+<h2>styles.css</h2>
+<pre>:root {
   color-scheme: dark;
   --bg: #09100f;
   --panel: #111817;
@@ -2051,7 +2070,8 @@ input:focus {
   }
 }
 </pre>
-<h2>game.js</h2><pre>&quot;use strict&quot;;
+<h2>game.js</h2>
+<pre>&quot;use strict&quot;;
 
 const $ = (selector) =&gt; document.querySelector(selector);
 const $$ = (selector) =&gt; Array.from(document.querySelectorAll(selector));
@@ -2686,9 +2706,9 @@ function renderDirector() {
   const card = $(&quot;#directorCard&quot;);
   card.innerHTML = `
     &lt;strong&gt;${director.event.name}&lt;/strong&gt;
-    &lt;span&gt;Local agentic tuning is active for this driver. It studies only this profile&#39;s on-device race stats, then rotates events and upgrade nudges to keep the game fresh.&lt;/span&gt;
+    &lt;span&gt;Local agentic tuning is active for this driver. It studies only this profile&#x27;s on-device race stats, then rotates events and upgrade nudges to keep the game fresh.&lt;/span&gt;
     &lt;ul&gt;
-      &lt;li&gt;Today&#39;s focus: ${director.event.focus}.&lt;/li&gt;
+      &lt;li&gt;Today&#x27;s focus: ${director.event.focus}.&lt;/li&gt;
       &lt;li&gt;Recommended upgrade: ${director.recommended.name}.&lt;/li&gt;
       &lt;li&gt;Adaptive assist: ${director.assist}.&lt;/li&gt;
       &lt;li&gt;Bonus rewards: ${Math.round((director.reward - 1) * 100)}%.&lt;/li&gt;
@@ -6059,7 +6079,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   const horizon = cameraMode === &quot;cockpit&quot; ? h * 0.27 : cameraMode === &quot;hood&quot; ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === &quot;cockpit&quot; ? w * 0.11 : cameraMode === &quot;hood&quot; ? w * 0.14 : w * 0.13;
   const roadBottom = cameraMode === &quot;cockpit&quot; ? w * 1.02 : cameraMode === &quot;hood&quot; ? w * 0.98 : w * 1.08;
-  const seed = hashText(`v81:${place}:${route.scene}`);
+  const seed = hashText(`v82:${place}:${route.scene}`);
   ctx.save();
   drawRealWorldHorizonDetails(w, h, horizon, place, design, theme, seed);
   drawRealWorldDepthInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
@@ -6093,6 +6113,7 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   const motion = raceState.roadOffset || 0;
   ctx.save();
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   ctx.restore();
@@ -6179,9 +6200,140 @@ function groundLockedPlaceProps(place, stage) {
   return props[place] || props.city;
 }
 
+function routeDriveByProps(place, stage) {
+  const stageProps = {
+    tunnel: [&quot;tunnelPortal&quot;, &quot;wallLamp&quot;, &quot;barrier&quot;, &quot;trafficSignal&quot;, &quot;routeSign&quot;],
+    bridge: [&quot;overpassPier&quot;, &quot;bridgeRail&quot;, &quot;billboard&quot;, &quot;lamp&quot;, &quot;routeSign&quot;],
+    pier: [&quot;marinaDock&quot;, &quot;dockLight&quot;, &quot;lighthouse&quot;, &quot;bridgeRail&quot;, &quot;routeSign&quot;],
+    checkpoint: [&quot;grandstand&quot;, &quot;checkpointArch&quot;, &quot;crowd&quot;, &quot;billboard&quot;, &quot;routeSign&quot;],
+    beacon: [&quot;runwayLight&quot;, &quot;controlTower&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;billboard&quot;],
+    hangar: [&quot;hangar&quot;, &quot;serviceTruck&quot;, &quot;controlTower&quot;, &quot;runwayLight&quot;, &quot;routeSign&quot;],
+    plane: [&quot;serviceCart&quot;, &quot;controlTower&quot;, &quot;hangar&quot;, &quot;runwayLight&quot;, &quot;billboard&quot;],
+    barn: [&quot;barn&quot;, &quot;fence&quot;, &quot;hayBales&quot;, &quot;tractorParked&quot;, &quot;windmill&quot;],
+    tractor: [&quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;fence&quot;, &quot;barn&quot;, &quot;routeSign&quot;],
+    field: [&quot;fence&quot;, &quot;barn&quot;, &quot;windmill&quot;, &quot;hayBales&quot;, &quot;serviceStation&quot;],
+    crane: [&quot;container&quot;, &quot;craneBase&quot;, &quot;warehouse&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;],
+    trailer: [&quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;container&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;],
+    village: [&quot;villageHouse&quot;, &quot;cafe&quot;, &quot;stoneWall&quot;, &quot;tramPost&quot;, &quot;crowd&quot;],
+    mountain: [&quot;pine&quot;, &quot;chalet&quot;, &quot;stoneWall&quot;, &quot;billboard&quot;, &quot;routeSign&quot;],
+    pine: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    palm: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;serviceStation&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    tower: [&quot;storefront&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;, &quot;pedestrianBridge&quot;, &quot;crowd&quot;],
+    neon: [&quot;neonShop&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;, &quot;pedestrianBridge&quot;, &quot;crowd&quot;],
+    cliff: [&quot;rockFace&quot;, &quot;curveBoard&quot;, &quot;guardPost&quot;, &quot;tourVan&quot;, &quot;routeSign&quot;],
+    dune: [&quot;dune&quot;, &quot;supportTent&quot;, &quot;rallyMarker&quot;, &quot;desertScrub&quot;, &quot;serviceTruck&quot;],
+    canopy: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;waterfallSign&quot;, &quot;crowd&quot;]
+  };
+  if (stage &amp;&amp; stageProps[stage.prop]) return stageProps[stage.prop];
+  const props = {
+    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;lighthouse&quot;, &quot;billboard&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    city: [&quot;storefront&quot;, &quot;trafficSignal&quot;, &quot;billboard&quot;, &quot;pedestrianBridge&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;],
+    canyon: [&quot;rockFace&quot;, &quot;curveBoard&quot;, &quot;tourVan&quot;, &quot;supportTent&quot;, &quot;routeSign&quot;, &quot;guardPost&quot;],
+    alpine: [&quot;pine&quot;, &quot;chalet&quot;, &quot;stoneWall&quot;, &quot;skiPost&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    harbor: [&quot;container&quot;, &quot;craneBase&quot;, &quot;warehouse&quot;, &quot;marinaDock&quot;, &quot;serviceTruck&quot;, &quot;dockLight&quot;],
+    snow: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;skiPost&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
+    airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;controlTower&quot;, &quot;serviceCart&quot;, &quot;billboard&quot;, &quot;barrier&quot;],
+    freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;railSignal&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;],
+    farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;, &quot;serviceStation&quot;],
+    tokyo: [&quot;neonShop&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;, &quot;pedestrianBridge&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;],
+    desert: [&quot;dune&quot;, &quot;supportTent&quot;, &quot;rallyMarker&quot;, &quot;desertScrub&quot;, &quot;rockFace&quot;, &quot;serviceTruck&quot;],
+    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;waterfallSign&quot;, &quot;crowd&quot;, &quot;routeSign&quot;],
+    europe: [&quot;stoneWall&quot;, &quot;cafe&quot;, &quot;tramPost&quot;, &quot;villageHouse&quot;, &quot;billboard&quot;, &quot;spectators&quot;]
+  };
+  return props[place] || props.city;
+}
+
+function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const length = Math.max(1, raceLength());
+  const spacing = phoneMode ? 210 : 205;
+  const lookBehind = phoneMode ? 180 : 240;
+  const lookAhead = phoneMode ? 2200 : 2600;
+  const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
+  const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
+  const drawList = [];
+  for (let index = first; index &lt;= last; index += 1) {
+    const baseDistance = index * spacing + seededUnit(seed, index + 11) * spacing * 0.44;
+    if (baseDistance &lt; 0 || baseDistance &gt; length + lookAhead * 0.25) continue;
+    const gap = baseDistance - raceState.distance;
+    if (gap &lt; -lookBehind || gap &gt; lookAhead) continue;
+    const progress = Math.max(0, Math.min(1, baseDistance / length));
+    const stage = routeStageInfo(place, progress);
+    const props = routeDriveByProps(place, stage);
+    const side = seededUnit(seed, index + 22) &gt; 0.5 ? 1 : -1;
+    const lane = side * (1.72 + seededUnit(seed, index + 33) * 0.48);
+    const projected = roadObjectPos(lane, baseDistance);
+    if (!projected || projected.y &lt; horizon - 36 || projected.y &gt; h + 110) continue;
+    drawList.push({
+      x: projected.x,
+      y: projected.y,
+      scale: projected.scale,
+      depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
+      side,
+      kind: props[Math.abs(index) % props.length],
+      stage,
+      seed: seed + index * 131,
+      distance: baseDistance
+    });
+    if (index % 4 === 0) {
+      const otherSide = -side;
+      const companionLane = otherSide * (1.62 + seededUnit(seed, index + 44) * 0.38);
+      const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
+      const companionProgress = Math.max(0, Math.min(1, companionDistance / length));
+      const companionStage = routeStageInfo(place, companionProgress);
+      const companionProps = routeDriveByProps(place, companionStage);
+      const companion = roadObjectPos(companionLane, companionDistance);
+      if (companion &amp;&amp; companion.y &gt;= horizon - 36 &amp;&amp; companion.y &lt;= h + 110) {
+        drawList.push({
+          x: companion.x,
+          y: companion.y,
+          scale: companion.scale,
+          depth: companion.depth || Math.max(0, Math.min(1, (companion.y - horizon) / Math.max(1, h - horizon))),
+          side: otherSide,
+          kind: companionProps[(Math.abs(index) + 2) % companionProps.length],
+          stage: companionStage,
+          seed: seed + index * 151,
+          distance: companionDistance
+        });
+      }
+    }
+  }
+  drawList.sort((a, b) =&gt; a.y - b.y);
+  ctx.save();
+  drawList.forEach((item) =&gt; {
+    const near = Math.max(0, Math.min(1, item.depth || 0));
+    const screenMargin = phoneMode ? 14 : 42;
+    const x = Math.max(-screenMargin, Math.min(w + screenMargin, item.x));
+    const scale = Math.max(0.34, Math.min(phoneMode ? 1.82 : 2.02, item.scale * (phoneMode ? 1.03 : 1.08) * (0.9 + near * 0.62)));
+    if (near &gt; 0.42 &amp;&amp; seededUnit(item.seed, 8) &gt; 0.4) {
+      ctx.save();
+      ctx.globalAlpha = phoneMode ? 0.46 + near * 0.22 : 0.36 + near * 0.2;
+      drawGroundLockedDriveByShadow(x, item.y, scale, item.side, theme);
+      ctx.restore();
+    }
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.88 : 0.84) + near * 0.18);
+    drawGroundLockedPlaceProp(item.kind, x, item.y, scale, item.side, place, Object.assign({}, route, { scene: item.stage.label || route.scene }), design, theme, item.seed);
+  });
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawGroundLockedDriveByShadow(x, y, scale, side, theme) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = &quot;rgba(0,0,0,0.68)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(side * -4, 10, 92, 15, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `${theme[1] || &quot;#46d9ff&quot;}33`;
+  roundRect(-84, 0, 168, 7, 4);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const props = groundLockedPlaceProps(place, stage);
-  const count = phoneMode ? 18 : 28;
+  const count = phoneMode ? 12 : 20;
   const span = h - horizon + 320;
   ctx.save();
   for (let i = 0; i &lt; count; i += 1) {
@@ -6192,9 +6344,9 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const shoulder = half * (1.06 + seededUnit(seed, i + 40) * 0.2) + w * (0.018 + seededUnit(seed, i + 60) * 0.035);
     const x = perspectiveRoadCenter(w, t) + side * shoulder;
-    const scale = (0.34 + t * (phoneMode ? 0.92 : 1.12)) * (0.88 + seededUnit(seed, i + 80) * 0.24);
+    const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
     const kind = props[i % props.length];
-    ctx.globalAlpha = Math.min(0.95, (phoneMode ? 0.58 : 0.68) + t * 0.22);
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
     drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
   }
   ctx.restore();
@@ -6226,12 +6378,12 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.fillStyle = &quot;rgba(0,0,0,0.46)&quot;;
+  ctx.fillStyle = &quot;rgba(0,0,0,0.6)&quot;;
   ctx.beginPath();
-  ctx.ellipse(0, 4, 42, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 5, 58, 10, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = &quot;rgba(244,251,248,0.34)&quot;;
-  roundRect(-34, -2, 68, 5, 3);
+  ctx.fillStyle = &quot;rgba(244,251,248,0.42)&quot;;
+  roundRect(-46, -2, 92, 5, 3);
   ctx.fill();
 
   if (kind === &quot;streetLight&quot; || kind === &quot;lamp&quot; || kind === &quot;dockLight&quot; || kind === &quot;runwayLight&quot; || kind === &quot;wallLamp&quot;) {
@@ -6287,7 +6439,10 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = &quot;rgba(244,251,248,0.62)&quot;;
-    for (let i = -1; i &lt;= 1; i += 1) roundRect(i * 32 - 8, -52, 16, 18, 3);
+    for (let i = -1; i &lt;= 1; i += 1) {
+      roundRect(i * 32 - 8, -52, 16, 18, 3);
+      ctx.fill();
+    }
     ctx.fillStyle = &quot;rgba(5,8,7,0.86)&quot;;
     roundRect(-10, -30, 20, 30, 3);
     ctx.fill();
@@ -6327,6 +6482,137 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.moveTo(-66, -8);
     ctx.lineTo(66, -8);
     ctx.stroke();
+  } else if (kind === &quot;billboard&quot;) {
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.82)&quot;;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-48, 0);
+    ctx.lineTo(-48, -84);
+    ctx.moveTo(48, 0);
+    ctx.lineTo(48, -84);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.94)&quot;;
+    roundRect(-96, -132, 192, 60, 7);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = &quot;#f4fbf8&quot;;
+    ctx.font = &quot;900 16px system-ui&quot;;
+    ctx.textAlign = &quot;center&quot;;
+    ctx.textBaseline = &quot;middle&quot;;
+    ctx.fillText(label.toUpperCase(), 0, -108, 162);
+    ctx.fillStyle = light;
+    ctx.font = &quot;900 10px system-ui&quot;;
+    ctx.fillText(&quot;NEXT SECTOR&quot;, 0, -87, 142);
+    ctx.fillStyle = `${accent}66`;
+    ctx.fillRect(-84, -76, 168, 5);
+  } else if (kind === &quot;trafficSignal&quot;) {
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.84)&quot;;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -92);
+    ctx.lineTo(52, -92);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.94)&quot;;
+    roundRect(48, -116, 28, 64, 8);
+    ctx.fill();
+    [&quot;#ff3348&quot;, &quot;#ffd166&quot;, &quot;#36d98a&quot;].forEach((color, index) =&gt; {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(62, -102 + index * 19, 6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = `${accent}66`;
+    roundRect(-62, -70, 74, 18, 4);
+    ctx.fill();
+  } else if (kind === &quot;pedestrianBridge&quot; || kind === &quot;overpassPier&quot; || kind === &quot;tunnelPortal&quot; || kind === &quot;checkpointArch&quot;) {
+    ctx.strokeStyle = kind === &quot;checkpointArch&quot; ? light : &quot;rgba(214,226,221,0.76)&quot;;
+    ctx.lineWidth = kind === &quot;tunnelPortal&quot; ? 9 : 7;
+    ctx.beginPath();
+    ctx.moveTo(-94, 0);
+    ctx.lineTo(-94, -104);
+    ctx.moveTo(94, 0);
+    ctx.lineTo(94, -104);
+    ctx.moveTo(-108, -104);
+    ctx.lineTo(108, -104);
+    ctx.stroke();
+    ctx.fillStyle = kind === &quot;tunnelPortal&quot; ? &quot;rgba(5,8,7,0.9)&quot; : &quot;rgba(22,32,32,0.86)&quot;;
+    if (kind === &quot;tunnelPortal&quot;) {
+      ctx.beginPath();
+      ctx.arc(0, -4, 88, Math.PI, 0);
+      ctx.lineTo(88, 0);
+      ctx.lineTo(-88, 0);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      roundRect(-116, -126, 232, 34, 6);
+      ctx.fill();
+    }
+    ctx.fillStyle = kind === &quot;checkpointArch&quot; ? accent : light;
+    ctx.font = &quot;900 14px system-ui&quot;;
+    ctx.textAlign = &quot;center&quot;;
+    ctx.textBaseline = &quot;middle&quot;;
+    ctx.fillText(kind === &quot;checkpointArch&quot; ? &quot;CHECKPOINT&quot; : label.toUpperCase(), 0, -109, 170);
+  } else if (kind === &quot;serviceStation&quot;) {
+    ctx.fillStyle = &quot;rgba(28,38,36,0.94)&quot;;
+    roundRect(-86, -54, 172, 54, 7);
+    ctx.fill();
+    ctx.fillStyle = light;
+    roundRect(-98, -86, 196, 24, 5);
+    ctx.fill();
+    ctx.fillStyle = `${accent}dd`;
+    ctx.fillRect(-84, -78, 168, 6);
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.72)&quot;;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-62, 0);
+    ctx.lineTo(-62, -62);
+    ctx.moveTo(62, 0);
+    ctx.lineTo(62, -62);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.86)&quot;;
+    roundRect(-32, -42, 24, 42, 4);
+    ctx.fill();
+    roundRect(12, -42, 24, 42, 4);
+    ctx.fill();
+  } else if (kind === &quot;lighthouse&quot; || kind === &quot;controlTower&quot;) {
+    ctx.fillStyle = kind === &quot;lighthouse&quot; ? &quot;rgba(238,242,232,0.92)&quot; : &quot;rgba(198,215,212,0.9)&quot;;
+    roundRect(-24, -112, 48, 112, 8);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.82)&quot;;
+    roundRect(-38, -136, 76, 28, 6);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(0, -122, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = &quot;screen&quot;;
+    ctx.fillStyle = `${accent}33`;
+    ctx.beginPath();
+    ctx.ellipse(0, -122, 92, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = &quot;source-over&quot;;
+  } else if (kind === &quot;marinaDock&quot;) {
+    ctx.fillStyle = &quot;rgba(70,217,255,0.18)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 108, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = &quot;rgba(214,180,112,0.84)&quot;;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-96, -12);
+    ctx.lineTo(96, -20);
+    for (let i = -3; i &lt;= 3; i += 1) {
+      ctx.moveTo(i * 30, -18);
+      ctx.lineTo(i * 30, 18);
+    }
+    ctx.stroke();
+    ctx.fillStyle = `${light}aa`;
+    ctx.beginPath();
+    ctx.arc(72, -46, 8, 0, Math.PI * 2);
+    ctx.fill();
   } else if (kind === &quot;routeSign&quot; || kind === &quot;curveBoard&quot; || kind === &quot;towerSign&quot; || kind === &quot;expressSign&quot; || kind === &quot;waterfallSign&quot; || kind === &quot;busStop&quot; || kind === &quot;rallyMarker&quot;) {
     ctx.strokeStyle = &quot;rgba(214,226,221,0.8)&quot;;
     ctx.lineWidth = 4;
@@ -14322,7 +14608,8 @@ setRendererMode(rendererMode, true);
 registerOfflineApp();
 drawFrame();
 </pre>
-<h2>phone-asset-pipeline.js</h2><pre>&quot;use strict&quot;;
+<h2>phone-asset-pipeline.js</h2>
+<pre>&quot;use strict&quot;;
 
 (function () {
   const spriteCache = new Map();
@@ -15091,7 +15378,8 @@ drawFrame();
   };
 })();
 </pre>
-<h2>webgl-pipeline.js</h2><pre>&quot;use strict&quot;;
+<h2>webgl-pipeline.js</h2>
+<pre>&quot;use strict&quot;;
 
 (function () {
   function hexToRgba(hex, alpha = 1) {
@@ -15843,7 +16131,8 @@ drawFrame();
   window.VelocityWebGLPipeline = VelocityWebGLPipeline;
 }());
 </pre>
-<h2>manifest.json</h2><pre>{
+<h2>manifest.json</h2>
+<pre>{
   &quot;name&quot;: &quot;Velocity Vault&quot;,
   &quot;short_name&quot;: &quot;Velocity&quot;,
   &quot;description&quot;: &quot;A standalone racing game with local profiles, upgrades, missions, controller support, and offline play.&quot;,
@@ -15873,9 +16162,10 @@ drawFrame();
   ]
 }
 </pre>
-<h2>sw.js</h2><pre>&quot;use strict&quot;;
+<h2>sw.js</h2>
+<pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v81-ground-visibility&quot;;
+const cacheName = &quot;velocity-vault-v82-drive-by-world&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -15917,7 +16207,8 @@ self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
   );
 });
 </pre>
-<h2>app-icon.svg</h2><pre>&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 512 512&quot; role=&quot;img&quot; aria-label=&quot;Velocity Vault icon&quot;&gt;
+<h2>app-icon.svg</h2>
+<pre>&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 512 512&quot; role=&quot;img&quot; aria-label=&quot;Velocity Vault icon&quot;&gt;
   &lt;rect width=&quot;512&quot; height=&quot;512&quot; rx=&quot;96&quot; fill=&quot;#09100f&quot;/&gt;
   &lt;path d=&quot;M80 358 206 110h100L180 358Z&quot; fill=&quot;#bbf24a&quot;/&gt;
   &lt;path d=&quot;M220 358 346 110h86L306 358Z&quot; fill=&quot;#46d9ff&quot;/&gt;
@@ -15930,7 +16221,8 @@ self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
   &lt;circle cx=&quot;348&quot; cy=&quot;382&quot; r=&quot;15&quot; fill=&quot;#bbf24a&quot;/&gt;
 &lt;/svg&gt;
 </pre>
-<h2>README.md</h2><pre># Velocity Vault
+<h2>README.md</h2>
+<pre># Velocity Vault
 
 A standalone browser racing game built with local-only profiles, age-band selection, upgrades, missions, and canvas racing.
 
@@ -16022,6 +16314,7 @@ Real-world style visuals:
 - The v75 surface-lighting pass gives the road more physical material feel: subtle road crown, moving wet/gloss reflections, rubber and seam marks, route-specific pavement streaks, coastal spray sheen, snow/ice shine, desert heat shimmer, farm dirt, freight diesel marks, runway glints, and neon night reflections while preserving a flat, readable phone driving lane.
 - The v76 depth-infrastructure pass adds more real-world scale behind the race: parallax city blocks, mountains, dunes, water spans, fields, ports, rail yards, sound walls, guardrails, snow fences, stone walls, power lines, tram wires, lift cables, gantries, bridge cables, beacons, and far-side traffic silhouettes so the route feels deeper without putting clutter in the driving line.
 - The v81 ground-visibility pass tightens player hit detection to the visible car position, reduces ahead-of-car side-scrape damage, brightens the readable road surface, and adds grounded real-world props such as storefronts, streetlights, guardrails, parked vehicles, crowds, route signs, barns, fences, containers, hangars, palms, rocks, pines, and barriers that sit on the roadside instead of floating in the haze.
+- The v82 drive-by world pass spaces larger, brighter roadside landmarks by real route distance, sorts them far-to-near, and changes the landmark set by race sector so you drive past grounded billboards, bridges, tunnel portals, service stations, docks, traffic lights, homes, grandstands, towers, barns, shops, crowds, and route signs instead of seeing one repeated backdrop.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
@@ -16032,7 +16325,7 @@ Real-world style visuals:
 - Phone landscape racing moves touch controls to a transparent driver-pad overlay so steering, center, gas, brake/reverse, boost, pause, and touch mode switching stay usable without covering the driving screen.
 - Touch controls use a multi-touch tracker plus pointer fallback so gas, brake, boost, and steering can stay active together until finger-up/cancel even if both thumbs are down at once.
 - Phone mode has a separate in-game control layer fixed to the visible app window in both portrait and landscape. The default Mini layout is now a floating one-thumb joystick that appears under your touch, keeps gas active while you steer, releases cleanly when you lift your thumb, and leaves more of the driving screen open. Tapping `Full` expands the larger separate controls.
-- The Mini floating joystick sends analog steering into the driving physics, keeps throttle active while steering sideways, supports brake/reverse only after a deliberate downward pull, and visually follows the player&#39;s touch instead of staying locked to a fixed D-pad position.
+- The Mini floating joystick sends analog steering into the driving physics, keeps throttle active while steering sideways, supports brake/reverse only after a deliberate downward pull, and visually follows the player&#x27;s touch instead of staying locked to a fixed D-pad position.
 - Phone collision detection now uses a smaller distance-and-lane overlap check that matches the phone road projection, so traffic should only count as a crash when it is actually in your lane and close to your vehicle. Phone impacts also do less damage and push vehicles apart instead of repeatedly resetting the player.
 - Race starts now show a clear goal card on the driving screen with the current challenge, route, longer-race pacing, and crash-recovery status.
 - Crashes and total focus loss no longer end the race. Critical damage now starts a reset countdown, stabilizes the vehicle, and lets the player continue the same run.
@@ -16098,7 +16391,7 @@ Recommended Apex settings:
 
 The Apex package keeps the game local-only: no third-party scripts, no CDN files, no server database, and no remote assets. Driver profiles, saved races, coins, reputation, upgrades, custom vehicle builds, and PIN hashes remain stored in each device browser.
 
-After publishing, open the secure Apex link on the phone, then use the browser&#39;s `Install`, `Add to Phone`, or `Add to Home Screen` option.
+After publishing, open the secure Apex link on the phone, then use the browser&#x27;s `Install`, `Add to Phone`, or `Add to Home Screen` option.
 
 ## Put It On This Computer
 
@@ -16112,7 +16405,7 @@ The installed browser app is the cleanest computer version because it opens in i
 
 ## Send It To Kids Or Testers
 
-The best way to send the game to kids&#39; phones is to publish the `publish` folder to GitHub Pages and send them the secure link:
+The best way to send the game to kids&#x27; phones is to publish the `publish` folder to GitHub Pages and send them the secure link:
 
 `https://YOUR-GITHUB-USERNAME.github.io/velocity-vault/`
 
@@ -16143,7 +16436,8 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 - Controller support uses the browser Gamepad API only.
 - The PIN is only for casual local separation between players; it is not a replacement for operating-system account security.
 </pre>
-<h2>APEX-VAULT-COMMAND-CLOUD.md</h2><pre># Apex Vault Command Cloud Hosting
+<h2>APEX-VAULT-COMMAND-CLOUD.md</h2>
+<pre># Apex Vault Command Cloud Hosting
 
 Velocity Vault is ready to host as a secure static Progressive Web App on Apex Vault Command Cloud.
 
@@ -16189,7 +16483,7 @@ The local project still keeps the README, Apex notes, source PDF, and deployment
 - No CDN dependencies.
 - No remote images, fonts, shaders, models, or audio.
 - No backend database needed.
-- Driver profiles, coins, upgrades, vehicle builds, saved races, and optional PIN hashes stay in the browser&#39;s local storage on each device.
+- Driver profiles, coins, upgrades, vehicle builds, saved races, and optional PIN hashes stay in the browser&#x27;s local storage on each device.
 - HTTPS is required for phone installation and reliable service-worker caching.
 
 ## After Publishing
@@ -16198,7 +16492,8 @@ Send the secure Apex link to testers. Each phone can install the game like an ap
 
 If Apex gives you a custom domain option, point the domain to this deployment and keep HTTPS enabled.
 </pre>
-<h2>apex-vault-command-cloud.json</h2><pre>{
+<h2>apex-vault-command-cloud.json</h2>
+<pre>{
   &quot;appName&quot;: &quot;Velocity Vault&quot;,
   &quot;deploymentName&quot;: &quot;velocity-vault&quot;,
   &quot;version&quot;: &quot;v80-apex-safe-static-assets&quot;,
@@ -16245,7 +16540,7 @@ If Apex gives you a custom domain option, point the domain to this deployment an
     &quot;.svg&quot;: &quot;image/svg+xml&quot;
   },
   &quot;securityHeaders&quot;: {
-    &quot;Content-Security-Policy&quot;: &quot;default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; connect-src &#39;self&#39;; manifest-src &#39;self&#39;; worker-src &#39;self&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests&quot;,
+    &quot;Content-Security-Policy&quot;: &quot;default-src &#x27;self&#x27;; script-src &#x27;self&#x27;; style-src &#x27;self&#x27;; img-src &#x27;self&#x27; data:; connect-src &#x27;self&#x27;; manifest-src &#x27;self&#x27;; worker-src &#x27;self&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests&quot;,
     &quot;Referrer-Policy&quot;: &quot;no-referrer&quot;,
     &quot;X-Content-Type-Options&quot;: &quot;nosniff&quot;,
     &quot;X-Frame-Options&quot;: &quot;DENY&quot;,
@@ -16296,8 +16591,9 @@ If Apex gives you a custom domain option, point the domain to this deployment an
   ]
 }
 </pre>
-<h2>_headers</h2><pre>/*
-  Content-Security-Policy: default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; img-src &#39;self&#39; data:; connect-src &#39;self&#39;; manifest-src &#39;self&#39;; worker-src &#39;self&#39;; object-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; frame-ancestors &#39;none&#39;; upgrade-insecure-requests
+<h2>_headers</h2>
+<pre>/*
+  Content-Security-Policy: default-src &#x27;self&#x27;; script-src &#x27;self&#x27;; style-src &#x27;self&#x27;; img-src &#x27;self&#x27; data:; connect-src &#x27;self&#x27;; manifest-src &#x27;self&#x27;; worker-src &#x27;self&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests
   Referrer-Policy: no-referrer
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -16327,6 +16623,8 @@ If Apex gives you a custom domain option, point the domain to this deployment an
   Content-Type: image/svg+xml
   Cache-Control: public, max-age=31536000
 </pre>
-<h2>.nojekyll</h2><pre># Serve Velocity Vault as plain static files.
+<h2>.nojekyll</h2>
+<pre># Serve Velocity Vault as plain static files.
 </pre>
-</body></html>
+</body>
+</html>
