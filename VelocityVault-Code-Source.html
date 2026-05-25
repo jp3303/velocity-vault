@@ -15,8 +15,8 @@ pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;
 </head>
 <body>
 <h1>Velocity Vault Code Source</h1>
-<p class="meta">Generated 2026-05-25 16:12:24 for the v83 world surface-view build.</p>
-<p>This PDF/HTML companion contains the current standalone game source, including clipped roadside scenery, dedicated boat-water views, dedicated aircraft-sky views, service worker cache version, Apex Vault Command Cloud notes, and hosting files.</p>
+<p class="meta">Generated 2026-05-25 16:28:14 for the v84 specialty race-world build.</p>
+<p>This PDF/HTML companion contains the current standalone game source, including race-to-vehicle eligibility, dedicated semi/monster/tank events, specialty scenery, expanded vehicle variants, silent auto-save, Apex Vault Command Cloud notes, and hosting files.</p>
 <h2>index.html</h2>
 <pre>&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
@@ -2093,19 +2093,22 @@ const ageBands = {
 };
 
 const races = [
-  { id: &quot;neon&quot;, name: &quot;Pacific Coast Highway Sprint&quot;, length: 3600, target: &quot;Collect 18 coins&quot;, type: &quot;coins&quot;, goal: 18, reward: 150, rep: 16, theme: [&quot;#0c1a1b&quot;, &quot;#46d9ff&quot;, &quot;#bbf24a&quot;], place: &quot;coast&quot;, sign: &quot;Pacific Coast&quot;, mood: &quot;golden coast&quot; },
-  { id: &quot;skyline&quot;, name: &quot;Chicago Skyline Night Run&quot;, length: 4300, target: &quot;Keep focus above 60&quot;, type: &quot;focus&quot;, goal: 60, reward: 180, rep: 20, theme: [&quot;#12151d&quot;, &quot;#ffd166&quot;, &quot;#46d9ff&quot;], place: &quot;city&quot;, sign: &quot;Lakefront Loop&quot;, mood: &quot;wet downtown&quot; },
-  { id: &quot;canyon&quot;, name: &quot;Sedona Red Rock Clash&quot;, length: 5000, target: &quot;Dodge 30 rivals&quot;, type: &quot;dodges&quot;, goal: 30, reward: 220, rep: 28, theme: [&quot;#15110c&quot;, &quot;#ff5b6b&quot;, &quot;#ffd166&quot;], place: &quot;canyon&quot;, sign: &quot;Sedona Route&quot;, mood: &quot;desert chase&quot; },
-  { id: &quot;vault&quot;, name: &quot;Rocky Mountain Grand Prix&quot;, length: 6200, target: &quot;Score 5000 points&quot;, type: &quot;score&quot;, goal: 5000, reward: 320, rep: 42, theme: [&quot;#09100f&quot;, &quot;#bbf24a&quot;, &quot;#46d9ff&quot;], place: &quot;alpine&quot;, sign: &quot;Mountain Pass&quot;, mood: &quot;storm pass&quot; },
-  { id: &quot;harbor&quot;, name: &quot;Miami Harbor Boat Rush&quot;, length: 4200, target: &quot;Score 3500 points&quot;, type: &quot;score&quot;, goal: 3500, reward: 240, rep: 30, theme: [&quot;#07161b&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;], place: &quot;harbor&quot;, sign: &quot;Harbor Run&quot;, mood: &quot;water sprint&quot; },
-  { id: &quot;snowfield&quot;, name: &quot;Aspen Snowmobile Dash&quot;, length: 3900, target: &quot;Keep focus above 55&quot;, type: &quot;focus&quot;, goal: 55, reward: 210, rep: 26, theme: [&quot;#0b1519&quot;, &quot;#f4fbf8&quot;, &quot;#46d9ff&quot;], place: &quot;snow&quot;, sign: &quot;Snow Pass&quot;, mood: &quot;ice grip&quot; },
-  { id: &quot;airstrip&quot;, name: &quot;Nevada Airfield Scramble&quot;, length: 5200, target: &quot;Dodge 28 rivals&quot;, type: &quot;dodges&quot;, goal: 28, reward: 280, rep: 36, theme: [&quot;#11131a&quot;, &quot;#ffd166&quot;, &quot;#ff5b6b&quot;], place: &quot;airfield&quot;, sign: &quot;Runway 4&quot;, mood: &quot;air chase&quot; },
-  { id: &quot;freight&quot;, name: &quot;Texas Big Rig Freight Run&quot;, length: 5600, target: &quot;Score 4200 points&quot;, type: &quot;score&quot;, goal: 4200, reward: 270, rep: 34, theme: [&quot;#10140f&quot;, &quot;#ffd166&quot;, &quot;#46d9ff&quot;], place: &quot;freight&quot;, sign: &quot;Texas Freightway&quot;, mood: &quot;big rig draft&quot;, unlock: 0 },
-  { id: &quot;farmrally&quot;, name: &quot;Iowa Tractor Rally&quot;, length: 3300, target: &quot;Collect 16 route markers&quot;, type: &quot;coins&quot;, goal: 16, reward: 190, rep: 22, theme: [&quot;#10180e&quot;, &quot;#bbf24a&quot;, &quot;#ffd166&quot;], place: &quot;farm&quot;, sign: &quot;Iowa Backroads&quot;, mood: &quot;field sprint&quot;, unlock: 0 },
-  { id: &quot;tokyo&quot;, name: &quot;Tokyo Neon Expressway&quot;, length: 5700, target: &quot;Keep focus above 62&quot;, type: &quot;focus&quot;, goal: 62, reward: 310, rep: 40, theme: [&quot;#100d1c&quot;, &quot;#ff4fd8&quot;, &quot;#46d9ff&quot;], place: &quot;tokyo&quot;, sign: &quot;Tokyo Express&quot;, mood: &quot;neon tunnel&quot;, unlock: 44 },
-  { id: &quot;sahara&quot;, name: &quot;Sahara Desert Rally&quot;, length: 6100, target: &quot;Dodge 34 rivals&quot;, type: &quot;dodges&quot;, goal: 34, reward: 330, rep: 44, theme: [&quot;#160f0a&quot;, &quot;#ffb74a&quot;, &quot;#f4fbf8&quot;], place: &quot;desert&quot;, sign: &quot;Sahara Rally&quot;, mood: &quot;sand storm&quot;, unlock: 66 },
-  { id: &quot;rainforest&quot;, name: &quot;Amazon Rainforest Rush&quot;, length: 5400, target: &quot;Score 4600 points&quot;, type: &quot;score&quot;, goal: 4600, reward: 320, rep: 42, theme: [&quot;#07130d&quot;, &quot;#36d98a&quot;, &quot;#ffd166&quot;], place: &quot;rainforest&quot;, sign: &quot;Amazon Route&quot;, mood: &quot;jungle rain&quot;, unlock: 88 },
-  { id: &quot;eurotour&quot;, name: &quot;Swiss Alps Grand Tour&quot;, length: 6400, target: &quot;Score 5600 points&quot;, type: &quot;score&quot;, goal: 5600, reward: 360, rep: 48, theme: [&quot;#091119&quot;, &quot;#dce8ef&quot;, &quot;#46d9ff&quot;], place: &quot;europe&quot;, sign: &quot;Swiss Alps&quot;, mood: &quot;euro pass&quot;, unlock: 110 }
+  { id: &quot;neon&quot;, name: &quot;Pacific Coast Highway Sprint&quot;, length: 3600, target: &quot;Collect 18 coins&quot;, type: &quot;coins&quot;, goal: 18, reward: 150, rep: 16, theme: [&quot;#0c1a1b&quot;, &quot;#46d9ff&quot;, &quot;#bbf24a&quot;], place: &quot;coast&quot;, sign: &quot;Pacific Coast&quot;, mood: &quot;golden coast&quot;, vehicleTypes: [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;, &quot;truck&quot;] },
+  { id: &quot;skyline&quot;, name: &quot;Chicago Skyline Night Run&quot;, length: 4300, target: &quot;Keep focus above 60&quot;, type: &quot;focus&quot;, goal: 60, reward: 180, rep: 20, theme: [&quot;#12151d&quot;, &quot;#ffd166&quot;, &quot;#46d9ff&quot;], place: &quot;city&quot;, sign: &quot;Lakefront Loop&quot;, mood: &quot;wet downtown&quot;, vehicleTypes: [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;, &quot;truck&quot;] },
+  { id: &quot;canyon&quot;, name: &quot;Sedona Red Rock Clash&quot;, length: 5000, target: &quot;Dodge 30 rivals&quot;, type: &quot;dodges&quot;, goal: 30, reward: 220, rep: 28, theme: [&quot;#15110c&quot;, &quot;#ff5b6b&quot;, &quot;#ffd166&quot;], place: &quot;canyon&quot;, sign: &quot;Sedona Route&quot;, mood: &quot;desert chase&quot;, vehicleTypes: [&quot;car&quot;, &quot;truck&quot;, &quot;monster&quot;] },
+  { id: &quot;vault&quot;, name: &quot;Rocky Mountain Grand Prix&quot;, length: 6200, target: &quot;Score 5000 points&quot;, type: &quot;score&quot;, goal: 5000, reward: 320, rep: 42, theme: [&quot;#09100f&quot;, &quot;#bbf24a&quot;, &quot;#46d9ff&quot;], place: &quot;alpine&quot;, sign: &quot;Mountain Pass&quot;, mood: &quot;storm pass&quot;, vehicleTypes: [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;, &quot;truck&quot;] },
+  { id: &quot;harbor&quot;, name: &quot;Miami Harbor Boat Rush&quot;, length: 4200, target: &quot;Score 3500 points&quot;, type: &quot;score&quot;, goal: 3500, reward: 240, rep: 30, theme: [&quot;#07161b&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;], place: &quot;harbor&quot;, sign: &quot;Harbor Run&quot;, mood: &quot;water sprint&quot;, vehicleTypes: [&quot;boat&quot;] },
+  { id: &quot;snowfield&quot;, name: &quot;Aspen Snowmobile Dash&quot;, length: 3900, target: &quot;Keep focus above 55&quot;, type: &quot;focus&quot;, goal: 55, reward: 210, rep: 26, theme: [&quot;#0b1519&quot;, &quot;#f4fbf8&quot;, &quot;#46d9ff&quot;], place: &quot;snow&quot;, sign: &quot;Snow Pass&quot;, mood: &quot;ice grip&quot;, vehicleTypes: [&quot;snowmobile&quot;] },
+  { id: &quot;airstrip&quot;, name: &quot;Nevada Airfield Scramble&quot;, length: 5200, target: &quot;Dodge 28 rivals&quot;, type: &quot;dodges&quot;, goal: 28, reward: 280, rep: 36, theme: [&quot;#11131a&quot;, &quot;#ffd166&quot;, &quot;#ff5b6b&quot;], place: &quot;airfield&quot;, sign: &quot;Runway 4&quot;, mood: &quot;air chase&quot;, vehicleTypes: [&quot;airplane&quot;, &quot;helicopter&quot;] },
+  { id: &quot;freight&quot;, name: &quot;Texas Big Rig Freight Run&quot;, length: 5600, target: &quot;Score 4200 points&quot;, type: &quot;score&quot;, goal: 4200, reward: 270, rep: 34, theme: [&quot;#10140f&quot;, &quot;#ffd166&quot;, &quot;#46d9ff&quot;], place: &quot;freight&quot;, sign: &quot;Texas Freightway&quot;, mood: &quot;big rig draft&quot;, unlock: 0, vehicleTypes: [&quot;semi&quot;, &quot;truck&quot;] },
+  { id: &quot;interstate&quot;, name: &quot;Great Plains Semi Convoy Trial&quot;, length: 6500, target: &quot;Keep focus above 58&quot;, type: &quot;focus&quot;, goal: 58, reward: 340, rep: 42, theme: [&quot;#101712&quot;, &quot;#ffd166&quot;, &quot;#46d9ff&quot;], place: &quot;interstate&quot;, sign: &quot;Convoy Trial&quot;, mood: &quot;diesel endurance&quot;, unlock: 32, vehicleTypes: [&quot;semi&quot;] },
+  { id: &quot;farmrally&quot;, name: &quot;Iowa Tractor Rally&quot;, length: 3300, target: &quot;Collect 16 route markers&quot;, type: &quot;coins&quot;, goal: 16, reward: 190, rep: 22, theme: [&quot;#10180e&quot;, &quot;#bbf24a&quot;, &quot;#ffd166&quot;], place: &quot;farm&quot;, sign: &quot;Iowa Backroads&quot;, mood: &quot;field sprint&quot;, unlock: 0, vehicleTypes: [&quot;tractor&quot;, &quot;truck&quot;] },
+  { id: &quot;monsterjam&quot;, name: &quot;Utah Monster Truck Dirt Arena&quot;, length: 4500, target: &quot;Dodge 26 rivals&quot;, type: &quot;dodges&quot;, goal: 26, reward: 300, rep: 36, theme: [&quot;#140f0b&quot;, &quot;#ff8c42&quot;, &quot;#bbf24a&quot;], place: &quot;monsterpark&quot;, sign: &quot;Dirt Arena&quot;, mood: &quot;mud and stadium lights&quot;, unlock: 36, vehicleTypes: [&quot;monster&quot;] },
+  { id: &quot;armory&quot;, name: &quot;Nevada Armor Proving Ground&quot;, length: 5200, target: &quot;Score 4300 points&quot;, type: &quot;score&quot;, goal: 4300, reward: 350, rep: 46, theme: [&quot;#10130e&quot;, &quot;#bbf24a&quot;, &quot;#ffd166&quot;], place: &quot;military&quot;, sign: &quot;Proving Ground&quot;, mood: &quot;armored range&quot;, unlock: 46, vehicleTypes: [&quot;tank&quot;] },
+  { id: &quot;tokyo&quot;, name: &quot;Tokyo Neon Expressway&quot;, length: 5700, target: &quot;Keep focus above 62&quot;, type: &quot;focus&quot;, goal: 62, reward: 310, rep: 40, theme: [&quot;#100d1c&quot;, &quot;#ff4fd8&quot;, &quot;#46d9ff&quot;], place: &quot;tokyo&quot;, sign: &quot;Tokyo Express&quot;, mood: &quot;neon tunnel&quot;, unlock: 44, vehicleTypes: [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;] },
+  { id: &quot;sahara&quot;, name: &quot;Sahara Desert Rally&quot;, length: 6100, target: &quot;Dodge 34 rivals&quot;, type: &quot;dodges&quot;, goal: 34, reward: 330, rep: 44, theme: [&quot;#160f0a&quot;, &quot;#ffb74a&quot;, &quot;#f4fbf8&quot;], place: &quot;desert&quot;, sign: &quot;Sahara Rally&quot;, mood: &quot;sand storm&quot;, unlock: 66, vehicleTypes: [&quot;car&quot;, &quot;truck&quot;, &quot;monster&quot;, &quot;tank&quot;] },
+  { id: &quot;rainforest&quot;, name: &quot;Amazon Rainforest Rush&quot;, length: 5400, target: &quot;Score 4600 points&quot;, type: &quot;score&quot;, goal: 4600, reward: 320, rep: 42, theme: [&quot;#07130d&quot;, &quot;#36d98a&quot;, &quot;#ffd166&quot;], place: &quot;rainforest&quot;, sign: &quot;Amazon Route&quot;, mood: &quot;jungle rain&quot;, unlock: 88, vehicleTypes: [&quot;truck&quot;, &quot;monster&quot;, &quot;tractor&quot;, &quot;car&quot;] },
+  { id: &quot;eurotour&quot;, name: &quot;Swiss Alps Grand Tour&quot;, length: 6400, target: &quot;Score 5600 points&quot;, type: &quot;score&quot;, goal: 5600, reward: 360, rep: 48, theme: [&quot;#091119&quot;, &quot;#dce8ef&quot;, &quot;#46d9ff&quot;], place: &quot;europe&quot;, sign: &quot;Swiss Alps&quot;, mood: &quot;euro pass&quot;, unlock: 110, vehicleTypes: [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;, &quot;airplane&quot;, &quot;helicopter&quot;] }
 ];
 
 const vehicleDefs = [
@@ -2117,9 +2120,14 @@ const vehicleDefs = [
   { id: &quot;truck&quot;, name: &quot;Performance Truck&quot;, type: &quot;truck&quot;, desc: &quot;Heavier, stable, strong contact resistance.&quot;, speed: 0.88, handling: 0.82, mass: 1.35, color: &quot;#ffd166&quot;, price: 1200, unlock: 20, class: &quot;road&quot; },
   { id: &quot;buggy&quot;, name: &quot;Desert Buggy&quot;, type: &quot;truck&quot;, desc: &quot;Light off-road machine built for dunes and shortcut branches.&quot;, speed: 0.92, handling: 1.04, mass: 0.88, color: &quot;#ffb74a&quot;, price: 2400, unlock: 50, class: &quot;rally&quot;, model: &quot;Open desert buggy&quot; },
   { id: &quot;semi&quot;, name: &quot;Semi Truck Racer&quot;, type: &quot;semi&quot;, desc: &quot;Huge highway pull, heavy drafting, upgrade into a freight rocket.&quot;, speed: 0.72, handling: 0.58, mass: 2.1, color: &quot;#dce8ef&quot;, price: 3400, unlock: 60, class: &quot;freight&quot; },
+  { id: &quot;aerosemi&quot;, name: &quot;Aero Cab Semi&quot;, type: &quot;semi&quot;, desc: &quot;Streamlined convoy racer with stronger highway speed and upgrade headroom.&quot;, speed: 0.84, handling: 0.62, mass: 1.95, color: &quot;#46d9ff&quot;, price: 5200, unlock: 86, class: &quot;freight&quot;, model: &quot;Aero cab&quot; },
+  { id: &quot;hauler&quot;, name: &quot;Heavy Hauler Semi&quot;, type: &quot;semi&quot;, desc: &quot;Big torque freight build for long interstate races and heavy contact.&quot;, speed: 0.66, handling: 0.52, mass: 2.45, color: &quot;#ffd166&quot;, price: 6400, unlock: 112, class: &quot;freight&quot;, model: &quot;Long-haul sleeper&quot; },
   { id: &quot;tractor&quot;, name: &quot;Racing Tractor&quot;, type: &quot;tractor&quot;, desc: &quot;Farm rally machine with tough grip and upgradeable agility.&quot;, speed: 0.62, handling: 0.7, mass: 1.65, color: &quot;#36d98a&quot;, price: 1400, unlock: 22, class: &quot;farm&quot; },
   { id: &quot;monster&quot;, name: &quot;Monster Truck&quot;, type: &quot;monster&quot;, desc: &quot;Huge stance, slower but tough.&quot;, speed: 0.76, handling: 0.7, mass: 1.75, color: &quot;#bbf24a&quot;, price: 4200, unlock: 72, class: &quot;monster&quot; },
+  { id: &quot;stadiummonster&quot;, name: &quot;Stadium Monster Truck&quot;, type: &quot;monster&quot;, desc: &quot;Lighter arena monster with quicker steering for dirt stadium races.&quot;, speed: 0.84, handling: 0.82, mass: 1.55, color: &quot;#ff8c42&quot;, price: 5600, unlock: 96, class: &quot;monster&quot;, model: &quot;Stadium lift&quot; },
+  { id: &quot;crawler&quot;, name: &quot;Rock Crawler Monster&quot;, type: &quot;monster&quot;, desc: &quot;Heavy lifted build for rough desert and crush-car sections.&quot;, speed: 0.68, handling: 0.9, mass: 1.95, color: &quot;#bbf24a&quot;, price: 6800, unlock: 122, class: &quot;monster&quot;, model: &quot;Crawler cage&quot; },
   { id: &quot;tank&quot;, name: &quot;Armored Tank&quot;, type: &quot;tank&quot;, desc: &quot;Slow, heavy, almost unstoppable.&quot;, speed: 0.56, handling: 0.52, mass: 2.35, color: &quot;#6d7667&quot;, price: 5200, unlock: 92, class: &quot;military&quot; },
+  { id: &quot;scouttank&quot;, name: &quot;Scout Tank&quot;, type: &quot;tank&quot;, desc: &quot;Quicker armored racer with lighter plating and sharper range handling.&quot;, speed: 0.64, handling: 0.62, mass: 2.02, color: &quot;#8d986f&quot;, price: 6200, unlock: 116, class: &quot;military&quot;, model: &quot;Recon armor&quot; },
   { id: &quot;heavytank&quot;, name: &quot;Heavy Battle Tank&quot;, type: &quot;tank&quot;, desc: &quot;Bulkier armor, slower turn-in, stronger route-clearing hits.&quot;, speed: 0.48, handling: 0.46, mass: 2.75, color: &quot;#3f4a38&quot;, price: 7600, unlock: 138, class: &quot;military&quot;, model: &quot;Heavy armor&quot; },
   { id: &quot;snowmobile&quot;, name: &quot;Snowmobile&quot;, type: &quot;snowmobile&quot;, desc: &quot;Light and quick on snow routes.&quot;, speed: 0.94, handling: 1.15, mass: 0.58, color: &quot;#f4fbf8&quot;, price: 1600, unlock: 26, class: &quot;snow&quot; },
   { id: &quot;boat&quot;, name: &quot;Race Boat&quot;, type: &quot;boat&quot;, desc: &quot;Best fit for harbor water sprints.&quot;, speed: 1.05, handling: 0.86, mass: 0.92, color: &quot;#46d9ff&quot;, price: 1900, unlock: 30, class: &quot;water&quot; },
@@ -2149,13 +2157,13 @@ const vehicleRaceRules = {
   f1: { places: [&quot;coast&quot;, &quot;city&quot;, &quot;alpine&quot;, &quot;tokyo&quot;, &quot;europe&quot;], label: &quot;road and grand prix circuits&quot; },
   prototype: { places: [&quot;coast&quot;, &quot;city&quot;, &quot;alpine&quot;, &quot;tokyo&quot;, &quot;europe&quot;], label: &quot;road and grand prix circuits&quot; },
   truck: { places: [&quot;coast&quot;, &quot;city&quot;, &quot;canyon&quot;, &quot;alpine&quot;, &quot;freight&quot;, &quot;farm&quot;, &quot;desert&quot;, &quot;rainforest&quot;], label: &quot;road, freight, and rally routes&quot; },
-  semi: { places: [&quot;freight&quot;, &quot;coast&quot;, &quot;city&quot;, &quot;desert&quot;], label: &quot;freight routes&quot; },
+  semi: { places: [&quot;freight&quot;, &quot;interstate&quot;], label: &quot;semi and freight routes&quot; },
   tractor: { places: [&quot;farm&quot;, &quot;rainforest&quot;], label: &quot;farm rally routes&quot; },
-  monster: { places: [&quot;canyon&quot;, &quot;freight&quot;, &quot;farm&quot;, &quot;desert&quot;, &quot;rainforest&quot;], label: &quot;monster truck arenas&quot; },
-  tank: { places: [&quot;airfield&quot;, &quot;desert&quot;, &quot;freight&quot;, &quot;canyon&quot;], label: &quot;military routes&quot; },
+  monster: { places: [&quot;monsterpark&quot;, &quot;canyon&quot;, &quot;desert&quot;, &quot;rainforest&quot;], label: &quot;monster truck arenas&quot; },
+  tank: { places: [&quot;military&quot;, &quot;desert&quot;], label: &quot;armored proving routes&quot; },
   snowmobile: { places: [&quot;snow&quot;], label: &quot;snow routes&quot; },
   boat: { places: [&quot;harbor&quot;], label: &quot;water routes&quot; },
-  helicopter: { places: [&quot;airfield&quot;, &quot;desert&quot;, &quot;rainforest&quot;, &quot;europe&quot;], label: &quot;sky routes&quot; },
+  helicopter: { places: [&quot;airfield&quot;, &quot;desert&quot;, &quot;rainforest&quot;, &quot;europe&quot;, &quot;military&quot;], label: &quot;sky routes&quot; },
   airplane: { places: [&quot;airfield&quot;, &quot;desert&quot;, &quot;europe&quot;], label: &quot;sky routes&quot; }
 };
 
@@ -2287,6 +2295,7 @@ const raceState = {
   elapsed: 0,
   heat: 0,
   heatClock: 0,
+  autoSaveClock: 0,
   chaseActive: false,
   cameraShake: 0,
   countdown: 0,
@@ -2397,8 +2406,28 @@ function vehicleUnlocked(profile = activeProfile, vehicle = vehicleDefs[0]) {
 }
 
 function raceCompatibleWithVehicle(race = selectedRace, vehicle = selectedVehicle()) {
+  if (!race || !vehicle) return false;
+  if (Array.isArray(race.vehicleTypes) &amp;&amp; !race.vehicleTypes.includes(vehicle.type)) return false;
+  if (Array.isArray(race.vehicleClasses) &amp;&amp; !race.vehicleClasses.includes(vehicle.class)) return false;
   const rule = vehicleRaceRules[vehicle.type] || vehicleRaceRules.car;
   return rule.places.includes(race.place);
+}
+
+function raceVehicleLabel(race) {
+  if (!race || !Array.isArray(race.vehicleTypes) || !race.vehicleTypes.length) return &quot;open class&quot;;
+  const names = race.vehicleTypes.map((type) =&gt; {
+    if (type === &quot;semi&quot;) return &quot;semis&quot;;
+    if (type === &quot;monster&quot;) return &quot;monster trucks&quot;;
+    if (type === &quot;tank&quot;) return &quot;tanks&quot;;
+    if (type === &quot;boat&quot;) return &quot;boats&quot;;
+    if (type === &quot;airplane&quot;) return &quot;planes&quot;;
+    if (type === &quot;helicopter&quot;) return &quot;helicopters&quot;;
+    if (type === &quot;tractor&quot;) return &quot;tractors&quot;;
+    if (type === &quot;snowmobile&quot;) return &quot;snowmobiles&quot;;
+    if (type === &quot;f1&quot;) return &quot;F1&quot;;
+    return `${type}s`;
+  });
+  return names.length &gt; 3 ? `${names.slice(0, 3).join(&quot;, &quot;)} +` : names.join(&quot;, &quot;);
 }
 
 function compatibilityLabel(vehicle = selectedVehicle()) {
@@ -2472,7 +2501,10 @@ const routeWorlds = {
   snow: { country: &quot;USA&quot;, scene: &quot;Aspen Snowfields&quot;, cue: &quot;ice bends&quot;, turn: 1.08, seed: 6.9 },
   airfield: { country: &quot;USA&quot;, scene: &quot;Nevada Airfield&quot;, cue: &quot;runway chicanes&quot;, turn: 0.72, seed: 7.4 },
   freight: { country: &quot;USA&quot;, scene: &quot;Texas Freightway&quot;, cue: &quot;wide interstate&quot;, turn: 0.82, seed: 8.1 },
+  interstate: { country: &quot;USA&quot;, scene: &quot;Great Plains Interstate&quot;, cue: &quot;wide convoy lanes&quot;, turn: 0.62, seed: 8.45 },
   farm: { country: &quot;USA&quot;, scene: &quot;Iowa Backroads&quot;, cue: &quot;rolling farm roads&quot;, turn: 0.88, seed: 8.9 },
+  monsterpark: { country: &quot;USA&quot;, scene: &quot;Utah Dirt Arena&quot;, cue: &quot;mud lanes and stadium banks&quot;, turn: 0.98, seed: 9.15 },
+  military: { country: &quot;USA&quot;, scene: &quot;Nevada Proving Ground&quot;, cue: &quot;concrete range roads&quot;, turn: 0.74, seed: 9.35 },
   tokyo: { country: &quot;Japan&quot;, scene: &quot;Tokyo Expressway&quot;, cue: &quot;neon overpasses&quot;, turn: 1.18, seed: 9.6 },
   desert: { country: &quot;Morocco&quot;, scene: &quot;Sahara Rally&quot;, cue: &quot;sand ridges&quot;, turn: 1.12, seed: 10.5 },
   rainforest: { country: &quot;Brazil&quot;, scene: &quot;Amazon Rainforest&quot;, cue: &quot;jungle tunnels&quot;, turn: 1.02, seed: 11.4 },
@@ -2488,7 +2520,10 @@ const genAiSceneDesigns = {
   snow: { style: &quot;winter rally stage&quot;, surface: &quot;#344141&quot;, accent: &quot;#f4fbf8&quot;, light: &quot;#46d9ff&quot;, props: [&quot;snowbank&quot;, &quot;pine&quot;, &quot;flag&quot;, &quot;crowd&quot;, &quot;brake&quot;] },
   airfield: { style: &quot;runway speed trial&quot;, surface: &quot;#252723&quot;, accent: &quot;#ffd166&quot;, light: &quot;#ff5b6b&quot;, props: [&quot;hangar&quot;, &quot;beacon&quot;, &quot;plane&quot;, &quot;barrier&quot;, &quot;brake&quot;] },
   freight: { style: &quot;freightway endurance race&quot;, surface: &quot;#22241d&quot;, accent: &quot;#ffd166&quot;, light: &quot;#46d9ff&quot;, props: [&quot;trailer&quot;, &quot;gantry&quot;, &quot;crowd&quot;, &quot;barrier&quot;, &quot;brake&quot;] },
+  interstate: { style: &quot;semi convoy endurance trial&quot;, surface: &quot;#20231d&quot;, accent: &quot;#ffd166&quot;, light: &quot;#46d9ff&quot;, props: [&quot;trailer&quot;, &quot;gantry&quot;, &quot;truckStop&quot;, &quot;weighStation&quot;, &quot;dieselSign&quot;] },
   farm: { style: &quot;rural rally festival&quot;, surface: &quot;#3d3424&quot;, accent: &quot;#bbf24a&quot;, light: &quot;#ffd166&quot;, props: [&quot;barn&quot;, &quot;field&quot;, &quot;tractor&quot;, &quot;crowd&quot;, &quot;brake&quot;] },
+  monsterpark: { style: &quot;monster truck dirt arena&quot;, surface: &quot;#3c2414&quot;, accent: &quot;#ff8c42&quot;, light: &quot;#bbf24a&quot;, props: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;scoreboard&quot;] },
+  military: { style: &quot;armored proving ground&quot;, surface: &quot;#2b3024&quot;, accent: &quot;#bbf24a&quot;, light: &quot;#ffd166&quot;, props: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;checkpoint&quot;] },
   tokyo: { style: &quot;neon expressway battle&quot;, surface: &quot;#151424&quot;, accent: &quot;#ff4fd8&quot;, light: &quot;#46d9ff&quot;, props: [&quot;neon&quot;, &quot;tunnel&quot;, &quot;tower&quot;, &quot;crowd&quot;, &quot;brake&quot;] },
   desert: { style: &quot;open desert rally&quot;, surface: &quot;#4b3321&quot;, accent: &quot;#ffb74a&quot;, light: &quot;#f4fbf8&quot;, props: [&quot;dune&quot;, &quot;dust&quot;, &quot;camera&quot;, &quot;barrier&quot;, &quot;brake&quot;] },
   rainforest: { style: &quot;jungle wet rally&quot;, surface: &quot;#17241e&quot;, accent: &quot;#36d98a&quot;, light: &quot;#ffd166&quot;, props: [&quot;canopy&quot;, &quot;rain&quot;, &quot;bridge&quot;, &quot;crowd&quot;, &quot;brake&quot;] },
@@ -2791,8 +2826,8 @@ function renderRaces() {
     card.className = `race-card ${selectedRace.id === race.id ? &quot;selected&quot; : &quot;&quot;}`;
     card.disabled = locked || incompatible;
     card.innerHTML = `
-      &lt;div class=&quot;card-top&quot;&gt;&lt;strong&gt;${race.name}&lt;/strong&gt;&lt;span class=&quot;badge&quot;&gt;${locked ? `${requiredRep} rep` : incompatible ? compatibilityLabel(vehicle) : `${Math.round(race.reward * director.reward)} coins`}&lt;/span&gt;&lt;/div&gt;
-      &lt;div class=&quot;tiny&quot;&gt;${race.target} | ${Math.round(raceLength(race) / 100)} sectors | ${routeWorldInfo(race.place).scene} | ${director.event.name}&lt;/div&gt;
+      &lt;div class=&quot;card-top&quot;&gt;&lt;strong&gt;${race.name}&lt;/strong&gt;&lt;span class=&quot;badge&quot;&gt;${locked ? `${requiredRep} rep` : incompatible ? `Needs ${raceVehicleLabel(race)}` : `${Math.round(race.reward * director.reward)} coins`}&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;tiny&quot;&gt;${race.target} | ${Math.round(raceLength(race) / 100)} sectors | ${routeWorldInfo(race.place).scene} | ${raceVehicleLabel(race)} | ${director.event.name}&lt;/div&gt;
     `;
     card.addEventListener(&quot;click&quot;, () =&gt; {
       if (locked || incompatible) return;
@@ -3067,6 +3102,7 @@ function launchRace() {
     elapsed: 0,
     heat: 0,
     heatClock: 1.7,
+    autoSaveClock: 0,
     chaseActive: false,
     cameraShake: 0,
     countdown: 0,
@@ -3081,14 +3117,16 @@ function launchRace() {
   $(&quot;#missionChip&quot;).textContent = `${vehicle.name} | ${scenario.name} | ${selectedRace.target}`;
   showView(&quot;race&quot;);
   saveProfiles();
+  saveRace(true);
   showToast(`${vehicle.name} on grid. ${raceGoalText()}`);
 }
 
-function saveRace() {
+function saveRace(silent = false) {
+  const quiet = silent === true;
   if (!activeProfile) return;
   if (!raceState.active) {
     saveProfiles();
-    showToast(&quot;Garage progress saved on this device.&quot;);
+    if (!quiet) showToast(&quot;Garage progress saved on this device.&quot;);
     renderSavedRaceButton();
     return;
   }
@@ -3148,6 +3186,7 @@ function saveRace() {
       elapsed: raceState.elapsed,
       heat: raceState.heat,
       heatClock: raceState.heatClock,
+      autoSaveClock: raceState.autoSaveClock,
       chaseActive: raceState.chaseActive,
       cameraShake: 0,
       countdown: 0,
@@ -3158,7 +3197,8 @@ function saveRace() {
   localStorage.setItem(saveKey, JSON.stringify(snapshot));
   saveProfiles();
   renderSavedRaceButton();
-  showToast(&quot;Race saved on this device.&quot;);
+  raceState.autoSaveClock = 0;
+  if (!quiet) showToast(&quot;Race saved on this device.&quot;);
 }
 
 function resumeSavedRace() {
@@ -3205,6 +3245,7 @@ function resumeSavedRace() {
   raceState.cannonCooldown = Number(saved.state.cannonCooldown) || 0;
   raceState.routeFeatureClock = Number(saved.state.routeFeatureClock) || 0;
   raceState.hideCooldown = Number(saved.state.hideCooldown) || 0;
+  raceState.autoSaveClock = Number(saved.state.autoSaveClock) || 0;
   raceState.scenarioId = selectedScenario.id;
   raceState.scenarioLabel = selectedScenario.name;
   raceState.teamScore = Number(saved.state.teamScore) || 0;
@@ -4203,7 +4244,10 @@ function routeVehicleBoost(place, vehicleType, rival = false) {
   if (place === &quot;harbor&quot; &amp;&amp; vehicleType === &quot;boat&quot;) return rival ? 1.14 : 1.12;
   if (place === &quot;airfield&quot; &amp;&amp; (vehicleType === &quot;airplane&quot; || vehicleType === &quot;helicopter&quot;)) return rival ? 1.12 : 1.1;
   if (place === &quot;freight&quot; &amp;&amp; (vehicleType === &quot;semi&quot; || vehicleType === &quot;truck&quot;)) return rival ? 1.16 : 1.14;
+  if (place === &quot;interstate&quot; &amp;&amp; vehicleType === &quot;semi&quot;) return rival ? 1.2 : 1.18;
   if (place === &quot;farm&quot; &amp;&amp; vehicleType === &quot;tractor&quot;) return rival ? 1.18 : 1.16;
+  if (place === &quot;monsterpark&quot; &amp;&amp; vehicleType === &quot;monster&quot;) return rival ? 1.18 : 1.16;
+  if (place === &quot;military&quot; &amp;&amp; vehicleType === &quot;tank&quot;) return rival ? 1.18 : 1.16;
   if (place === &quot;tokyo&quot; &amp;&amp; (vehicleType === &quot;car&quot; || vehicleType === &quot;f1&quot; || vehicleType === &quot;prototype&quot;)) return rival ? 1.1 : 1.08;
   if (place === &quot;desert&quot; &amp;&amp; (vehicleType === &quot;monster&quot; || vehicleType === &quot;truck&quot;)) return rival ? 1.12 : 1.1;
   if (place === &quot;rainforest&quot; &amp;&amp; (vehicleType === &quot;truck&quot; || vehicleType === &quot;monster&quot; || vehicleType === &quot;tractor&quot;)) return rival ? 1.1 : 1.08;
@@ -4220,7 +4264,10 @@ function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
   if (vehicle.type === &quot;semi&quot;) return [&quot;semi&quot;, &quot;semi&quot;, &quot;truck&quot;];
   if (vehicle.type === &quot;snowmobile&quot; || race.place === &quot;snow&quot;) return [&quot;snowmobile&quot;, &quot;snowmobile&quot;, &quot;truck&quot;];
   if (race.place === &quot;freight&quot;) return [&quot;semi&quot;, &quot;semi&quot;, &quot;truck&quot;, &quot;monster&quot;];
+  if (race.place === &quot;interstate&quot;) return [&quot;semi&quot;, &quot;semi&quot;, &quot;truck&quot;, &quot;semi&quot;];
   if (race.place === &quot;farm&quot;) return [&quot;tractor&quot;, &quot;tractor&quot;, &quot;truck&quot;, &quot;monster&quot;];
+  if (race.place === &quot;monsterpark&quot;) return [&quot;monster&quot;, &quot;monster&quot;, &quot;truck&quot;, &quot;monster&quot;];
+  if (race.place === &quot;military&quot;) return [&quot;tank&quot;, &quot;tank&quot;, &quot;truck&quot;, &quot;semi&quot;];
   if (race.place === &quot;tokyo&quot;) return [&quot;car&quot;, &quot;f1&quot;, &quot;prototype&quot;, &quot;semi&quot;];
   if (race.place === &quot;desert&quot;) return [&quot;monster&quot;, &quot;truck&quot;, &quot;semi&quot;, &quot;car&quot;];
   if (race.place === &quot;rainforest&quot;) return [&quot;truck&quot;, &quot;monster&quot;, &quot;tractor&quot;, &quot;car&quot;];
@@ -4229,7 +4276,7 @@ function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
 
 function raceAllowsPolice(race = selectedRace, vehicle = selectedVehicle()) {
   if (activeScenario().hotPursuit) return true;
-  if (race.place === &quot;airfield&quot; &amp;&amp; vehicle.type === &quot;tank&quot;) return true;
+  if (race.place === &quot;military&quot; &amp;&amp; vehicle.type === &quot;tank&quot;) return true;
   return Boolean(race.hotPursuit || /hot pursuit/i.test(`${race.name} ${race.mood}`));
 }
 
@@ -4249,7 +4296,7 @@ function raceHasOncomingTraffic(race = selectedRace, vehicle = selectedVehicle()
 
 function raceAllowsCivilians(race = selectedRace, vehicle = selectedVehicle()) {
   if ([&quot;airplane&quot;, &quot;helicopter&quot;, &quot;boat&quot;].includes(vehicle.type)) return false;
-  return ![&quot;airfield&quot;, &quot;snow&quot;].includes(race.place);
+  return ![&quot;airfield&quot;, &quot;snow&quot;, &quot;military&quot;, &quot;monsterpark&quot;].includes(race.place);
 }
 
 function raceIsNight(race = selectedRace) {
@@ -4396,9 +4443,21 @@ function routeFeatureCatalog(race = selectedRace, vehicle = selectedVehicle()) {
       { type: &quot;hide&quot;, label: &quot;Truck Stop&quot;, detail: &quot;building hideout&quot;, icon: &quot;building&quot; },
       { type: &quot;shortcut&quot;, label: &quot;Service Lane&quot;, detail: &quot;extra freight road&quot;, icon: &quot;road&quot; }
     ],
+    interstate: [
+      { type: &quot;hide&quot;, label: &quot;Weigh Station&quot;, detail: &quot;pull behind the scale house&quot;, icon: &quot;building&quot; },
+      { type: &quot;shortcut&quot;, label: &quot;Convoy Bypass&quot;, detail: &quot;express freight lane&quot;, icon: &quot;road&quot; }
+    ],
     farm: [
       { type: &quot;hide&quot;, label: &quot;Barn Cover&quot;, detail: &quot;building hideout&quot;, icon: &quot;building&quot; },
       { type: &quot;shortcut&quot;, label: &quot;Field Track&quot;, detail: &quot;extra dirt track&quot;, icon: &quot;road&quot; }
+    ],
+    monsterpark: [
+      { type: &quot;hide&quot;, label: &quot;Stadium Tunnel&quot;, detail: &quot;duck under the stands&quot;, icon: &quot;building&quot; },
+      { type: &quot;shortcut&quot;, label: &quot;Berm Cut&quot;, detail: &quot;wide dirt shortcut&quot;, icon: &quot;road&quot; }
+    ],
+    military: [
+      { type: &quot;hide&quot;, label: &quot;Bunker Cover&quot;, detail: &quot;armored hideout&quot;, icon: &quot;building&quot; },
+      { type: &quot;shortcut&quot;, label: &quot;Range Cut&quot;, detail: &quot;concrete proving lane&quot;, icon: &quot;road&quot; }
     ],
     airfield: [
       { type: &quot;hide&quot;, label: &quot;Hangar Cover&quot;, detail: &quot;building hideout&quot;, icon: &quot;building&quot; },
@@ -4687,6 +4746,8 @@ function tick(dt) {
     triggerVehicleReset(&quot;Focus recovered&quot;);
   }
   if (raceState.distance &gt;= raceLength() &amp;&amp; raceState.elapsed &gt;= minimumRaceSeconds) endRace(false);
+  raceState.autoSaveClock = (raceState.autoSaveClock || 0) + dt;
+  if (raceState.autoSaveClock &gt;= 7.5) saveRace(true);
   updateRaceUi();
   updateAudio();
 }
@@ -5845,7 +5906,10 @@ function routeStageInfo(place = &quot;city&quot;, progress = 0) {
     snow: [[&quot;Aspen Forest&quot;, &quot;pine&quot;], [&quot;Ice Village&quot;, &quot;village&quot;], [&quot;Snow Tunnel&quot;, &quot;tunnel&quot;], [&quot;Winter Finish&quot;, &quot;checkpoint&quot;]],
     airfield: [[&quot;Runway&quot;, &quot;beacon&quot;], [&quot;Hangars&quot;, &quot;hangar&quot;], [&quot;Taxiway&quot;, &quot;plane&quot;], [&quot;Airfield Finish&quot;, &quot;checkpoint&quot;]],
     freight: [[&quot;Truck Stop&quot;, &quot;trailer&quot;], [&quot;Overpass&quot;, &quot;bridge&quot;], [&quot;Depot&quot;, &quot;hangar&quot;], [&quot;Freight Finish&quot;, &quot;checkpoint&quot;]],
+    interstate: [[&quot;Weigh Station&quot;, &quot;weighStation&quot;], [&quot;Convoy Lanes&quot;, &quot;trailer&quot;], [&quot;Diesel Stop&quot;, &quot;truckStop&quot;], [&quot;Freight Finish&quot;, &quot;checkpoint&quot;]],
     farm: [[&quot;Cornfields&quot;, &quot;field&quot;], [&quot;Barn Bend&quot;, &quot;barn&quot;], [&quot;Dirt Cut&quot;, &quot;tractor&quot;], [&quot;Farm Finish&quot;, &quot;checkpoint&quot;]],
+    monsterpark: [[&quot;Dirt Bowl&quot;, &quot;dirtBerm&quot;], [&quot;Crush Lane&quot;, &quot;crushCarStack&quot;], [&quot;Stadium Ramp&quot;, &quot;stadiumRamp&quot;], [&quot;Arena Finish&quot;, &quot;checkpoint&quot;]],
+    military: [[&quot;Range Road&quot;, &quot;rangeTarget&quot;], [&quot;Bunker Cut&quot;, &quot;bunker&quot;], [&quot;Blast Wall&quot;, &quot;blastWall&quot;], [&quot;Armor Finish&quot;, &quot;checkpoint&quot;]],
     tokyo: [[&quot;Neon Entry&quot;, &quot;neon&quot;], [&quot;Expressway&quot;, &quot;tower&quot;], [&quot;Tunnel Run&quot;, &quot;tunnel&quot;], [&quot;Tokyo Finish&quot;, &quot;checkpoint&quot;]],
     desert: [[&quot;Dune Sea&quot;, &quot;dune&quot;], [&quot;Oasis Road&quot;, &quot;palm&quot;], [&quot;Rock Gate&quot;, &quot;cliff&quot;], [&quot;Rally Finish&quot;, &quot;checkpoint&quot;]],
     rainforest: [[&quot;Jungle Entry&quot;, &quot;canopy&quot;], [&quot;Bridge Bypass&quot;, &quot;bridge&quot;], [&quot;Canopy Tunnel&quot;, &quot;canopy&quot;], [&quot;Rain Finish&quot;, &quot;checkpoint&quot;]],
@@ -6132,6 +6196,7 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
+  drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   ctx.restore();
 }
@@ -6414,6 +6479,94 @@ function drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, de
   ctx.globalAlpha = 1;
 }
 
+function drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const vehicle = selectedVehicle();
+  const specialty = place === &quot;interstate&quot; || place === &quot;monsterpark&quot; || place === &quot;military&quot; || vehicle.type === &quot;semi&quot; || vehicle.type === &quot;monster&quot; || vehicle.type === &quot;tank&quot;;
+  if (!specialty) return;
+  const motion = raceState.roadOffset || 0;
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  if (place === &quot;monsterpark&quot; || vehicle.type === &quot;monster&quot;) {
+    const dirt = ctx.createLinearGradient(0, horizon, 0, h);
+    dirt.addColorStop(0, &quot;rgba(118,68,34,0.28)&quot;);
+    dirt.addColorStop(0.58, &quot;rgba(82,44,22,0.42)&quot;);
+    dirt.addColorStop(1, &quot;rgba(42,24,14,0.64)&quot;);
+    ctx.fillStyle = dirt;
+    ctx.fillRect(0, horizon, w, h - horizon);
+    for (let i = 0; i &lt; (phoneMode ? 16 : 22); i += 1) {
+      const y = horizon + (((i * 92 + motion * 1.22 + seed * 0.004) % (h - horizon + 170)) - 60);
+      if (y &lt; horizon || y &gt; h + 44) continue;
+      const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
+      const center = perspectiveRoadCenter(w, t);
+      const half = realWorldRoadHalf(roadTop, roadBottom, t) * (0.24 + seededUnit(seed, i) * 0.34);
+      ctx.strokeStyle = i % 3 === 0 ? &quot;rgba(255,209,102,0.3)&quot; : &quot;rgba(0,0,0,0.36)&quot;;
+      ctx.lineWidth = 5 + t * 13;
+      ctx.globalAlpha = 0.18 + t * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(center - half, y);
+      ctx.quadraticCurveTo(center, y + 8 + t * 12, center + half, y + seededUnit(seed, i + 3) * 16);
+      ctx.stroke();
+    }
+  } else if (place === &quot;military&quot; || vehicle.type === &quot;tank&quot;) {
+    for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
+      const y = horizon + (((i * 118 + motion * 0.86 + seed * 0.003) % (h - horizon + 160)) - 42);
+      if (y &lt; horizon || y &gt; h + 30) continue;
+      const t = Math.max(0.04, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+      const center = perspectiveRoadCenter(w, t);
+      const half = realWorldRoadHalf(roadTop, roadBottom, t) * 0.56;
+      ctx.fillStyle = i % 2 ? &quot;rgba(180,190,170,0.16)&quot; : &quot;rgba(0,0,0,0.22)&quot;;
+      roundRect(center - half, y, half * 2, 5 + t * 12, 3);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(187,242,74,0.24)&quot;;
+      ctx.lineWidth = 2 + t * 4;
+      ctx.beginPath();
+      ctx.moveTo(center - half * 0.76, y + 8);
+      ctx.lineTo(center + half * 0.76, y + 6);
+      ctx.stroke();
+    }
+  } else {
+    for (let i = 0; i &lt; (phoneMode ? 9 : 13); i += 1) {
+      const y = horizon + (((i * 128 + motion * 1.05 + seed * 0.002) % (h - horizon + 180)) - 50);
+      if (y &lt; horizon || y &gt; h + 48) continue;
+      const t = Math.max(0.04, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
+      const center = perspectiveRoadCenter(w, t);
+      const half = realWorldRoadHalf(roadTop, roadBottom, t);
+      ctx.fillStyle = &quot;rgba(255,209,102,0.18)&quot;;
+      roundRect(center - half * 0.82, y, half * 1.64, 4 + t * 8, 3);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.34)&quot;;
+      ctx.font = `${Math.max(8, 9 + t * 10)}px system-ui`;
+      ctx.textAlign = &quot;center&quot;;
+      ctx.fillText(i % 2 ? &quot;TRUCK LANE&quot; : &quot;WEIGH&quot;, center, y + 12 + t * 14, half * 1.1);
+    }
+  }
+  ctx.restore();
+
+  const propSets = {
+    interstate: [&quot;weighStation&quot;, &quot;overheadSign&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;],
+    monsterpark: [&quot;grandstand&quot;, &quot;scoreboard&quot;, &quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;dirtBerm&quot;, &quot;spectators&quot;],
+    military: [&quot;watchTower&quot;, &quot;bunker&quot;, &quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;checkpointArch&quot;, &quot;serviceTruck&quot;]
+  };
+  const props = propSets[place] || (vehicle.type === &quot;semi&quot; ? propSets.interstate : vehicle.type === &quot;monster&quot; ? propSets.monsterpark : vehicle.type === &quot;tank&quot; ? propSets.military : null);
+  if (!props) return;
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 12 : 18);
+  for (let i = -1; i &lt; (phoneMode ? 11 : 16); i += 1) {
+    const distance = raceState.distance + 180 + i * (phoneMode ? 230 : 250) + seededUnit(seed, i + 400) * 130;
+    const side = seededUnit(seed, i + 410) &gt; 0.5 ? 1 : -1;
+    const pos = roadObjectPos(side * (2.15 + seededUnit(seed, i + 420) * 0.26), distance);
+    if (!pos || pos.y &lt; horizon - 34 || pos.y &gt; h + 96) continue;
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 20 : 32);
+    const near = Math.max(0, Math.min(1, pos.depth || 0));
+    const scale = Math.max(0.34, Math.min(phoneMode ? 1.68 : 1.92, pos.scale * (0.92 + near * 0.58)));
+    ctx.globalAlpha = Math.min(0.98, 0.74 + near * 0.24);
+    drawGroundLockedDriveByShadow(x, pos.y, scale, side, theme);
+    drawGroundLockedPlaceProp(props[Math.abs(i) % props.length], x, pos.y, scale, side, place, route, design, theme, seed + i * 83);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
 function groundLockedPlaceProps(place, stage) {
   if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;barrier&quot;, &quot;wallLamp&quot;, &quot;tunnelFan&quot;, &quot;routeSign&quot;];
   if (stage &amp;&amp; (stage.prop === &quot;bridge&quot; || stage.prop === &quot;pier&quot;)) return [&quot;bridgeRail&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;routeSign&quot;];
@@ -6426,7 +6579,10 @@ function groundLockedPlaceProps(place, stage) {
     snow: [&quot;pine&quot;, &quot;snowFence&quot;, &quot;lodge&quot;, &quot;skiPost&quot;, &quot;spectators&quot;],
     airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;towerSign&quot;, &quot;barrier&quot;],
     freight: [&quot;container&quot;, &quot;railSignal&quot;, &quot;truckStop&quot;, &quot;fence&quot;, &quot;serviceTruck&quot;],
+    interstate: [&quot;weighStation&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;overheadSign&quot;],
     farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;],
+    monsterpark: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;scoreboard&quot;],
+    military: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;barrier&quot;],
     tokyo: [&quot;neonShop&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;, &quot;expressSign&quot;],
     desert: [&quot;dune&quot;, &quot;desertScrub&quot;, &quot;supportTent&quot;, &quot;rallyMarker&quot;, &quot;rockFace&quot;],
     rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;waterfallSign&quot;, &quot;crowd&quot;],
@@ -6447,8 +6603,15 @@ function routeDriveByProps(place, stage) {
     barn: [&quot;barn&quot;, &quot;fence&quot;, &quot;hayBales&quot;, &quot;tractorParked&quot;, &quot;windmill&quot;],
     tractor: [&quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;fence&quot;, &quot;barn&quot;, &quot;routeSign&quot;],
     field: [&quot;fence&quot;, &quot;barn&quot;, &quot;windmill&quot;, &quot;hayBales&quot;, &quot;serviceStation&quot;],
+    weighStation: [&quot;weighStation&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;overheadSign&quot;],
     crane: [&quot;container&quot;, &quot;craneBase&quot;, &quot;warehouse&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;],
     trailer: [&quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;container&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;],
+    dirtBerm: [&quot;dirtBerm&quot;, &quot;grandstand&quot;, &quot;scoreboard&quot;, &quot;stadiumRamp&quot;, &quot;crushCarStack&quot;],
+    crushCarStack: [&quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;scoreboard&quot;],
+    stadiumRamp: [&quot;stadiumRamp&quot;, &quot;crushCarStack&quot;, &quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;scoreboard&quot;],
+    bunker: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;checkpointArch&quot;],
+    rangeTarget: [&quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;bunker&quot;, &quot;watchTower&quot;, &quot;routeSign&quot;],
+    blastWall: [&quot;blastWall&quot;, &quot;bunker&quot;, &quot;rangeTarget&quot;, &quot;watchTower&quot;, &quot;checkpointArch&quot;],
     village: [&quot;villageHouse&quot;, &quot;cafe&quot;, &quot;stoneWall&quot;, &quot;tramPost&quot;, &quot;crowd&quot;],
     mountain: [&quot;pine&quot;, &quot;chalet&quot;, &quot;stoneWall&quot;, &quot;billboard&quot;, &quot;routeSign&quot;],
     pine: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
@@ -6469,7 +6632,10 @@ function routeDriveByProps(place, stage) {
     snow: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;skiPost&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
     airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;controlTower&quot;, &quot;serviceCart&quot;, &quot;billboard&quot;, &quot;barrier&quot;],
     freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;railSignal&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;],
+    interstate: [&quot;weighStation&quot;, &quot;overheadSign&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;],
     farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;, &quot;serviceStation&quot;],
+    monsterpark: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;scoreboard&quot;, &quot;spectators&quot;],
+    military: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;rangeTarget&quot;, &quot;blastWall&quot;, &quot;checkpointArch&quot;, &quot;serviceTruck&quot;],
     tokyo: [&quot;neonShop&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;, &quot;pedestrianBridge&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;],
     desert: [&quot;dune&quot;, &quot;supportTent&quot;, &quot;rallyMarker&quot;, &quot;desertScrub&quot;, &quot;rockFace&quot;, &quot;serviceTruck&quot;],
     rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;waterfallSign&quot;, &quot;crowd&quot;, &quot;routeSign&quot;],
@@ -6852,6 +7018,130 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.beginPath();
     ctx.arc(72, -46, 8, 0, Math.PI * 2);
     ctx.fill();
+  } else if (kind === &quot;weighStation&quot; || kind === &quot;dieselSign&quot; || kind === &quot;overheadSign&quot;) {
+    ctx.strokeStyle = &quot;rgba(214,226,221,0.82)&quot;;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-76, 0);
+    ctx.lineTo(-76, -96);
+    ctx.moveTo(76, 0);
+    ctx.lineTo(76, -96);
+    if (kind === &quot;overheadSign&quot;) {
+      ctx.moveTo(-118, -96);
+      ctx.lineTo(118, -96);
+    }
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(18,24,20,0.95)&quot;;
+    roundRect(-112, -132, 224, 48, 7);
+    ctx.fill();
+    ctx.strokeStyle = kind === &quot;dieselSign&quot; ? light : accent;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = &quot;#f4fbf8&quot;;
+    ctx.font = &quot;900 14px system-ui&quot;;
+    ctx.textAlign = &quot;center&quot;;
+    ctx.textBaseline = &quot;middle&quot;;
+    ctx.fillText(kind === &quot;weighStation&quot; ? &quot;WEIGH STATION&quot; : kind === &quot;dieselSign&quot; ? &quot;DIESEL STOP&quot; : label.toUpperCase(), 0, -111, 188);
+    ctx.fillStyle = `${light}99`;
+    ctx.fillRect(-92, -88, 184, 6);
+  } else if (kind === &quot;grandstand&quot; || kind === &quot;scoreboard&quot;) {
+    ctx.fillStyle = &quot;rgba(18,24,22,0.92)&quot;;
+    roundRect(-108, -74, 216, 74, 6);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(244,251,248,0.22)&quot;;
+    for (let row = 0; row &lt; 3; row += 1) {
+      ctx.fillRect(-96, -62 + row * 18, 192, 5);
+    }
+    for (let i = -6; i &lt;= 6; i += 1) {
+      ctx.fillStyle = i % 2 ? accent : light;
+      ctx.beginPath();
+      ctx.arc(i * 14, -50 + (i % 3) * 12, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (kind === &quot;scoreboard&quot;) {
+      ctx.fillStyle = &quot;rgba(5,8,7,0.96)&quot;;
+      roundRect(-82, -124, 164, 42, 5);
+      ctx.fill();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = light;
+      ctx.font = &quot;900 13px system-ui&quot;;
+      ctx.textAlign = &quot;center&quot;;
+      ctx.textBaseline = &quot;middle&quot;;
+      ctx.fillText(&quot;ARENA SPLIT&quot;, 0, -103, 132);
+    }
+  } else if (kind === &quot;stadiumRamp&quot; || kind === &quot;dirtBerm&quot; || kind === &quot;crushCarStack&quot;) {
+    if (kind === &quot;crushCarStack&quot;) {
+      for (let i = 0; i &lt; 4; i += 1) {
+        ctx.fillStyle = i % 2 ? accent : light;
+        roundRect(-82 + i * 42, -20 - (i % 2) * 14, 52, 20, 4);
+        ctx.fill();
+        ctx.fillStyle = &quot;rgba(5,8,7,0.8)&quot;;
+        ctx.fillRect(-72 + i * 42, -15 - (i % 2) * 14, 22, 6);
+      }
+    } else {
+      ctx.fillStyle = kind === &quot;stadiumRamp&quot; ? &quot;rgba(196,106,42,0.92)&quot; : &quot;rgba(128,78,38,0.92)&quot;;
+      ctx.beginPath();
+      ctx.moveTo(-104, 0);
+      ctx.lineTo(kind === &quot;stadiumRamp&quot; ? 96 : 54, kind === &quot;stadiumRamp&quot; ? -58 : -34);
+      ctx.lineTo(112, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(255,209,102,0.34)&quot;;
+      roundRect(-72, -14, 142, 7, 4);
+      ctx.fill();
+    }
+  } else if (kind === &quot;bunker&quot; || kind === &quot;watchTower&quot; || kind === &quot;rangeTarget&quot; || kind === &quot;blastWall&quot;) {
+    if (kind === &quot;watchTower&quot;) {
+      ctx.strokeStyle = &quot;rgba(214,226,221,0.74)&quot;;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-34, 0);
+      ctx.lineTo(-18, -94);
+      ctx.moveTo(34, 0);
+      ctx.lineTo(18, -94);
+      ctx.moveTo(-42, -42);
+      ctx.lineTo(42, -42);
+      ctx.stroke();
+      ctx.fillStyle = &quot;rgba(40,52,42,0.94)&quot;;
+      roundRect(-46, -124, 92, 36, 5);
+      ctx.fill();
+    } else if (kind === &quot;rangeTarget&quot;) {
+      ctx.strokeStyle = &quot;rgba(214,226,221,0.78)&quot;;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, -92);
+      ctx.stroke();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.88)&quot;;
+      ctx.beginPath();
+      ctx.arc(0, -106, 38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = &quot;#ff5b6b&quot;;
+      ctx.beginPath();
+      ctx.arc(0, -106, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = &quot;#f4fbf8&quot;;
+      ctx.beginPath();
+      ctx.arc(0, -106, 10, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = kind === &quot;blastWall&quot; ? &quot;rgba(72,82,70,0.94)&quot; : &quot;rgba(48,60,48,0.94)&quot;;
+      roundRect(-92, -50, 184, 50, 4);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(5,8,7,0.66)&quot;;
+      for (let i = -2; i &lt;= 2; i += 1) {
+        roundRect(i * 34 - 10, -38, 20, 14, 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = `${light}99`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-82, -10);
+      ctx.lineTo(82, -18);
+      ctx.stroke();
+    }
   } else if (kind === &quot;routeSign&quot; || kind === &quot;curveBoard&quot; || kind === &quot;towerSign&quot; || kind === &quot;expressSign&quot; || kind === &quot;waterfallSign&quot; || kind === &quot;busStop&quot; || kind === &quot;rallyMarker&quot;) {
     ctx.strokeStyle = &quot;rgba(214,226,221,0.8)&quot;;
     ctx.lineWidth = 4;
@@ -14642,6 +14932,10 @@ function bindEvents() {
   }
   window.addEventListener(&quot;gamepadconnected&quot;, (event) =&gt; setController(event.gamepad));
   window.addEventListener(&quot;gamepaddisconnected&quot;, () =&gt; clearController());
+  window.addEventListener(&quot;pagehide&quot;, persistCurrentProgress);
+  document.addEventListener(&quot;visibilitychange&quot;, () =&gt; {
+    if (document.visibilityState === &quot;hidden&quot;) persistCurrentProgress();
+  });
   window.addEventListener(&quot;beforeinstallprompt&quot;, (event) =&gt; {
     event.preventDefault();
     deferredInstallPrompt = event;
@@ -14651,6 +14945,14 @@ function bindEvents() {
     deferredInstallPrompt = null;
     showToast(&quot;Velocity Vault installed.&quot;);
   });
+}
+
+function persistCurrentProgress() {
+  if (raceState.active) {
+    saveRace(true);
+  } else {
+    saveProfiles();
+  }
 }
 
 function bindHold(button, key) {
@@ -16424,7 +16726,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v83-world-surface-views&quot;;
+const cacheName = &quot;velocity-vault-v84-specialty-race-worlds&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -16575,6 +16877,7 @@ Real-world style visuals:
 - The v81 ground-visibility pass tightens player hit detection to the visible car position, reduces ahead-of-car side-scrape damage, brightens the readable road surface, and adds grounded real-world props such as storefronts, streetlights, guardrails, parked vehicles, crowds, route signs, barns, fences, containers, hangars, palms, rocks, pines, and barriers that sit on the roadside instead of floating in the haze.
 - The v82 drive-by world pass spaces larger, brighter roadside landmarks by real route distance, sorts them far-to-near, and changes the landmark set by race sector so you drive past grounded billboards, bridges, tunnel portals, service stations, docks, traffic lights, homes, grandstands, towers, barns, shops, crowds, and route signs instead of seeing one repeated backdrop.
 - The v83 surface-view pass keeps scenery outside the drivable road, paints the road back over shoulder props so details no longer cut through the lane, and adds dedicated water and air views: boat races now get a water channel with shorelines, docks, buoys, and other boats, while airplane and helicopter races get clouds, flight gates, distant terrain, and aircraft silhouettes instead of road scenery.
+- The v84 specialty-world pass makes races declare appropriate vehicle types, adds dedicated semi, monster truck, and tank events, adds more upgradeable variants in those categories, and gives each specialty route its own scenery: convoy lanes, weigh stations, diesel stops, dirt arena berms, crush cars, grandstands, bunkers, range targets, watch towers, and concrete proving-ground details. Profiles also silently auto-save race state every few seconds and on app/page hide so local coins, owned vehicles, per-vehicle upgrades, paint, plates, reputation, and live race progress are remembered after reopening.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
