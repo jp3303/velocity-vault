@@ -303,8 +303,12 @@
       box(x, 0.68, z, 0.18, 0.08, 3.0, shade(accent, 0.9));
     }
 
+    function isAirType(type) {
+      return ["airplane", "helicopter", "fighterjet", "bomber", "drone"].includes(type);
+    }
+
     function groundContactPad(type, x, z, scale, paint) {
-      const air = type === "airplane" || type === "helicopter";
+      const air = isAirType(type);
       const water = type === "boat";
       const wide = type === "semi" || type === "monster" || type === "tank" || type === "truck";
       const shadow = water ? [0.02, 0.18, 0.22, 1] : [0.006, 0.008, 0.007, 1];
@@ -576,18 +580,30 @@
       } else if (type === "boat" || type === "snowmobile") {
         taperedBox(x, 0.42 * scale, z, 1.45 * scale, 0.7 * scale, 0.36 * scale, 2.3 * scale, paint);
         taperedBox(x, 0.68 * scale, z - 0.25 * scale, 0.62 * scale, 0.35 * scale, 0.42 * scale, 0.75 * scale, dark);
-      } else if (type === "airplane") {
-        taperedBox(x, 0.7 * scale, z, 0.68 * scale, 0.38 * scale, 0.45 * scale, 2.9 * scale, paint);
-        box(x, 0.66 * scale, z, 2.55 * scale, 0.13 * scale, 0.42 * scale, shade(paint, 0.88));
+      } else if (type === "airplane" || type === "fighterjet" || type === "bomber") {
+        const bomber = type === "bomber";
+        const fighter = type === "fighterjet";
+        taperedBox(x, 0.7 * scale, z, (bomber ? 0.92 : fighter ? 0.58 : 0.68) * scale, 0.38 * scale, 0.45 * scale, (bomber ? 3.3 : 2.9) * scale, paint);
+        box(x, 0.66 * scale, z, (bomber ? 3.2 : fighter ? 2.8 : 2.55) * scale, 0.13 * scale, 0.42 * scale, shade(paint, 0.88));
+        if (fighter) {
+          box(x - 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
+          box(x + 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
+        }
       } else if (type === "helicopter") {
         taperedBox(x, 0.95 * scale, z, 1.2 * scale, 0.78 * scale, 0.65 * scale, 1.45 * scale, paint);
         box(x, 1.45 * scale, z, 2.3 * scale, 0.08 * scale, 0.1 * scale, [0.9, 0.94, 0.94, 1]);
+      } else if (type === "drone") {
+        taperedBox(x, 0.72 * scale, z, 0.74 * scale, 0.3 * scale, 0.48 * scale, 0.74 * scale, paint);
+        box(x - 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x + 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x - 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x + 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
       } else {
         taperedBox(x, 0.55 * scale, z, 1.46 * scale, 0.9 * scale, 0.55 * scale, 2.1 * scale, paint);
         taperedBox(x, 0.95 * scale, z - 0.25 * scale, 0.88 * scale, 0.55 * scale, 0.45 * scale, 0.82 * scale, dark);
         box(x, 0.78 * scale, z + 0.8 * scale, 0.7 * scale, 0.08 * scale, 0.08 * scale, [0.86, 0.93, 1, 1]);
       }
-      const groundVehicle = !["airplane", "helicopter"].includes(type);
+      const groundVehicle = !isAirType(type);
       if (groundVehicle) {
         box(x - 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x + 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
@@ -608,6 +624,11 @@
         if (type === "semi" || type === "truck") {
           box(x, 1.25 * scale, z - 0.86 * scale, 1.55 * scale, 0.06 * scale, 0.12 * scale, chrome);
           box(x, 0.72 * scale, z - 1.84 * scale, 1.45 * scale, 0.08 * scale, 0.1 * scale, shade(paint, 1.18));
+        }
+        if (type === "policecar") {
+          box(x - 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, red);
+          box(x + 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, blue);
+          box(x, 0.73 * scale, z - 1.0 * scale, 0.72 * scale, 0.055 * scale, 0.08 * scale, [0.94, 0.96, 0.96, 1]);
         }
       } else {
         box(x - 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);

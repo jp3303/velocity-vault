@@ -29,6 +29,14 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function isAirType(type) {
+    return ["airplane", "helicopter", "fighterjet", "bomber", "drone"].includes(type);
+  }
+
+  function isWaterType(type) {
+    return type === "boat";
+  }
+
   function roundRect(ctx, x, y, width, height, radius) {
     const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
     ctx.beginPath();
@@ -190,12 +198,21 @@
     ctx.globalAlpha = 0.38;
     ctx.strokeStyle = "rgba(255,255,255,0.78)";
     ctx.lineWidth = Math.max(2, w * 0.01);
-    if (type === "airplane") {
+    if (type === "airplane" || type === "fighterjet" || type === "bomber") {
       ctx.beginPath();
       ctx.moveTo(w * 0.5, h * 0.12);
       ctx.lineTo(w * 0.5, h * 0.86);
       ctx.moveTo(w * 0.18, h * 0.52);
       ctx.lineTo(w * 0.82, h * 0.52);
+      ctx.stroke();
+    } else if (type === "drone") {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.28);
+      ctx.lineTo(w * 0.76, h * 0.72);
+      ctx.moveTo(w * 0.76, h * 0.28);
+      ctx.lineTo(w * 0.24, h * 0.72);
+      ctx.moveTo(w * 0.5, h * 0.24);
+      ctx.lineTo(w * 0.5, h * 0.78);
       ctx.stroke();
     } else if (type === "helicopter") {
       ctx.beginPath();
@@ -216,8 +233,8 @@
   }
 
   function drawSpriteContact(ctx, w, h, type) {
-    const air = type === "airplane" || type === "helicopter";
-    const water = type === "boat";
+    const air = isAirType(type);
+    const water = isWaterType(type);
     const snow = type === "snowmobile";
     ctx.save();
     const baseY = h * (air ? 0.68 : water ? 0.78 : 0.84);
@@ -394,19 +411,56 @@
     paint.addColorStop(1, shade(color, -44));
     ctx.fillStyle = paint;
     ctx.beginPath();
-    if (type === "airplane") {
+    if (type === "airplane" || type === "fighterjet" || type === "bomber") {
+      const bomber = type === "bomber";
+      const fighter = type === "fighterjet";
       ctx.moveTo(w * 0.5, h * 0.08);
-      ctx.lineTo(w * 0.62, h * 0.86);
+      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.86);
       ctx.lineTo(w * 0.5, h * 0.92);
-      ctx.lineTo(w * 0.38, h * 0.86);
+      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.86);
       ctx.closePath();
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(w * 0.12, h * 0.52);
-      ctx.lineTo(w * 0.88, h * 0.52);
-      ctx.lineTo(w * 0.62, h * 0.63);
-      ctx.lineTo(w * 0.38, h * 0.63);
+      ctx.moveTo(w * (bomber ? 0.06 : fighter ? 0.1 : 0.12), h * (fighter ? 0.48 : 0.52));
+      ctx.lineTo(w * (bomber ? 0.94 : fighter ? 0.9 : 0.88), h * (fighter ? 0.48 : 0.52));
+      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.63);
+      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.63);
       ctx.closePath();
+      ctx.fill();
+      if (fighter) {
+        ctx.fillStyle = shade(color, -34);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.38, h * 0.78);
+        ctx.lineTo(w * 0.22, h * 0.94);
+        ctx.lineTo(w * 0.47, h * 0.86);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(w * 0.62, h * 0.78);
+        ctx.lineTo(w * 0.78, h * 0.94);
+        ctx.lineTo(w * 0.53, h * 0.86);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (type === "drone") {
+      ctx.fillStyle = "rgba(244,251,248,0.68)";
+      for (let x = 0.23; x <= 0.77; x += 0.54) {
+        for (let y = 0.28; y <= 0.72; y += 0.44) {
+          ctx.beginPath();
+          ctx.ellipse(w * x, h * y, w * 0.16, h * 0.04, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.strokeStyle = shade(color, -30);
+      ctx.lineWidth = Math.max(4, w * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.28);
+      ctx.lineTo(w * 0.76, h * 0.72);
+      ctx.moveTo(w * 0.76, h * 0.28);
+      ctx.lineTo(w * 0.24, h * 0.72);
+      ctx.stroke();
+      ctx.fillStyle = paint;
+      roundRect(ctx, w * 0.34, h * 0.36, w * 0.32, h * 0.28, 18);
       ctx.fill();
     } else if (type === "helicopter") {
       roundRect(ctx, w * 0.3, h * 0.26, w * 0.4, h * 0.42, 24);
@@ -464,8 +518,10 @@
   }
 
   function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
-    const paint = police ? "#f2f5f2" : color;
-    const accent = police ? "rgba(70,217,255,0.56)" : rgba(color, 0.58);
+    const pursuit = type === "policecar";
+    const policeLivery = police || pursuit;
+    const paint = policeLivery ? color || "#f2f5f2" : color;
+    const accent = policeLivery ? "rgba(70,217,255,0.56)" : rgba(color, 0.58);
     const semi = type === "semi";
     const tractor = type === "tractor";
     const tank = type === "tank";
@@ -473,7 +529,7 @@
     const truck = type === "truck";
     const f1 = type === "f1" || type === "prototype";
     const snow = type === "snowmobile";
-    const wide = semi || tractor || tank || monster || truck;
+    const wide = semi || tractor || tank || monster || truck || pursuit;
     const groundY = h * (snow ? 0.94 : 0.955);
 
     ctx.save();
@@ -643,7 +699,7 @@
     roundRect(ctx, w * 0.52, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
     ctx.fill();
 
-    if (police) {
+    if (policeLivery) {
       ctx.fillStyle = "rgba(5,8,7,0.88)";
       roundRect(ctx, w * 0.29, h * 0.53, w * 0.42, h * 0.052, 5);
       ctx.fill();
@@ -691,7 +747,7 @@
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = true;
 
-    if (["boat", "airplane", "helicopter"].includes(type)) {
+    if (isWaterType(type) || isAirType(type)) {
       const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
       shadow.addColorStop(0, "rgba(0,0,0,0.52)");
       shadow.addColorStop(1, "rgba(0,0,0,0)");

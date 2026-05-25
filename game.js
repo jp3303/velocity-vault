@@ -26,12 +26,14 @@ const races = [
   { id: "vault", name: "Rocky Mountain Grand Prix", length: 6200, target: "Score 5000 points", type: "score", goal: 5000, reward: 320, rep: 42, theme: ["#09100f", "#bbf24a", "#46d9ff"], place: "alpine", sign: "Mountain Pass", mood: "storm pass", vehicleTypes: ["car", "f1", "prototype", "truck"] },
   { id: "harbor", name: "Miami Harbor Boat Rush", length: 4200, target: "Score 3500 points", type: "score", goal: 3500, reward: 240, rep: 30, theme: ["#07161b", "#46d9ff", "#ffd166"], place: "harbor", sign: "Harbor Run", mood: "water sprint", vehicleTypes: ["boat"] },
   { id: "snowfield", name: "Aspen Snowmobile Dash", length: 3900, target: "Keep focus above 55", type: "focus", goal: 55, reward: 210, rep: 26, theme: ["#0b1519", "#f4fbf8", "#46d9ff"], place: "snow", sign: "Snow Pass", mood: "ice grip", vehicleTypes: ["snowmobile"] },
-  { id: "airstrip", name: "Nevada Airfield Scramble", length: 5200, target: "Dodge 28 rivals", type: "dodges", goal: 28, reward: 280, rep: 36, theme: ["#11131a", "#ffd166", "#ff5b6b"], place: "airfield", sign: "Runway 4", mood: "air chase", vehicleTypes: ["airplane", "helicopter"] },
+  { id: "airstrip", name: "Nevada Airfield Scramble", length: 5200, target: "Dodge 28 rivals", type: "dodges", goal: 28, reward: 280, rep: 36, theme: ["#11131a", "#ffd166", "#ff5b6b"], place: "airfield", sign: "Runway 4", mood: "air chase", vehicleTypes: ["airplane", "helicopter", "fighterjet", "drone"] },
+  { id: "pursuit", name: "Metro Police Interceptor Run", length: 4700, target: "Keep focus above 64", type: "focus", goal: 64, reward: 260, rep: 34, theme: ["#0b1218", "#46d9ff", "#ff3348"], place: "pursuit", sign: "Interceptor Route", mood: "lights and sirens", unlock: 24, vehicleTypes: ["policecar"], hotPursuit: true },
   { id: "freight", name: "Texas Big Rig Freight Run", length: 5600, target: "Score 4200 points", type: "score", goal: 4200, reward: 270, rep: 34, theme: ["#10140f", "#ffd166", "#46d9ff"], place: "freight", sign: "Texas Freightway", mood: "big rig draft", unlock: 0, vehicleTypes: ["semi", "truck"] },
   { id: "interstate", name: "Great Plains Semi Convoy Trial", length: 6500, target: "Keep focus above 58", type: "focus", goal: 58, reward: 340, rep: 42, theme: ["#101712", "#ffd166", "#46d9ff"], place: "interstate", sign: "Convoy Trial", mood: "diesel endurance", unlock: 32, vehicleTypes: ["semi"] },
   { id: "farmrally", name: "Iowa Tractor Rally", length: 3300, target: "Collect 16 route markers", type: "coins", goal: 16, reward: 190, rep: 22, theme: ["#10180e", "#bbf24a", "#ffd166"], place: "farm", sign: "Iowa Backroads", mood: "field sprint", unlock: 0, vehicleTypes: ["tractor", "truck"] },
   { id: "monsterjam", name: "Utah Monster Truck Dirt Arena", length: 4500, target: "Dodge 26 rivals", type: "dodges", goal: 26, reward: 300, rep: 36, theme: ["#140f0b", "#ff8c42", "#bbf24a"], place: "monsterpark", sign: "Dirt Arena", mood: "mud and stadium lights", unlock: 36, vehicleTypes: ["monster"] },
   { id: "armory", name: "Nevada Armor Proving Ground", length: 5200, target: "Score 4300 points", type: "score", goal: 4300, reward: 350, rep: 46, theme: ["#10130e", "#bbf24a", "#ffd166"], place: "military", sign: "Proving Ground", mood: "armored range", unlock: 46, vehicleTypes: ["tank"] },
+  { id: "skycommand", name: "High Desert Sky Command", length: 6700, target: "Dodge 36 rivals", type: "dodges", goal: 36, reward: 390, rep: 54, theme: ["#07111a", "#46d9ff", "#ffd166"], place: "skybase", sign: "Sky Command", mood: "jets drones and bomber lanes", unlock: 74, vehicleTypes: ["fighterjet", "bomber", "drone", "airplane"] },
   { id: "tokyo", name: "Tokyo Neon Expressway", length: 5700, target: "Keep focus above 62", type: "focus", goal: 62, reward: 310, rep: 40, theme: ["#100d1c", "#ff4fd8", "#46d9ff"], place: "tokyo", sign: "Tokyo Express", mood: "neon tunnel", unlock: 44, vehicleTypes: ["car", "f1", "prototype"] },
   { id: "sahara", name: "Sahara Desert Rally", length: 6100, target: "Dodge 34 rivals", type: "dodges", goal: 34, reward: 330, rep: 44, theme: ["#160f0a", "#ffb74a", "#f4fbf8"], place: "desert", sign: "Sahara Rally", mood: "sand storm", unlock: 66, vehicleTypes: ["car", "truck", "monster", "tank"] },
   { id: "rainforest", name: "Amazon Rainforest Rush", length: 5400, target: "Score 4600 points", type: "score", goal: 4600, reward: 320, rep: 42, theme: ["#07130d", "#36d98a", "#ffd166"], place: "rainforest", sign: "Amazon Route", mood: "jungle rain", unlock: 88, vehicleTypes: ["truck", "monster", "tractor", "car"] },
@@ -42,6 +44,8 @@ const vehicleDefs = [
   { id: "street", name: "Street Supercar", type: "car", desc: "Fast all-around modern racing feel.", speed: 1, handling: 1, mass: 1, color: "#1bb7e8", price: 0, unlock: 0, class: "road" },
   { id: "rally", name: "Rally Coupe", type: "car", desc: "Widebody dirt-road racer with fast lane changes.", speed: 0.96, handling: 1.16, mass: 0.96, color: "#ff8c42", price: 1800, unlock: 28, class: "road", model: "Rally widebody" },
   { id: "drift", name: "Drift Street Coupe", type: "car", desc: "Slide-focused city build with extra drift control.", speed: 0.98, handling: 1.24, mass: 0.92, color: "#ff4fd8", price: 2200, unlock: 38, class: "road", model: "Drift kit" },
+  { id: "interceptor", name: "Police Interceptor", type: "policecar", desc: "Pursuit-class cruiser with lightbar heat control and upgradeable chase grip.", speed: 1.02, handling: 1.06, mass: 1.16, color: "#dce8ef", price: 2800, unlock: 34, class: "pursuit", model: "Interceptor cruiser" },
+  { id: "pursuitsuv", name: "Pursuit SUV", type: "policecar", desc: "Heavier pursuit build with stronger contact resistance and upgradeable torque.", speed: 0.9, handling: 0.84, mass: 1.48, color: "#101820", price: 3800, unlock: 56, class: "pursuit", model: "Pursuit utility" },
   { id: "f1", name: "F1 Open-Wheel", type: "f1", desc: "Sharp steering and high top speed.", speed: 1.18, handling: 1.18, mass: 0.72, color: "#ff3348", price: 2600, unlock: 45, class: "road" },
   { id: "grandprix", name: "Grand Prix Prototype", type: "prototype", desc: "Stable, fast, low race body.", speed: 1.12, handling: 1.08, mass: 0.82, color: "#f4fbf8", price: 3200, unlock: 58, class: "road" },
   { id: "truck", name: "Performance Truck", type: "truck", desc: "Heavier, stable, strong contact resistance.", speed: 0.88, handling: 0.82, mass: 1.35, color: "#ffd166", price: 1200, unlock: 20, class: "road" },
@@ -60,10 +64,17 @@ const vehicleDefs = [
   { id: "boat", name: "Race Boat", type: "boat", desc: "Best fit for harbor water sprints.", speed: 1.05, handling: 0.86, mass: 0.92, color: "#46d9ff", price: 1900, unlock: 30, class: "water" },
   { id: "hydro", name: "Hydroplane Racer", type: "boat", desc: "Higher-speed water rocket for harbor and marina cuts.", speed: 1.18, handling: 0.78, mass: 0.78, color: "#6fffe9", price: 3600, unlock: 64, class: "water", model: "Hydroplane" },
   { id: "patrolboat", name: "Armored Patrol Boat", type: "boat", desc: "Heavy water build for chase scenarios and rough wakes.", speed: 0.88, handling: 0.74, mass: 1.35, color: "#dce8ef", price: 4600, unlock: 82, class: "water", model: "Patrol hull" },
+  { id: "offshorecat", name: "Offshore Catamaran", type: "boat", desc: "Twin-hull speed boat for rough wake racing and long harbor sprints.", speed: 1.25, handling: 0.72, mass: 0.86, color: "#ff8c42", price: 5600, unlock: 104, class: "water", model: "Twin hull" },
   { id: "helicopter", name: "Pursuit Helicopter", type: "helicopter", desc: "Air-style handling with wide steering.", speed: 0.92, handling: 0.98, mass: 0.9, color: "#dce8ef", price: 6000, unlock: 110, class: "air" },
   { id: "attackheli", name: "Attack Helicopter", type: "helicopter", desc: "Faster air mission build with stronger pursuit handling.", speed: 1.02, handling: 0.9, mass: 1.05, color: "#6d7667", price: 7800, unlock: 145, class: "air", model: "Attack rotor" },
+  { id: "racingheli", name: "Racing Helicopter", type: "helicopter", desc: "Light rotorcraft tuned for faster sky gates and sharper air slaloms.", speed: 1.1, handling: 1.02, mass: 0.76, color: "#ffd166", price: 8200, unlock: 152, class: "air", model: "Racing rotor" },
   { id: "airplane", name: "Sport Airplane", type: "airplane", desc: "Fast runway and airfield races.", speed: 1.22, handling: 0.78, mass: 0.74, color: "#ff5b6b", price: 7000, unlock: 128, class: "air" },
-  { id: "jetplane", name: "Jet Stunt Plane", type: "airplane", desc: "High-speed sky racer for long airfield and mountain routes.", speed: 1.34, handling: 0.68, mass: 0.82, color: "#f4fbf8", price: 8800, unlock: 158, class: "air", model: "Jet stunt wing" }
+  { id: "jetplane", name: "Jet Stunt Plane", type: "airplane", desc: "High-speed sky racer for long airfield and mountain routes.", speed: 1.34, handling: 0.68, mass: 0.82, color: "#f4fbf8", price: 8800, unlock: 158, class: "air", model: "Jet stunt wing" },
+  { id: "falconfighter", name: "Falcon Fighter Jet", type: "fighterjet", desc: "Fast tactical jet with boost-heavy air racing and upgradeable turn response.", speed: 1.42, handling: 0.74, mass: 0.9, color: "#dce8ef", price: 11200, unlock: 182, class: "air", model: "Fighter jet" },
+  { id: "nightfighter", name: "Night Fighter Jet", type: "fighterjet", desc: "Sleek high-speed fighter build with stronger stealth-style handling upgrades.", speed: 1.48, handling: 0.68, mass: 0.98, color: "#3f4a60", price: 13800, unlock: 214, class: "air", model: "Night fighter" },
+  { id: "bomber", name: "Heavy Bomber", type: "bomber", desc: "Large air racer with slower turns, huge stability, and upgradeable thrust.", speed: 1.08, handling: 0.52, mass: 1.85, color: "#6d7667", price: 12600, unlock: 198, class: "air", model: "Heavy bomber" },
+  { id: "surveydrone", name: "Survey Drone", type: "drone", desc: "Small quad drone for tight sky gates and precision upgrade builds.", speed: 0.96, handling: 1.36, mass: 0.34, color: "#46d9ff", price: 4200, unlock: 72, class: "air", model: "Quad drone" },
+  { id: "racingdrone", name: "Racing Drone", type: "drone", desc: "Ultra-agile drone tuned for rapid lane changes and gate runs.", speed: 1.16, handling: 1.48, mass: 0.28, color: "#bbf24a", price: 6600, unlock: 118, class: "air", model: "Racing quad" }
 ];
 
 const opponentNames = ["Vega", "Knox", "Ryder", "Nova", "Sable", "Mako", "Jett", "Blitz"];
@@ -78,9 +89,24 @@ const upgradeDefs = [
 
 const paintPalette = ["#1bb7e8", "#ff3348", "#ff8c42", "#ffd166", "#bbf24a", "#f4fbf8", "#ff4fd8", "#36d98a", "#6fffe9", "#dce8ef", "#6d7667", "#3f4a38"];
 const pickupLaneSlots = [-1.42, -0.72, 0, 0.72, 1.42];
+const airVehicleTypes = ["airplane", "helicopter", "fighterjet", "bomber", "drone"];
+const waterVehicleTypes = ["boat"];
+
+function vehicleTypeOf(vehicleOrType) {
+  return typeof vehicleOrType === "string" ? vehicleOrType : vehicleOrType && vehicleOrType.type ? vehicleOrType.type : "";
+}
+
+function isAirVehicleType(vehicleOrType) {
+  return airVehicleTypes.includes(vehicleTypeOf(vehicleOrType));
+}
+
+function isWaterVehicleType(vehicleOrType) {
+  return waterVehicleTypes.includes(vehicleTypeOf(vehicleOrType));
+}
 
 const vehicleRaceRules = {
   car: { places: ["coast", "city", "canyon", "alpine", "tokyo", "desert", "rainforest", "europe"], label: "road circuits" },
+  policecar: { places: ["pursuit", "city", "tokyo"], label: "police pursuit routes" },
   f1: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
   prototype: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
   truck: { places: ["coast", "city", "canyon", "alpine", "freight", "farm", "desert", "rainforest"], label: "road, freight, and rally routes" },
@@ -90,8 +116,11 @@ const vehicleRaceRules = {
   tank: { places: ["military", "desert"], label: "armored proving routes" },
   snowmobile: { places: ["snow"], label: "snow routes" },
   boat: { places: ["harbor"], label: "water routes" },
-  helicopter: { places: ["airfield", "desert", "rainforest", "europe", "military"], label: "sky routes" },
-  airplane: { places: ["airfield", "desert", "europe"], label: "sky routes" }
+  helicopter: { places: ["airfield", "skybase", "desert", "rainforest", "europe", "military"], label: "sky routes" },
+  airplane: { places: ["airfield", "skybase", "desert", "europe"], label: "sky routes" },
+  fighterjet: { places: ["airfield", "skybase", "military", "desert"], label: "fighter jet sky routes" },
+  bomber: { places: ["skybase", "military", "desert"], label: "bomber sky routes" },
+  drone: { places: ["airfield", "skybase", "military", "rainforest", "europe"], label: "drone sky routes" }
 };
 
 const multiplayerScenarios = [
@@ -349,6 +378,10 @@ function raceVehicleLabel(race) {
     if (type === "boat") return "boats";
     if (type === "airplane") return "planes";
     if (type === "helicopter") return "helicopters";
+    if (type === "fighterjet") return "fighter jets";
+    if (type === "bomber") return "bombers";
+    if (type === "drone") return "drones";
+    if (type === "policecar") return "police cars";
     if (type === "tractor") return "tractors";
     if (type === "snowmobile") return "snowmobiles";
     if (type === "f1") return "F1";
@@ -427,11 +460,13 @@ const routeWorlds = {
   harbor: { country: "USA", scene: "Miami Harbor", cue: "bridge run", turn: 0.92, seed: 5.7 },
   snow: { country: "USA", scene: "Aspen Snowfields", cue: "ice bends", turn: 1.08, seed: 6.9 },
   airfield: { country: "USA", scene: "Nevada Airfield", cue: "runway chicanes", turn: 0.72, seed: 7.4 },
+  pursuit: { country: "USA", scene: "Metro Pursuit Grid", cue: "lights and sirens", turn: 1.08, seed: 7.82 },
   freight: { country: "USA", scene: "Texas Freightway", cue: "wide interstate", turn: 0.82, seed: 8.1 },
   interstate: { country: "USA", scene: "Great Plains Interstate", cue: "wide convoy lanes", turn: 0.62, seed: 8.45 },
   farm: { country: "USA", scene: "Iowa Backroads", cue: "rolling farm roads", turn: 0.88, seed: 8.9 },
   monsterpark: { country: "USA", scene: "Utah Dirt Arena", cue: "mud lanes and stadium banks", turn: 0.98, seed: 9.15 },
   military: { country: "USA", scene: "Nevada Proving Ground", cue: "concrete range roads", turn: 0.74, seed: 9.35 },
+  skybase: { country: "USA", scene: "High Desert Sky Command", cue: "high-altitude gates", turn: 0.86, seed: 9.48 },
   tokyo: { country: "Japan", scene: "Tokyo Expressway", cue: "neon overpasses", turn: 1.18, seed: 9.6 },
   desert: { country: "Morocco", scene: "Sahara Rally", cue: "sand ridges", turn: 1.12, seed: 10.5 },
   rainforest: { country: "Brazil", scene: "Amazon Rainforest", cue: "jungle tunnels", turn: 1.02, seed: 11.4 },
@@ -446,11 +481,13 @@ const genAiSceneDesigns = {
   harbor: { style: "waterfront tunnel sprint", surface: "#14242a", accent: "#46d9ff", light: "#ffd166", props: ["crane", "boat", "barrier", "camera", "brake"] },
   snow: { style: "winter rally stage", surface: "#344141", accent: "#f4fbf8", light: "#46d9ff", props: ["snowbank", "pine", "flag", "crowd", "brake"] },
   airfield: { style: "runway speed trial", surface: "#252723", accent: "#ffd166", light: "#ff5b6b", props: ["hangar", "beacon", "plane", "barrier", "brake"] },
+  pursuit: { style: "police interceptor chase grid", surface: "#121b20", accent: "#46d9ff", light: "#ff3348", props: ["trafficSignal", "roadblock", "policeHQ", "lightbarSign", "billboard"] },
   freight: { style: "freightway endurance race", surface: "#22241d", accent: "#ffd166", light: "#46d9ff", props: ["trailer", "gantry", "crowd", "barrier", "brake"] },
   interstate: { style: "semi convoy endurance trial", surface: "#20231d", accent: "#ffd166", light: "#46d9ff", props: ["trailer", "gantry", "truckStop", "weighStation", "dieselSign"] },
   farm: { style: "rural rally festival", surface: "#3d3424", accent: "#bbf24a", light: "#ffd166", props: ["barn", "field", "tractor", "crowd", "brake"] },
   monsterpark: { style: "monster truck dirt arena", surface: "#3c2414", accent: "#ff8c42", light: "#bbf24a", props: ["grandstand", "dirtBerm", "crushCarStack", "stadiumRamp", "scoreboard"] },
   military: { style: "armored proving ground", surface: "#2b3024", accent: "#bbf24a", light: "#ffd166", props: ["bunker", "watchTower", "rangeTarget", "blastWall", "checkpoint"] },
+  skybase: { style: "high desert sky command", surface: "#172532", accent: "#46d9ff", light: "#ffd166", props: ["controlTower", "runwayLight", "hangar", "rangeTarget", "checkpoint"] },
   tokyo: { style: "neon expressway battle", surface: "#151424", accent: "#ff4fd8", light: "#46d9ff", props: ["neon", "tunnel", "tower", "crowd", "brake"] },
   desert: { style: "open desert rally", surface: "#4b3321", accent: "#ffb74a", light: "#f4fbf8", props: ["dune", "dust", "camera", "barrier", "brake"] },
   rainforest: { style: "jungle wet rally", surface: "#17241e", accent: "#36d98a", light: "#ffd166", props: ["canopy", "rain", "bridge", "crowd", "brake"] },
@@ -849,7 +886,7 @@ function drawVehiclePreview(canvasEl, vehicle) {
     : null;
   const baseWidth = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicle.type) ? 100 : 88;
   const spriteW = vehicle.type === "semi" ? 122 : baseWidth;
-  const spriteH = vehicle.type === "semi" ? 104 : ["airplane", "helicopter"].includes(vehicle.type) ? 98 : 102;
+  const spriteH = vehicle.type === "semi" ? 104 : isAirVehicleType(vehicle.type) ? 98 : 102;
   previewCtx.save();
   previewCtx.translate(w * 0.5, h * 0.56);
   drawPreviewGroundContact(previewCtx, spriteW, spriteH, vehicle.type);
@@ -866,7 +903,7 @@ function drawVehiclePreview(canvasEl, vehicle) {
 
 function drawPreviewGroundContact(previewCtx, w, h, vehicleType = "car") {
   previewCtx.save();
-  const air = ["airplane", "helicopter"].includes(vehicleType);
+  const air = isAirVehicleType(vehicleType);
   const water = vehicleType === "boat";
   const contactY = h * (air ? 0.46 : water ? 0.5 : 0.56);
   const shadow = previewCtx.createRadialGradient(0, contactY, w * 0.08, 0, contactY + h * 0.06, w * 0.64);
@@ -1255,7 +1292,7 @@ function missionProgress() {
 function raceGoalText(race = selectedRace, vehicle = selectedVehicle()) {
   const route = routeWorldInfo(race.place);
   const scenario = activeScenario();
-  const clean = vehicle.type === "tank" ? "clear the route" : vehicle.type === "boat" ? "hold the water line" : ["helicopter", "airplane"].includes(vehicle.type) ? "fly the gates" : "race the pack";
+  const clean = vehicle.type === "tank" ? "clear the route" : isWaterVehicleType(vehicle.type) ? "hold the water line" : isAirVehicleType(vehicle.type) ? "fly the gates" : vehicle.type === "policecar" ? "run the pursuit line" : "race the pack";
   const pursuit = scenario.hotPursuit ? "Police pressure climbs the longer you stay visible. " : "";
   return `${race.target}; ${clean} through ${route.scene}. ${pursuit}Use hideouts and shortcut branches when they appear.`;
 }
@@ -2169,7 +2206,8 @@ function updateHazardWarning(object, kind = "traffic") {
 function routeVehicleBoost(place, vehicleType, rival = false) {
   if (place === "snow" && vehicleType === "snowmobile") return rival ? 1.12 : 1.1;
   if (place === "harbor" && vehicleType === "boat") return rival ? 1.14 : 1.12;
-  if (place === "airfield" && (vehicleType === "airplane" || vehicleType === "helicopter")) return rival ? 1.12 : 1.1;
+  if ((place === "airfield" || place === "skybase") && isAirVehicleType(vehicleType)) return rival ? 1.12 : 1.1;
+  if (place === "pursuit" && vehicleType === "policecar") return rival ? 1.14 : 1.12;
   if (place === "freight" && (vehicleType === "semi" || vehicleType === "truck")) return rival ? 1.16 : 1.14;
   if (place === "interstate" && vehicleType === "semi") return rival ? 1.2 : 1.18;
   if (place === "farm" && vehicleType === "tractor") return rival ? 1.18 : 1.16;
@@ -2178,13 +2216,14 @@ function routeVehicleBoost(place, vehicleType, rival = false) {
   if (place === "tokyo" && (vehicleType === "car" || vehicleType === "f1" || vehicleType === "prototype")) return rival ? 1.1 : 1.08;
   if (place === "desert" && (vehicleType === "monster" || vehicleType === "truck")) return rival ? 1.12 : 1.1;
   if (place === "rainforest" && (vehicleType === "truck" || vehicleType === "monster" || vehicleType === "tractor")) return rival ? 1.1 : 1.08;
-  if (place === "europe" && (vehicleType === "f1" || vehicleType === "prototype" || vehicleType === "car")) return rival ? 1.1 : 1.08;
+  if (place === "europe" && (vehicleType === "f1" || vehicleType === "prototype" || vehicleType === "car" || isAirVehicleType(vehicleType))) return rival ? 1.1 : 1.08;
   return 1;
 }
 
 function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
   if (vehicle.type === "boat" || race.place === "harbor") return ["boat", "boat", "boat", "boat"];
-  if (vehicle.type === "airplane" || vehicle.type === "helicopter") return ["airplane", "helicopter", "airplane", "helicopter"];
+  if (isAirVehicleType(vehicle.type)) return ["airplane", "helicopter", "fighterjet", "drone", "bomber"];
+  if (vehicle.type === "policecar" || race.place === "pursuit") return ["policecar", "car", "truck", "policecar"];
   if (vehicle.type === "tank") return ["tank", "truck", "semi", "monster"];
   if (vehicle.type === "monster") return ["monster", "truck", "monster", "semi"];
   if (vehicle.type === "tractor") return ["tractor", "tractor", "truck"];
@@ -2195,6 +2234,8 @@ function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
   if (race.place === "farm") return ["tractor", "tractor", "truck", "monster"];
   if (race.place === "monsterpark") return ["monster", "monster", "truck", "monster"];
   if (race.place === "military") return ["tank", "tank", "truck", "semi"];
+  if (race.place === "skybase") return ["fighterjet", "drone", "airplane", "bomber"];
+  if (race.place === "pursuit") return ["policecar", "car", "truck", "policecar"];
   if (race.place === "tokyo") return ["car", "f1", "prototype", "semi"];
   if (race.place === "desert") return ["monster", "truck", "semi", "car"];
   if (race.place === "rainforest") return ["truck", "monster", "tractor", "car"];
@@ -2203,6 +2244,7 @@ function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
 
 function raceAllowsPolice(race = selectedRace, vehicle = selectedVehicle()) {
   if (activeScenario().hotPursuit) return true;
+  if (vehicle.type === "policecar") return false;
   if (race.place === "military" && vehicle.type === "tank") return true;
   return Boolean(race.hotPursuit || /hot pursuit/i.test(`${race.name} ${race.mood}`));
 }
@@ -2217,13 +2259,13 @@ function pursuitIntensity() {
 }
 
 function raceHasOncomingTraffic(race = selectedRace, vehicle = selectedVehicle()) {
-  if (["boat", "airplane", "helicopter", "tank"].includes(vehicle.type)) return false;
-  return ["city", "tokyo", "coast", "desert", "europe"].includes(race.place);
+  if (isWaterVehicleType(vehicle.type) || isAirVehicleType(vehicle.type) || vehicle.type === "tank") return false;
+  return ["city", "tokyo", "coast", "desert", "europe", "pursuit"].includes(race.place);
 }
 
 function raceAllowsCivilians(race = selectedRace, vehicle = selectedVehicle()) {
-  if (["airplane", "helicopter", "boat"].includes(vehicle.type)) return false;
-  return !["airfield", "snow", "military", "monsterpark"].includes(race.place);
+  if (isAirVehicleType(vehicle.type) || isWaterVehicleType(vehicle.type)) return false;
+  return !["airfield", "snow", "military", "monsterpark", "skybase"].includes(race.place);
 }
 
 function raceIsNight(race = selectedRace) {
@@ -2257,7 +2299,7 @@ function spawnRival() {
     lane,
     distance: roadSpawnDistance(0.34, 0.43),
     w: type === "semi" ? 82 : type === "tractor" ? 64 : type === "monster" || type === "truck" ? 68 : 54,
-    h: type === "airplane" || type === "helicopter" ? 104 : 92,
+    h: isAirVehicleType(type) ? 104 : 92,
     speed: (38 + Math.random() * 58) * age.traffic * director.traffic,
     color: Math.random() > 0.45 ? def.color : (Math.random() > 0.5 ? "#ff5b6b" : "#ffd166"),
     type,
@@ -2308,7 +2350,7 @@ function spawnCivilian() {
 
 function spawnOncomingTraffic() {
   const laneChoices = [-1.55, -0.48, 0.48, 1.55].filter((lane) => Math.abs(lane - raceState.lane) > 0.48);
-  const routeTypes = raceTrafficTypes(selectedRace, selectedVehicle()).filter((type) => !["boat", "airplane", "helicopter"].includes(type));
+  const routeTypes = raceTrafficTypes(selectedRace, selectedVehicle()).filter((type) => !isWaterVehicleType(type) && !isAirVehicleType(type));
   const type = routeTypes[Math.floor(Math.random() * routeTypes.length)] || "car";
   const def = vehicleDefs.find((vehicle) => vehicle.type === type) || vehicleDefs[0];
   raceState.oncoming.push({
@@ -2334,7 +2376,7 @@ function routeFeatureCatalog(race = selectedRace, vehicle = selectedVehicle()) {
       { type: "shortcut", label: "Canal Cut", detail: "side-water sprint", icon: "water" }
     ];
   }
-  if (vehicle.type === "airplane" || vehicle.type === "helicopter") {
+  if (isAirVehicleType(vehicle.type)) {
     return [
       { type: "hide", label: "Cloud Cover", detail: "drop heat in cloud banks", icon: "cloud" },
       { type: "shortcut", label: "Sky Gate", detail: "faster air corridor", icon: "gate" }
@@ -2385,6 +2427,11 @@ function routeFeatureCatalog(race = selectedRace, vehicle = selectedVehicle()) {
     military: [
       { type: "hide", label: "Bunker Cover", detail: "armored hideout", icon: "building" },
       { type: "shortcut", label: "Range Cut", detail: "concrete proving lane", icon: "road" }
+    ],
+    pursuit: [
+      { type: "hide", label: "Station Garage", detail: "police garage cover", icon: "building" },
+      { type: "hide", label: "Underpass Cover", detail: "drop heat below the overpass", icon: "building" },
+      { type: "shortcut", label: "Interceptor Lane", detail: "lights-and-sirens bypass", icon: "road" }
     ],
     airfield: [
       { type: "hide", label: "Hangar Cover", detail: "building hideout", icon: "building" },
@@ -3832,11 +3879,13 @@ function routeStageInfo(place = "city", progress = 0) {
     harbor: [["Marina", "pier"], ["Container Docks", "crane"], ["Bridge Cut", "bridge"], ["Harbor Finish", "checkpoint"]],
     snow: [["Aspen Forest", "pine"], ["Ice Village", "village"], ["Snow Tunnel", "tunnel"], ["Winter Finish", "checkpoint"]],
     airfield: [["Runway", "beacon"], ["Hangars", "hangar"], ["Taxiway", "plane"], ["Airfield Finish", "checkpoint"]],
+    pursuit: [["Station Exit", "policeHQ"], ["Roadblock", "roadblock"], ["Siren Alley", "lightbarSign"], ["Pursuit Finish", "checkpoint"]],
     freight: [["Truck Stop", "trailer"], ["Overpass", "bridge"], ["Depot", "hangar"], ["Freight Finish", "checkpoint"]],
     interstate: [["Weigh Station", "weighStation"], ["Convoy Lanes", "trailer"], ["Diesel Stop", "truckStop"], ["Freight Finish", "checkpoint"]],
     farm: [["Cornfields", "field"], ["Barn Bend", "barn"], ["Dirt Cut", "tractor"], ["Farm Finish", "checkpoint"]],
     monsterpark: [["Dirt Bowl", "dirtBerm"], ["Crush Lane", "crushCarStack"], ["Stadium Ramp", "stadiumRamp"], ["Arena Finish", "checkpoint"]],
     military: [["Range Road", "rangeTarget"], ["Bunker Cut", "bunker"], ["Blast Wall", "blastWall"], ["Armor Finish", "checkpoint"]],
+    skybase: [["Launch Corridor", "beacon"], ["Drone Gates", "plane"], ["High Range", "rangeTarget"], ["Sky Finish", "checkpoint"]],
     tokyo: [["Neon Entry", "neon"], ["Expressway", "tower"], ["Tunnel Run", "tunnel"], ["Tokyo Finish", "checkpoint"]],
     desert: [["Dune Sea", "dune"], ["Oasis Road", "palm"], ["Rock Gate", "cliff"], ["Rally Finish", "checkpoint"]],
     rainforest: [["Jungle Entry", "canopy"], ["Bridge Bypass", "bridge"], ["Canopy Tunnel", "canopy"], ["Rain Finish", "checkpoint"]],
@@ -4129,8 +4178,8 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
 }
 
 function raceWorldViewMode(vehicle = selectedVehicle(), place = selectedRace && selectedRace.place) {
-  if (vehicle && vehicle.type === "boat") return "water";
-  if (vehicle && (vehicle.type === "airplane" || vehicle.type === "helicopter")) return "air";
+  if (vehicle && isWaterVehicleType(vehicle.type)) return "water";
+  if (vehicle && isAirVehicleType(vehicle.type)) return "air";
   return place === "harbor" && vehicle && vehicle.class === "water" ? "water" : "road";
 }
 
@@ -4505,11 +4554,13 @@ function groundLockedPlaceProps(place, stage) {
     harbor: ["container", "dockLight", "warehouse", "craneBase", "serviceTruck"],
     snow: ["pine", "snowFence", "lodge", "skiPost", "spectators"],
     airfield: ["runwayLight", "hangar", "serviceCart", "towerSign", "barrier"],
+    pursuit: ["trafficSignal", "roadblock", "policeHQ", "lightbarSign", "parkedCar"],
     freight: ["container", "railSignal", "truckStop", "fence", "serviceTruck"],
     interstate: ["weighStation", "dieselSign", "truckStop", "serviceTruck", "overheadSign"],
     farm: ["fence", "barn", "tractorParked", "hayBales", "windmill"],
     monsterpark: ["grandstand", "dirtBerm", "crushCarStack", "stadiumRamp", "scoreboard"],
     military: ["bunker", "watchTower", "rangeTarget", "blastWall", "barrier"],
+    skybase: ["controlTower", "runwayLight", "hangar", "rangeTarget", "serviceCart"],
     tokyo: ["neonShop", "streetLight", "parkedCar", "crowd", "expressSign"],
     desert: ["dune", "desertScrub", "supportTent", "rallyMarker", "rockFace"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"],
@@ -4527,6 +4578,9 @@ function routeDriveByProps(place, stage) {
     beacon: ["runwayLight", "controlTower", "hangar", "serviceCart", "billboard"],
     hangar: ["hangar", "serviceTruck", "controlTower", "runwayLight", "routeSign"],
     plane: ["serviceCart", "controlTower", "hangar", "runwayLight", "billboard"],
+    policeHQ: ["policeHQ", "roadblock", "lightbarSign", "trafficSignal", "billboard"],
+    roadblock: ["roadblock", "trafficSignal", "policeHQ", "routeSign", "parkedCar"],
+    lightbarSign: ["lightbarSign", "billboard", "trafficSignal", "roadblock", "routeSign"],
     barn: ["barn", "fence", "hayBales", "tractorParked", "windmill"],
     tractor: ["tractorParked", "hayBales", "fence", "barn", "routeSign"],
     field: ["fence", "barn", "windmill", "hayBales", "serviceStation"],
@@ -4558,11 +4612,13 @@ function routeDriveByProps(place, stage) {
     harbor: ["container", "craneBase", "warehouse", "marinaDock", "serviceTruck", "dockLight"],
     snow: ["pine", "lodge", "snowFence", "skiPost", "spectators", "routeSign"],
     airfield: ["runwayLight", "hangar", "controlTower", "serviceCart", "billboard", "barrier"],
+    pursuit: ["policeHQ", "roadblock", "lightbarSign", "trafficSignal", "billboard", "parkedCar"],
     freight: ["truckStop", "container", "railSignal", "serviceTruck", "billboard", "trafficSignal"],
     interstate: ["weighStation", "overheadSign", "dieselSign", "truckStop", "serviceTruck", "billboard"],
     farm: ["fence", "barn", "tractorParked", "hayBales", "windmill", "serviceStation"],
     monsterpark: ["grandstand", "dirtBerm", "crushCarStack", "stadiumRamp", "scoreboard", "spectators"],
     military: ["bunker", "watchTower", "rangeTarget", "blastWall", "checkpointArch", "serviceTruck"],
+    skybase: ["controlTower", "runwayLight", "hangar", "rangeTarget", "checkpointArch", "serviceCart"],
     tokyo: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "parkedCar", "crowd"],
     desert: ["dune", "supportTent", "rallyMarker", "desertScrub", "rockFace", "serviceTruck"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd", "routeSign"],
@@ -4839,6 +4895,49 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.fillText("NEXT SECTOR", 0, -87, 142);
     ctx.fillStyle = `${accent}66`;
     ctx.fillRect(-84, -76, 168, 5);
+  } else if (kind === "roadblock" || kind === "lightbarSign" || kind === "policeHQ") {
+    if (kind === "policeHQ") {
+      ctx.fillStyle = "rgba(14,24,30,0.96)";
+      roundRect(-82, -74, 164, 74, 6);
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.7)";
+      for (let i = -2; i <= 2; i += 1) {
+        roundRect(i * 28 - 8, -54, 16, 18, 3);
+        ctx.fill();
+      }
+      ctx.fillStyle = `${accent}dd`;
+      roundRect(-58, -92, 116, 18, 4);
+      ctx.fill();
+      ctx.fillStyle = "#f4fbf8";
+      ctx.font = "900 11px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("POLICE HQ", 0, -83, 96);
+    } else {
+      ctx.strokeStyle = "rgba(214,226,221,0.84)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-78, 0);
+      ctx.lineTo(-78, -58);
+      ctx.moveTo(78, 0);
+      ctx.lineTo(78, -58);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(5,8,7,0.94)";
+      roundRect(-104, -82, 208, 36, 5);
+      ctx.fill();
+      ctx.strokeStyle = kind === "lightbarSign" ? "#46d9ff" : "#ff3348";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = "#ff3348";
+      ctx.fillRect(-84, -70, 72, 8);
+      ctx.fillStyle = "#46d9ff";
+      ctx.fillRect(12, -70, 72, 8);
+      ctx.fillStyle = "#f4fbf8";
+      ctx.font = "900 11px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(kind === "roadblock" ? "ROADBLOCK" : "INTERCEPTOR", 0, -58, 150);
+    }
   } else if (kind === "trafficSignal") {
     ctx.strokeStyle = "rgba(214,226,221,0.84)";
     ctx.lineWidth = 5;
@@ -10265,7 +10364,7 @@ function roadObjectPos(lane, distance) {
 }
 
 function roadContactSink(scale = 1, vehicleType = "car") {
-  if (vehicleType === "airplane" || vehicleType === "helicopter" || vehicleType === "boat") return 0;
+  if (isAirVehicleType(vehicleType) || isWaterVehicleType(vehicleType)) return 0;
   const h = canvas.height || 720;
   const heavy = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicleType);
   return Math.max(12, Math.min(h * 0.12, h * (heavy ? 0.058 : 0.046) + scale * (heavy ? 24 : 20)));
@@ -10642,8 +10741,8 @@ function drawTrafficLabel(w, h, label) {
 
 function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) {
   const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
-  const air = ["airplane", "helicopter"].includes(vehicleType);
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   const snow = vehicleType === "snowmobile";
   ctx.save();
   const contactY = h * (air ? 0.58 : water ? 0.76 : 0.92);
@@ -10679,8 +10778,8 @@ function drawVehicleGroundContact(w, h, vehicleType = "car", speedFactor = 0.5) 
 }
 
 function spriteContactRatio(vehicleType = "car") {
-  if (vehicleType === "airplane" || vehicleType === "helicopter") return 0.68;
-  if (vehicleType === "boat") return 0.78;
+  if (isAirVehicleType(vehicleType)) return vehicleType === "drone" ? 0.6 : vehicleType === "bomber" ? 0.7 : 0.68;
+  if (isWaterVehicleType(vehicleType)) return 0.78;
   if (vehicleType === "snowmobile") return 0.94;
   return 0.955;
 }
@@ -10690,8 +10789,8 @@ function spriteContactLift(h, vehicleType = "car") {
 }
 
 function drawRoadContactShadow(w, h, vehicleType = "car", intensity = 1) {
-  const air = ["airplane", "helicopter"].includes(vehicleType);
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   const snow = vehicleType === "snowmobile";
   ctx.save();
   ctx.globalAlpha = Math.max(0.28, Math.min(1, intensity)) * (air ? 0.36 : 0.96);
@@ -10717,8 +10816,8 @@ function drawRoadContactShadow(w, h, vehicleType = "car", intensity = 1) {
 }
 
 function drawVehicleRoadLock(w, h, vehicleType = "car", speedFactor = 0.5) {
-  const air = ["airplane", "helicopter"].includes(vehicleType);
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   const snow = vehicleType === "snowmobile";
   const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
   ctx.save();
@@ -10756,8 +10855,8 @@ function drawVehicleRoadLock(w, h, vehicleType = "car", speedFactor = 0.5) {
 }
 
 function drawGroundPinnedVehicleContact(w, h, vehicleType = "car", speedFactor = 0.5) {
-  const air = ["airplane", "helicopter"].includes(vehicleType);
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   const snow = vehicleType === "snowmobile";
   const speed = Math.max(0.18, Math.min(1.15, Math.abs(speedFactor)));
   ctx.save();
@@ -10792,8 +10891,8 @@ function drawGroundPinnedVehicleContact(w, h, vehicleType = "car", speedFactor =
 }
 
 function drawVisibleTireRoadLock(w, h, vehicleType = "car") {
-  const air = ["airplane", "helicopter"].includes(vehicleType);
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   if (air || water) return;
   const wide = ["semi", "truck", "monster", "tank", "tractor"].includes(vehicleType);
   const snow = vehicleType === "snowmobile";
@@ -10847,7 +10946,7 @@ function drawPhoneAssetVehicleSprite(w, h, color, vehicleType = "car", police = 
   const sprite = assets.getVehicleSprite(type, color, { police, damage });
   if (!sprite) return false;
   const wide = ["semi", "truck", "monster", "tank", "tractor"].includes(type);
-  const floating = ["boat", "airplane", "helicopter"].includes(type);
+  const floating = isWaterVehicleType(type) || isAirVehicleType(type);
   const snow = type === "snowmobile";
   const spriteW = w * (contactAnchored ? (type === "semi" ? 1.86 : wide ? 1.78 : snow ? 1.68 : 1.72) : (type === "semi" ? 1.72 : wide ? 1.58 : 1.5));
   const spriteH = h * (contactAnchored ? (type === "semi" ? 1.18 : wide ? 1.12 : snow ? 1.0 : 1.06) : (type === "semi" ? 1.66 : floating || snow ? 1.48 : 1.56));
@@ -11528,8 +11627,8 @@ function drawVehicleTrimDetails(w, h, color, police = false) {
 
 function drawRealWorldVehicleSkinDetails(w, h, color, vehicleType = "car", damage = 0, police = false) {
   ctx.save();
-  const air = vehicleType === "airplane" || vehicleType === "helicopter";
-  const water = vehicleType === "boat";
+  const air = isAirVehicleType(vehicleType);
+  const water = isWaterVehicleType(vehicleType);
   const accent = police ? "#46d9ff" : shade(color, -34);
   ctx.globalAlpha = phoneGraphicsActive() ? 0.58 : 0.74;
   ctx.strokeStyle = "rgba(244,251,248,0.24)";
@@ -11665,6 +11764,29 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.fillStyle = shade(color, -35);
     roundRect(-w * 0.48, h * 0.36, w * 0.96, h * 0.08, 3);
     ctx.fill();
+  } else if (vehicleType === "policecar") {
+    ctx.fillStyle = "#050807";
+    roundRect(-w * 0.58, -h * 0.2, w * 0.16, h * 0.54, 7);
+    ctx.fill();
+    roundRect(w * 0.42, -h * 0.2, w * 0.16, h * 0.54, 7);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    roundRect(-w * 0.46, -h * 0.5, w * 0.92, h * 0.86, 10);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.24, -h * 0.36, w * 0.48, h * 0.22, 5);
+    ctx.fill();
+    ctx.fillStyle = "#ff3348";
+    roundRect(-w * 0.24, -h * 0.58, w * 0.22, h * 0.055, 3);
+    ctx.fill();
+    ctx.fillStyle = "#46d9ff";
+    roundRect(w * 0.02, -h * 0.58, w * 0.22, h * 0.055, 3);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.86)";
+    ctx.font = `900 ${Math.max(7, w * 0.1)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("POLICE", 0, h * 0.14, w * 0.62);
   } else if (vehicleType === "semi") {
     ctx.fillStyle = "#050807";
     roundRect(-w * 0.72, -h * 0.02, w * 0.18, h * 0.5, 7);
@@ -11750,6 +11872,29 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.moveTo(w * 0.44, h * 0.36);
     ctx.lineTo(w * 0.68, h * 0.5);
     ctx.stroke();
+  } else if (vehicleType === "drone") {
+    ctx.fillStyle = "rgba(244,251,248,0.66)";
+    for (let sx = -1; sx <= 1; sx += 2) {
+      for (let sy = -1; sy <= 1; sy += 2) {
+        ctx.beginPath();
+        ctx.ellipse(sx * w * 0.36, sy * h * 0.25, w * 0.22, h * 0.055, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.strokeStyle = shade(color, -28);
+    ctx.lineWidth = Math.max(2, w * 0.045);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.34, -h * 0.25);
+    ctx.lineTo(w * 0.34, h * 0.25);
+    ctx.moveTo(w * 0.34, -h * 0.25);
+    ctx.lineTo(-w * 0.34, h * 0.25);
+    ctx.stroke();
+    ctx.fillStyle = paint;
+    roundRect(-w * 0.22, -h * 0.22, w * 0.44, h * 0.44, 10);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.82)";
+    roundRect(-w * 0.12, -h * 0.08, w * 0.24, h * 0.16, 4);
+    ctx.fill();
   } else if (vehicleType === "helicopter") {
     ctx.fillStyle = "rgba(244,251,248,0.68)";
     roundRect(-w * 0.62, -h * 0.64, w * 1.24, h * 0.05, 2);
@@ -11766,27 +11911,44 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.moveTo(0, h * 0.18);
     ctx.lineTo(0, h * 0.56);
     ctx.stroke();
-  } else if (vehicleType === "airplane") {
+  } else if (vehicleType === "airplane" || vehicleType === "fighterjet" || vehicleType === "bomber") {
+    const bomber = vehicleType === "bomber";
+    const fighter = vehicleType === "fighterjet";
     ctx.fillStyle = paint;
     ctx.beginPath();
-    ctx.moveTo(0, -h * 0.62);
-    ctx.lineTo(w * 0.2, h * 0.48);
-    ctx.lineTo(-w * 0.2, h * 0.48);
+    ctx.moveTo(0, -h * (fighter ? 0.7 : 0.62));
+    ctx.lineTo(w * (bomber ? 0.28 : 0.2), h * 0.48);
+    ctx.lineTo(-w * (bomber ? 0.28 : 0.2), h * 0.48);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(-w * 0.68, h * 0.02);
-    ctx.lineTo(w * 0.68, h * 0.02);
-    ctx.lineTo(w * 0.22, h * 0.22);
-    ctx.lineTo(-w * 0.22, h * 0.22);
+    ctx.moveTo(-w * (bomber ? 0.82 : fighter ? 0.72 : 0.68), h * (fighter ? -0.02 : 0.02));
+    ctx.lineTo(w * (bomber ? 0.82 : fighter ? 0.72 : 0.68), h * (fighter ? -0.02 : 0.02));
+    ctx.lineTo(w * (bomber ? 0.34 : 0.22), h * 0.22);
+    ctx.lineTo(-w * (bomber ? 0.34 : 0.22), h * 0.22);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = "rgba(5,8,7,0.82)";
-    roundRect(-w * 0.1, -h * 0.34, w * 0.2, h * 0.26, 4);
+    roundRect(-w * (bomber ? 0.16 : 0.1), -h * 0.34, w * (bomber ? 0.32 : 0.2), h * 0.26, 4);
     ctx.fill();
+    if (fighter) {
+      ctx.fillStyle = shade(color, -30);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.22, h * 0.42);
+      ctx.lineTo(-w * 0.44, h * 0.66);
+      ctx.lineTo(-w * 0.12, h * 0.52);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22, h * 0.42);
+      ctx.lineTo(w * 0.44, h * 0.66);
+      ctx.lineTo(w * 0.12, h * 0.52);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
-  const groundVehicle = !["boat", "snowmobile", "helicopter", "airplane"].includes(vehicleType);
+  const groundVehicle = !isWaterVehicleType(vehicleType) && !isAirVehicleType(vehicleType) && vehicleType !== "snowmobile";
   if (groundVehicle) {
     const rimAccent = vehicleType === "tractor" ? "rgba(255,209,102,0.38)" : "rgba(70,217,255,0.28)";
     const frontY = vehicleType === "f1" || vehicleType === "prototype" ? h * 0.33 : h * 0.18;
@@ -11818,6 +11980,14 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.fillStyle = vehicleType === "boat" ? "rgba(70,217,255,0.44)" : "rgba(244,251,248,0.44)";
     roundRect(-w * 0.34, h * 0.35, w * 0.68, h * 0.045, 3);
     ctx.fill();
+  } else if (vehicleType === "drone") {
+    ctx.fillStyle = "rgba(244,251,248,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.5, h * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(70,217,255,0.42)";
+    roundRect(-w * 0.18, h * 0.22, w * 0.36, h * 0.045, 3);
+    ctx.fill();
   } else if (vehicleType === "helicopter") {
     ctx.fillStyle = "rgba(244,251,248,0.22)";
     ctx.beginPath();
@@ -11826,7 +11996,7 @@ function drawSpecialVehicleSilhouette(w, h, color, vehicleType, player) {
     ctx.fillStyle = "rgba(5,8,7,0.82)";
     roundRect(-w * 0.1, h * 0.48, w * 0.2, h * 0.08, 3);
     ctx.fill();
-  } else if (vehicleType === "airplane") {
+  } else if (vehicleType === "airplane" || vehicleType === "fighterjet" || vehicleType === "bomber") {
     ctx.fillStyle = "rgba(255,248,214,0.82)";
     roundRect(-w * 0.08, -h * 0.54, w * 0.16, h * 0.05, 3);
     ctx.fill();
