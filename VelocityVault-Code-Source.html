@@ -4,24 +4,24 @@
 <style>body{font-family:Arial,Helvetica,sans-serif;margin:28px;color:#111;background:#fff;}h1{font-size:28px;margin:0 0 6px;}h2{margin-top:28px;border-top:1px solid #ccc;padding-top:18px;}p,li{font-size:13px;line-height:1.45}.meta{color:#555}.summary{max-width:980px}.toc{columns:2}pre{font-family:Consolas,'Courier New',monospace;font-size:8px;line-height:1.25;white-space:pre-wrap;word-break:break-word;background:#f7f7f7;border:1px solid #ddd;padding:12px;border-radius:6px;}</style>
 </head><body>
 <h1>Velocity Vault Code Source</h1>
-<p class='meta'>Generated 2026-05-25 19:10:18 for the v90 visible real-world detail build.</p>
-<p class='summary'>This PDF/HTML companion contains the current standalone Velocity Vault source for the v90 visible real-world detail build. This update makes the real-world scenery easier to see on phones by adding a late foreground detail pass after the road, larger roadside landmarks, brighter people and animal groups, closer shoulder placement, stronger ground pads, and more readable buildings, fences, lights, signs, crews, cyclists, joggers, dock workers, pasture animals, and route activity. The WebGL route also keeps scenery active on shorter landscape frames with a lighter object count.</p>
+<p class='meta'>Generated 2026-05-25 19:34:25 for the v91 road-drama and real-vehicle-detail build.</p>
+<p class='summary'>This PDF/HTML companion contains the current standalone Velocity Vault source for the v91 road-drama and real-vehicle-detail build. This update removes the remaining phone grid look from guardrails, docks, road seams, and arrow-like turn markers; keeps phone road lines more grounded and readable; adds route drama for tunnels, city underpasses, hills, mountain drives, and sweeping turns; and improves canvas, phone, and WebGL vehicles with rear LED signatures, diffusers, exhausts, license plates, heavy-vehicle panels, and tank tread detail. The build remains standalone, uses local profiles/saves, and does not depend on remote game assets or licensed vehicle models.</p>
 <h2>How To Play</h2><ul>
 <li>Choose or create an age-group driver profile, then press Play to start the compatible race for the selected vehicle.</li>
 <li>On phones, use the floating joystick: push up to accelerate, slide left/right to steer, and pull down deliberately for brake/reverse. Gas stays active while steering.</li>
 <li>On computer, use Arrow keys or WASD for throttle/brake/steering, Space for boost, R to reset the car, and P/Escape to pause.</li>
 <li>Earn coins, score, reputation, and race progress. Buy compatible vehicles and upgrade engine, tires, boost, armor, paint, and plate/call sign from the garage.</li>
 <li>Avoid civilians and animal crossings. Hitting them costs reputation/coins and slows the vehicle, while normal crashes cause damage but no longer end the race.</li>
-<li>Boat races use water routes, air vehicles use sky gates and airfield scenes, tanks/monster trucks/semis/tractors use their own race settings and scenery.</li>
-</ul><h2>Included Files</h2><ul class='toc'>
+<li>Boat races use water routes, air vehicles use sky gates and airfield scenes, and tanks, monster trucks, semis, and tractors use their own race settings and scenery.</li>
+</ul><h2>Included Files</h2><ul class="toc">
 <li>index.html (11,201 bytes)</li>
 <li>styles.css (38,122 bytes)</li>
-<li>phone-asset-pipeline.js (30,567 bytes)</li>
-<li>webgl-pipeline.js (47,889 bytes)</li>
-<li>game.js (637,710 bytes)</li>
+<li>phone-asset-pipeline.js (34,283 bytes)</li>
+<li>webgl-pipeline.js (48,796 bytes)</li>
+<li>game.js (652,976 bytes)</li>
 <li>manifest.json (723 bytes)</li>
-<li>sw.js (1,151 bytes)</li>
-<li>README.md (36,818 bytes)</li>
+<li>sw.js (1,150 bytes)</li>
+<li>README.md (37,285 bytes)</li>
 <li>APEX-VAULT-COMMAND-CLOUD.md (2,234 bytes)</li>
 <li>apex-vault-command-cloud.json (3,236 bytes)</li>
 </ul>
@@ -2598,6 +2598,101 @@ input:focus {
     ctx.restore();
   }
 
+  function drawModernRearSignature(ctx, w, h, type, color, policeLivery, groundY) {
+    const heavy = [&quot;semi&quot;, &quot;truck&quot;, &quot;monster&quot;, &quot;tractor&quot;].includes(type);
+    const tank = type === &quot;tank&quot;;
+    const f1 = type === &quot;f1&quot; || type === &quot;prototype&quot;;
+    const snow = type === &quot;snowmobile&quot;;
+    if (tank) {
+      ctx.save();
+      ctx.fillStyle = &quot;rgba(2,4,4,0.82)&quot;;
+      roundRect(ctx, w * 0.18, groundY - h * 0.105, w * 0.64, h * 0.07, 8);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(187,242,74,0.42)&quot;;
+      for (let i = 0; i &lt; 7; i += 1) {
+        ctx.beginPath();
+        ctx.arc(w * (0.26 + i * 0.08), groundY - h * 0.07, w * 0.014, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      return;
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = &quot;source-over&quot;;
+    const led = policeLivery ? &quot;#46d9ff&quot; : type === &quot;semi&quot; || heavy ? &quot;#ff5b6b&quot; : &quot;#ff3348&quot;;
+    const plateY = groundY - h * (heavy ? 0.18 : f1 ? 0.15 : 0.17);
+    const tailY = groundY - h * (heavy ? 0.23 : f1 ? 0.19 : 0.25);
+    ctx.fillStyle = &quot;rgba(3,5,5,0.94)&quot;;
+    if (f1) {
+      roundRect(ctx, w * 0.18, groundY - h * 0.16, w * 0.64, h * 0.06, 8);
+    } else if (heavy) {
+      roundRect(ctx, w * 0.17, groundY - h * 0.25, w * 0.66, h * 0.14, 10);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22, groundY - h * 0.25);
+      ctx.lineTo(w * 0.78, groundY - h * 0.25);
+      ctx.lineTo(w * 0.68, groundY - h * 0.1);
+      ctx.lineTo(w * 0.32, groundY - h * 0.1);
+      ctx.closePath();
+    }
+    ctx.fill();
+
+    ctx.fillStyle = led;
+    ctx.shadowColor = led;
+    ctx.shadowBlur = Math.max(4, w * 0.025);
+    if (heavy) {
+      roundRect(ctx, w * 0.22, tailY, w * 0.08, h * 0.052, 5);
+      ctx.fill();
+      roundRect(ctx, w * 0.7, tailY, w * 0.08, h * 0.052, 5);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = &quot;rgba(244,251,248,0.44)&quot;;
+      for (let i = 0; i &lt; 4; i += 1) {
+        roundRect(ctx, w * 0.27, groundY - h * (0.38 - i * 0.06), w * 0.46, h * 0.012, 3);
+        ctx.fill();
+      }
+    } else {
+      roundRect(ctx, w * 0.24, tailY, w * 0.19, h * 0.035, 7);
+      ctx.fill();
+      roundRect(ctx, w * 0.57, tailY, w * 0.19, h * 0.035, 7);
+      ctx.fill();
+      ctx.fillStyle = policeLivery ? &quot;#ff3348&quot; : &quot;rgba(255,91,107,0.92)&quot;;
+      roundRect(ctx, w * 0.28, tailY + h * 0.042, w * 0.12, h * 0.016, 5);
+      roundRect(ctx, w * 0.6, tailY + h * 0.042, w * 0.12, h * 0.016, 5);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = &quot;rgba(244,251,248,0.86)&quot;;
+    roundRect(ctx, w * 0.42, plateY, w * 0.16, h * 0.038, 5);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(3,5,5,0.78)&quot;;
+    roundRect(ctx, w * 0.36, groundY - h * 0.09, w * 0.28, h * 0.024, 5);
+    ctx.fill();
+
+    if (!heavy &amp;&amp; !snow) {
+      ctx.fillStyle = &quot;rgba(3,5,5,0.92)&quot;;
+      for (let i = -2; i &lt;= 2; i += 1) {
+        roundRect(ctx, w * 0.5 + i * w * 0.045 - w * 0.012, groundY - h * 0.085, w * 0.024, h * 0.07, 4);
+        ctx.fill();
+      }
+      ctx.strokeStyle = &quot;rgba(255,255,255,0.22)&quot;;
+      ctx.lineWidth = Math.max(1.5, w * 0.008);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.32);
+      ctx.bezierCurveTo(w * 0.16, h * 0.5, w * 0.2, h * 0.74, w * 0.32, groundY - h * 0.13);
+      ctx.moveTo(w * 0.76, h * 0.32);
+      ctx.bezierCurveTo(w * 0.84, h * 0.5, w * 0.8, h * 0.74, w * 0.68, groundY - h * 0.13);
+      ctx.stroke();
+    } else if (heavy) {
+      ctx.fillStyle = &quot;rgba(3,5,5,0.86)&quot;;
+      roundRect(ctx, w * 0.19, groundY - h * 0.045, w * 0.18, h * 0.05, 5);
+      roundRect(ctx, w * 0.63, groundY - h * 0.045, w * 0.18, h * 0.05, 5);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
     const pursuit = type === &quot;policecar&quot;;
     const policeLivery = police || pursuit;
@@ -2812,6 +2907,7 @@ input:focus {
     ctx.lineTo(w * 0.5, groundY - h * 0.08);
     ctx.stroke();
 
+    drawModernRearSignature(ctx, w, h, type, paint, policeLivery, groundY);
     drawPaintGrain(ctx, w, h, paint);
     drawDamage(ctx, w, h, damage);
     ctx.restore();
@@ -3625,6 +3721,16 @@ input:focus {
         box(x - 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x + 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x, 0.46 * scale, z + 1.08 * scale, 0.58 * scale, 0.06 * scale, 0.08 * scale, shade(dark, 1.5));
+        box(x - 0.34 * scale, 0.58 * scale, z - 1.2 * scale, 0.34 * scale, 0.07 * scale, 0.08 * scale, police ? blue : red);
+        box(x + 0.34 * scale, 0.58 * scale, z - 1.2 * scale, 0.34 * scale, 0.07 * scale, 0.08 * scale, police ? red : red);
+        box(x, 0.42 * scale, z - 1.24 * scale, (type === &quot;semi&quot; || type === &quot;truck&quot; ? 1.38 : 0.82) * scale, 0.06 * scale, 0.08 * scale, dark);
+        if (type !== &quot;semi&quot; &amp;&amp; type !== &quot;truck&quot; &amp;&amp; type !== &quot;tractor&quot; &amp;&amp; type !== &quot;tank&quot;) {
+          box(x - 0.22 * scale, 0.34 * scale, z - 1.32 * scale, 0.14 * scale, 0.08 * scale, 0.09 * scale, chrome);
+          box(x + 0.22 * scale, 0.34 * scale, z - 1.32 * scale, 0.14 * scale, 0.08 * scale, 0.09 * scale, chrome);
+          for (let fin = -2; fin &lt;= 2; fin += 1) {
+            box(x + fin * 0.1 * scale, 0.34 * scale, z - 1.2 * scale, 0.025 * scale, 0.14 * scale, 0.22 * scale, dark);
+          }
+        }
         box(x - 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.72));
         box(x + 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.84));
         box(x - 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.64));
@@ -7998,6 +8104,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldNearsideInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawRealWorldRouteDramaPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed);
   drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   ctx.restore();
 }
@@ -8067,10 +8174,10 @@ function drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBotto
 }
 
 function highVisibilityDetailSet(place, stage) {
-  if (stage &amp;&amp; stage.prop === &quot;bridge&quot;) return [&quot;bridgeRail&quot;, &quot;life:pierPeople&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;parkedCar&quot;, &quot;life:sidewalkQueue&quot;];
-  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;tunnelPortal&quot;, &quot;wallLamp&quot;, &quot;lowBarrier&quot;, &quot;life:cameraCrew&quot;, &quot;routeSign&quot;];
+  if (stage &amp;&amp; stage.prop === &quot;bridge&quot;) return [&quot;coastRail&quot;, &quot;life:pierPeople&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;parkedCar&quot;, &quot;life:sidewalkQueue&quot;];
+  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;tunnelPortal&quot;, &quot;wallLamp&quot;, &quot;lowBarrier&quot;, &quot;life:cameraCrew&quot;, &quot;roadsideHedge&quot;];
   const sets = {
-    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;life:beachJoggers&quot;, &quot;life:cyclistLane&quot;, &quot;seaWall&quot;, &quot;life:pierPeople&quot;, &quot;lighthouse&quot;],
+    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;life:beachJoggers&quot;, &quot;life:cyclistLane&quot;, &quot;coastRail&quot;, &quot;life:pierPeople&quot;, &quot;lighthouse&quot;],
     city: [&quot;storefront&quot;, &quot;life:sidewalkQueue&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;busStop&quot;, &quot;life:cyclistLane&quot;, &quot;life:patioCrowd&quot;],
     canyon: [&quot;rockFace&quot;, &quot;guardPost&quot;, &quot;life:wildlifeLookout&quot;, &quot;tourVan&quot;, &quot;curveBoard&quot;, &quot;life:hikerLookout&quot;],
     alpine: [&quot;pine&quot;, &quot;stoneWall&quot;, &quot;chalet&quot;, &quot;life:wildlifeLookout&quot;, &quot;snowPost&quot;, &quot;life:hikerLookout&quot;],
@@ -8080,13 +8187,13 @@ function highVisibilityDetailSet(place, stage) {
     pursuit: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;life:policeCheckpoint&quot;, &quot;lowBarrier&quot;, &quot;life:cameraCrew&quot;],
     freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;serviceTruck&quot;, &quot;life:forkliftSweep&quot;, &quot;life:loadingCrew&quot;, &quot;dieselSign&quot;],
     interstate: [&quot;truckStop&quot;, &quot;weighStation&quot;, &quot;serviceTruck&quot;, &quot;life:dieselStopLife&quot;, &quot;life:restStopLife&quot;, &quot;streetLight&quot;],
-    farm: [&quot;barn&quot;, &quot;fence&quot;, &quot;tractorParked&quot;, &quot;life:pastureAnimals&quot;, &quot;hayBales&quot;, &quot;life:fieldWorkers&quot;, &quot;windmill&quot;],
+    farm: [&quot;barn&quot;, &quot;roadsideHedge&quot;, &quot;tractorParked&quot;, &quot;life:pastureAnimals&quot;, &quot;hayBales&quot;, &quot;life:fieldWorkers&quot;, &quot;windmill&quot;],
     monsterpark: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;life:stadiumCrowd&quot;, &quot;life:pitCrew&quot;, &quot;stadiumRamp&quot;],
     military: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;blastWall&quot;, &quot;life:rangeCrew&quot;, &quot;life:militaryPatrol&quot;, &quot;rangeTarget&quot;],
     skybase: [&quot;controlTower&quot;, &quot;hangar&quot;, &quot;runwayLight&quot;, &quot;life:airportBeacon&quot;, &quot;life:radarCrew&quot;, &quot;life:serviceCartMotion&quot;],
     tokyo: [&quot;neonShop&quot;, &quot;life:neonCrowd&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;life:cyclistLane&quot;, &quot;pedestrianBridge&quot;, &quot;life:tramStopLife&quot;],
     desert: [&quot;dune&quot;, &quot;supportTent&quot;, &quot;rockFace&quot;, &quot;life:rallyCrew&quot;, &quot;life:wildlifeLookout&quot;, &quot;rallyMarker&quot;],
-    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;life:marketLife&quot;, &quot;life:canopyAnimals&quot;, &quot;waterfallSign&quot;],
+    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;roadsideHedge&quot;, &quot;life:marketLife&quot;, &quot;life:canopyAnimals&quot;, &quot;waterfallSign&quot;],
     europe: [&quot;villageHouse&quot;, &quot;cafe&quot;, &quot;stoneWall&quot;, &quot;life:patioCrowd&quot;, &quot;life:cyclistLane&quot;, &quot;life:pastureAnimals&quot;, &quot;tramPost&quot;]
   };
   return sets[place] || sets.city;
@@ -8107,12 +8214,160 @@ function drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, se
   ctx.beginPath();
   ctx.ellipse(side * 6, 16, 120, 22, -0.04 * side, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = `${accent}88`;
-  ctx.lineWidth = 3;
+  if (phoneGraphicsActive()) {
+    ctx.fillStyle = &quot;rgba(0,0,0,0.24)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(side * 8, 18, 92, 12, -0.04 * side, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.strokeStyle = `${accent}88`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-90 * side, 5);
+    ctx.lineTo(96 * side, -2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRealWorldRouteDramaPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const length = Math.max(1, raceLength());
+  const progress = Math.max(0, Math.min(1, raceState.distance / length));
+  const stage = routeStageInfo(place, progress);
+  const turn = raceState.roadTurn || raceState.roadCurve || 0;
+  const routeKind = realWorldRouteDramaKind(place, stage, turn);
+  ctx.save();
+  if (routeKind === &quot;tunnel&quot;) {
+    drawVisibleTunnelDriveThrough(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode);
+  } else if (routeKind === &quot;mountain&quot; || routeKind === &quot;hill&quot;) {
+    drawVisibleMountainHillDrive(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode);
+  } else if (routeKind === &quot;cityTunnel&quot;) {
+    drawVisibleCityUnderpass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode);
+  }
+  drawVisibleRoadTurnCues(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode);
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function realWorldRouteDramaKind(place, stage, turn) {
+  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return place === &quot;city&quot; || place === &quot;tokyo&quot; || place === &quot;pursuit&quot; ? &quot;cityTunnel&quot; : &quot;tunnel&quot;;
+  if (stage &amp;&amp; (stage.prop === &quot;mountain&quot; || stage.prop === &quot;cliff&quot;)) return &quot;mountain&quot;;
+  if (place === &quot;alpine&quot; || place === &quot;europe&quot; || place === &quot;canyon&quot;) return Math.abs(turn) &gt; 0.4 ? &quot;mountain&quot; : &quot;hill&quot;;
+  if (place === &quot;desert&quot; || place === &quot;rainforest&quot;) return Math.abs(turn) &gt; 0.5 ? &quot;hill&quot; : &quot;&quot;;
+  return Math.abs(turn) &gt; 0.72 ? &quot;hill&quot; : &quot;&quot;;
+}
+
+function drawVisibleTunnelDriveThrough(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode) {
+  const topY = horizon + h * (phoneMode ? 0.02 : 0.01);
+  const mouthW = w * (phoneMode ? 0.72 : 0.62);
+  const mouthH = h * (phoneMode ? 0.31 : 0.36);
+  const x = w * 0.5 + Math.sin(seed + raceState.distance * 0.0002) * w * 0.035;
+  ctx.globalAlpha = phoneMode ? 0.7 : 0.68;
+  ctx.fillStyle = &quot;rgba(4,6,6,0.72)&quot;;
   ctx.beginPath();
-  ctx.moveTo(-90 * side, 5);
-  ctx.lineTo(96 * side, -2);
+  ctx.ellipse(x, topY + mouthH * 0.5, mouthW * 0.5, mouthH * 0.58, 0, Math.PI, 0);
+  ctx.lineTo(x + mouthW * 0.5, topY + mouthH * 0.58);
+  ctx.lineTo(x - mouthW * 0.5, topY + mouthH * 0.58);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = &quot;rgba(205,218,214,0.52)&quot;;
+  ctx.lineWidth = Math.max(4, w * 0.01);
   ctx.stroke();
+
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const tunnelShade = ctx.createLinearGradient(0, horizon, 0, h);
+  tunnelShade.addColorStop(0, &quot;rgba(0,0,0,0.34)&quot;);
+  tunnelShade.addColorStop(0.5, &quot;rgba(0,0,0,0.18)&quot;);
+  tunnelShade.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+  ctx.fillStyle = tunnelShade;
+  ctx.fillRect(0, horizon, w, h - horizon);
+  ctx.globalCompositeOperation = &quot;screen&quot;;
+  for (let i = 0; i &lt; (phoneMode ? 8 : 12); i += 1) {
+    const y = horizon + (((i * 86 + raceState.roadOffset * 0.82 + seed * 0.01) % (h - horizon + 160)) - 48);
+    if (y &lt; horizon || y &gt; h) continue;
+    const t = Math.max(0.02, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * 0.82;
+    ctx.strokeStyle = `${design.light || theme[2]}55`;
+    ctx.lineWidth = Math.max(2, 2 + t * 8);
+    ctx.beginPath();
+    ctx.moveTo(center - half * 0.62, y);
+    ctx.lineTo(center + half * 0.62, y + t * 8);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = &quot;source-over&quot;;
+}
+
+function drawVisibleCityUnderpass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode) {
+  const y = horizon + h * 0.05;
+  const x = w * 0.5 + turn * w * 0.05;
+  ctx.globalAlpha = phoneMode ? 0.64 : 0.7;
+  ctx.fillStyle = &quot;rgba(5,8,7,0.68)&quot;;
+  roundRect(x - w * 0.34, y - h * 0.055, w * 0.68, h * 0.09, 8);
+  ctx.fill();
+  ctx.strokeStyle = `${design.accent || theme[1]}88`;
+  ctx.lineWidth = Math.max(2, w * 0.005);
+  ctx.stroke();
+  ctx.fillStyle = &quot;rgba(244,251,248,0.22)&quot;;
+  for (let i = -3; i &lt;= 3; i += 1) {
+    roundRect(x + i * w * 0.08 - w * 0.018, y - h * 0.028, w * 0.036, h * 0.012, 4);
+    ctx.fill();
+  }
+}
+
+function drawVisibleMountainHillDrive(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode) {
+  const color = place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(178,92,48,0.5)&quot; : place === &quot;snow&quot; || place === &quot;alpine&quot; || place === &quot;europe&quot; ? &quot;rgba(198,214,210,0.42)&quot; : &quot;rgba(35,118,68,0.38)&quot;;
+  ctx.globalAlpha = phoneMode ? 0.58 : 0.62;
+  ctx.fillStyle = color;
+  for (let side = -1; side &lt;= 1; side += 2) {
+    ctx.beginPath();
+    ctx.moveTo(side &lt; 0 ? -w * 0.08 : w * 1.08, horizon + h * 0.26);
+    ctx.quadraticCurveTo(w * (0.22 + side * 0.12) + turn * w * 0.1, horizon - h * 0.12, w * (0.48 + side * 0.16), horizon + h * 0.16);
+    ctx.quadraticCurveTo(w * (0.34 + side * 0.12), horizon + h * 0.26, side &lt; 0 ? -w * 0.08 : w * 1.08, horizon + h * 0.42);
+    ctx.closePath();
+    ctx.fill();
+  }
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const hill = ctx.createLinearGradient(0, horizon, 0, h);
+  hill.addColorStop(0, &quot;rgba(244,251,248,0.1)&quot;);
+  hill.addColorStop(0.38, turn &gt; 0 ? &quot;rgba(0,0,0,0.04)&quot; : &quot;rgba(244,251,248,0.08)&quot;);
+  hill.addColorStop(0.72, &quot;rgba(0,0,0,0.16)&quot;);
+  hill.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+  ctx.fillStyle = hill;
+  ctx.fillRect(0, horizon, w, h - horizon);
+}
+
+function drawVisibleRoadTurnCues(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode) {
+  if (Math.abs(turn) &lt; 0.22) return;
+  ctx.save();
+  clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
+  const side = turn &gt; 0 ? 1 : -1;
+  const count = phoneMode ? 3 : 7;
+  for (let i = 0; i &lt; count; i += 1) {
+    const y = horizon + h * (0.22 + i * (phoneMode ? 0.12 : 0.105)) + (((raceState.roadOffset || 0) * 0.28) % 34);
+    if (y &gt; h + 30) continue;
+    const t = Math.max(0.05, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const center = perspectiveRoadCenter(w, t) + turn * w * 0.08 * (1 - t);
+    const half = realWorldRoadHalf(roadTop, roadBottom, t) * (0.24 + t * 0.2);
+    ctx.globalAlpha = phoneMode ? Math.min(0.22, 0.08 + t * 0.14) : Math.min(0.48, 0.18 + t * 0.28);
+    ctx.strokeStyle = phoneMode ? &quot;rgba(244,251,248,0.72)&quot; : `${design.light || theme[2]}cc`;
+    ctx.lineWidth = Math.max(2, 2 + t * (phoneMode ? 3 : 6));
+    ctx.lineCap = &quot;round&quot;;
+    ctx.beginPath();
+    ctx.moveTo(center - side * half, y);
+    ctx.quadraticCurveTo(center + side * half * 0.25, y + 18 * t, center + side * half, y + 6 + t * 14);
+    ctx.stroke();
+    if (!phoneMode) {
+      ctx.fillStyle = `${design.light || theme[2]}aa`;
+      ctx.beginPath();
+      ctx.moveTo(center + side * (half + 14 * t), y + 6 + t * 14);
+      ctx.lineTo(center + side * (half - 16 * t), y - 5 + t * 8);
+      ctx.lineTo(center + side * (half - 8 * t), y + 22 + t * 12);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
   ctx.restore();
 }
 
@@ -8377,19 +8632,20 @@ function drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, de
   }
 
   const span = h - horizon + 240;
-  const laneAlpha = phoneMode ? 0.68 : 0.58;
+  const laneAlpha = phoneMode ? 0.42 : 0.58;
   ctx.globalCompositeOperation = &quot;screen&quot;;
-  for (let lane = -1.5; lane &lt;= 1.5; lane += 1) {
-    for (let i = 0; i &lt; (phoneMode ? 12 : 16); i += 1) {
+  const visibleLanes = phoneMode ? [-0.5, 0.5] : [-1.5, -0.5, 0.5, 1.5];
+  visibleLanes.forEach((lane) =&gt; {
+    for (let i = 0; i &lt; (phoneMode ? 8 : 16); i += 1) {
       const y = horizon + (((i * 118 + motion * 1.5 + lane * 37) % span) - 76);
       if (y &lt; horizon || y &gt; h + 55) continue;
       const t = Math.max(0.03, Math.min(1.06, (y - horizon) / Math.max(1, h - horizon)));
-      const dashH = 14 + t * (phoneMode ? 62 : 74);
-      const dashW = 5 + t * (phoneMode ? 10 : 12);
+      const dashH = 14 + t * (phoneMode ? 44 : 74);
+      const dashW = 5 + t * (phoneMode ? 7 : 12);
       ctx.globalAlpha = laneAlpha * (0.42 + t * 0.58);
-      drawPerspectivePavementQuad(w, horizon, lane, y, dashH, dashW, lane === -1.5 || lane === 1.5 ? &quot;rgba(255,209,102,0.92)&quot; : &quot;rgba(244,251,248,0.92)&quot;);
+      drawPerspectivePavementQuad(w, horizon, lane, y, dashH, dashW, &quot;rgba(244,251,248,0.86)&quot;);
     }
-  }
+  });
   ctx.globalCompositeOperation = &quot;source-over&quot;;
 
   for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
@@ -8709,31 +8965,44 @@ function drawReferenceSmallHouseRow(side, accent, light, seed) {
 }
 
 function drawReferenceWaterEdge(side, kind, accent, light, seed) {
+  const phoneMode = phoneGraphicsActive();
   ctx.fillStyle = &quot;rgba(70,217,255,0.22)&quot;;
   ctx.beginPath();
   ctx.ellipse(side * -14, 18, 130, 22, -0.05 * side, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
   ctx.lineWidth = 2;
-  for (let i = 0; i &lt; 3; i += 1) {
+  for (let i = 0; i &lt; (phoneMode ? 1 : 3); i += 1) {
     ctx.beginPath();
     ctx.moveTo(-108 * side, i * 8 + 10);
     ctx.quadraticCurveTo(-20 * side, i * 8 + 4 + Math.sin(seed + i) * 5, 104 * side, i * 8 + 12);
     ctx.stroke();
   }
   if (/marina|pier|waterSpan/i.test(kind)) {
-    ctx.strokeStyle = &quot;rgba(138,102,62,0.78)&quot;;
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(-94 * side, -4);
-    ctx.lineTo(92 * side, -18);
-    ctx.moveTo(-94 * side, 12);
-    ctx.lineTo(92 * side, -2);
-    for (let p = -3; p &lt;= 3; p += 1) {
-      ctx.moveTo(p * 28 * side, -20);
-      ctx.lineTo(p * 28 * side, 20);
+    if (phoneMode) {
+      ctx.fillStyle = &quot;rgba(126,86,48,0.68)&quot;;
+      roundRect(-94, -19, 188, 24, 6);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.24)&quot;;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-82 * side, -13);
+      ctx.lineTo(82 * side, -23);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = &quot;rgba(138,102,62,0.78)&quot;;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-94 * side, -4);
+      ctx.lineTo(92 * side, -18);
+      ctx.moveTo(-94 * side, 12);
+      ctx.lineTo(92 * side, -2);
+      for (let p = -3; p &lt;= 3; p += 1) {
+        ctx.moveTo(p * 28 * side, -20);
+        ctx.lineTo(p * 28 * side, 20);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
   }
 }
 
@@ -9140,11 +9409,22 @@ function drawReferenceGuardrail(side, color) {
   ctx.lineTo(112 * side, -20);
   ctx.moveTo(-112 * side, 8);
   ctx.lineTo(112 * side, -2);
-  for (let i = -4; i &lt;= 4; i += 1) {
-    ctx.moveTo(i * 28 * side, -26);
-    ctx.lineTo(i * 28 * side, 18);
+  if (!phoneGraphicsActive()) {
+    for (let i = -4; i &lt;= 4; i += 1) {
+      ctx.moveTo(i * 28 * side, -26);
+      ctx.lineTo(i * 28 * side, 18);
+    }
+  } else {
+    ctx.moveTo(-84 * side, -24);
+    ctx.quadraticCurveTo(0, -34, 88 * side, -28);
   }
   ctx.stroke();
+  if (phoneGraphicsActive()) {
+    ctx.fillStyle = &quot;rgba(0,0,0,0.22)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(0, 9, 106, 12, -0.04 * side, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function groundLockedPlaceProps(place, stage) {
@@ -9708,16 +9988,30 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.beginPath();
     ctx.ellipse(0, 5, 108, 20, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = &quot;rgba(214,180,112,0.84)&quot;;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(-96, -12);
-    ctx.lineTo(96, -20);
-    for (let i = -3; i &lt;= 3; i += 1) {
-      ctx.moveTo(i * 30, -18);
-      ctx.lineTo(i * 30, 18);
+    if (phoneGraphicsActive()) {
+      ctx.fillStyle = &quot;rgba(132,92,48,0.72)&quot;;
+      roundRect(-94, -26, 188, 24, 7);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-82, -18);
+      ctx.lineTo(84, -24);
+      ctx.moveTo(-82, -8);
+      ctx.lineTo(84, -14);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = &quot;rgba(214,180,112,0.84)&quot;;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-96, -12);
+      ctx.lineTo(96, -20);
+      for (let i = -3; i &lt;= 3; i += 1) {
+        ctx.moveTo(i * 30, -18);
+        ctx.lineTo(i * 30, 18);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
     ctx.fillStyle = `${light}aa`;
     ctx.beginPath();
     ctx.arc(72, -46, 8, 0, Math.PI * 2);
@@ -9897,14 +10191,47 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       roundRect(-40, -26, 72, 7, 4);
       ctx.fill();
     }
-  } else if (kind === &quot;fence&quot; || kind === &quot;snowFence&quot; || kind === &quot;woodRail&quot; || kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; || kind === &quot;bridgeRail&quot; || kind === &quot;guardPost&quot; || kind === &quot;lowBarrier&quot; || kind === &quot;curbBlock&quot; || kind === &quot;reflectorPost&quot; || kind === &quot;barrier&quot;) {
+  } else if (kind === &quot;roadsideHedge&quot; || kind === &quot;coastRail&quot; || kind === &quot;fence&quot; || kind === &quot;snowFence&quot; || kind === &quot;woodRail&quot; || kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; || kind === &quot;bridgeRail&quot; || kind === &quot;guardPost&quot; || kind === &quot;lowBarrier&quot; || kind === &quot;curbBlock&quot; || kind === &quot;reflectorPost&quot; || kind === &quot;barrier&quot;) {
     ctx.strokeStyle = kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; ? &quot;rgba(192,202,196,0.86)&quot; : kind === &quot;snowFence&quot; ? &quot;rgba(244,251,248,0.88)&quot; : `${light}cc`;
     ctx.lineWidth = kind === &quot;reflectorPost&quot; ? 5 : 6;
-    ctx.beginPath();
-    if (kind === &quot;reflectorPost&quot;) {
+    if (kind === &quot;roadsideHedge&quot;) {
+      const hedge = place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(156,92,42,0.54)&quot; : place === &quot;snow&quot; || place === &quot;alpine&quot; ? &quot;rgba(222,236,232,0.58)&quot; : &quot;rgba(44,132,74,0.58)&quot;;
+      ctx.fillStyle = hedge;
+      ctx.beginPath();
+      ctx.ellipse(0, -12, 96, 24, -0.04, 0, Math.PI * 2);
+      ctx.ellipse(-44, -23, 42, 18, 0.16, 0, Math.PI * 2);
+      ctx.ellipse(44, -24, 44, 18, -0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-86, -6);
+      ctx.lineTo(90, -13);
+      ctx.stroke();
+    } else if (phoneGraphicsActive() &amp;&amp; kind !== &quot;reflectorPost&quot;) {
+      ctx.fillStyle = kind === &quot;stoneWall&quot; || kind === &quot;seaWall&quot; ? &quot;rgba(174,186,180,0.62)&quot; : kind === &quot;snowFence&quot; ? &quot;rgba(244,251,248,0.52)&quot; : kind === &quot;coastRail&quot; || kind === &quot;bridgeRail&quot; ? &quot;rgba(205,218,214,0.42)&quot; : &quot;rgba(78,96,76,0.42)&quot;;
+      roundRect(-92, -27, 184, 24, 8);
+      ctx.fill();
+      ctx.strokeStyle = kind === &quot;coastRail&quot; || kind === &quot;bridgeRail&quot; ? &quot;rgba(244,251,248,0.72)&quot; : `${light}99`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-98, -30);
+      ctx.lineTo(102, -39);
+      ctx.moveTo(-98, -8);
+      ctx.lineTo(102, -16);
+      ctx.stroke();
+      ctx.fillStyle = `${accent}55`;
+      ctx.beginPath();
+      ctx.ellipse(-56, -24, 12, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(4, -27, 14, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(62, -30, 12, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      if (kind === &quot;reflectorPost&quot;) {
       ctx.moveTo(0, 0);
       ctx.lineTo(0, -46);
-    } else {
+      } else {
       ctx.moveTo(-76, -20);
       ctx.lineTo(76, -28);
       ctx.moveTo(-76, -4);
@@ -9913,8 +10240,9 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
         ctx.moveTo(i * 32, -42);
         ctx.lineTo(i * 32, 4);
       }
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
     if (kind === &quot;reflectorPost&quot;) {
       ctx.fillStyle = accent;
       ctx.beginPath();
@@ -11394,20 +11722,33 @@ function drawPlaceIdentityObject(kind, x, y, scale, side, place, design, theme, 
       ctx.fill();
     }
   } else if (kind === &quot;pierDeck&quot; || kind === &quot;marinaLight&quot; || kind === &quot;beachHotel&quot; || kind === &quot;riverDock&quot;) {
+    const phoneMode = phoneGraphicsActive();
     ctx.fillStyle = &quot;rgba(70,217,255,0.14)&quot;;
     ctx.beginPath();
     ctx.ellipse(0, 18, 112, 18, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = &quot;rgba(214,180,112,0.68)&quot;;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(-92 * side, 2);
-    ctx.lineTo(86 * side, -10);
-    for (let i = -3; i &lt;= 3; i += 1) {
-      ctx.moveTo(i * 28 * side, -4);
-      ctx.lineTo(i * 28 * side, 22);
+    if (phoneMode) {
+      ctx.fillStyle = &quot;rgba(130,86,45,0.6)&quot;;
+      roundRect(-92, -4, 184, 22, 7);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-78 * side, 2);
+      ctx.lineTo(80 * side, -8);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = &quot;rgba(214,180,112,0.68)&quot;;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-92 * side, 2);
+      ctx.lineTo(86 * side, -10);
+      for (let i = -3; i &lt;= 3; i += 1) {
+        ctx.moveTo(i * 28 * side, -4);
+        ctx.lineTo(i * 28 * side, 22);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
     ctx.fillStyle = `${light}88`;
     ctx.beginPath();
     ctx.arc(74 * side, -38, 7, 0, Math.PI * 2);
@@ -12209,6 +12550,23 @@ function drawRoadsidePole(kind, side, accent, light) {
 }
 
 function drawRoadsideFence(side, color) {
+  if (phoneGraphicsActive()) {
+    ctx.fillStyle = color &amp;&amp; color.includes(&quot;244&quot;) ? &quot;rgba(230,240,236,0.5)&quot; : &quot;rgba(70,112,72,0.45)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(4 * side, -5, 76, 18, -0.05 * side, 0, Math.PI * 2);
+    ctx.ellipse(-38 * side, -15, 38, 14, 0.08 * side, 0, Math.PI * 2);
+    ctx.ellipse(44 * side, -16, 42, 15, -0.08 * side, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-68 * side, -18);
+    ctx.lineTo(72 * side, -24);
+    ctx.moveTo(-68 * side, 0);
+    ctx.lineTo(72 * side, -6);
+    ctx.stroke();
+    return;
+  }
   ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -13185,10 +13543,16 @@ function drawLivingWaterEdgeMoment(kind, side, place, accent, light, seed) {
     drawLivingBirdFlock(0, -58, 0.82, 1, light, seed);
   } else {
     ctx.fillStyle = &quot;rgba(102,72,40,0.9)&quot;;
-    roundRect(-88, -8, 176, 16, 3);
+    roundRect(-88, -8, 176, phoneGraphicsActive() ? 22 : 16, 5);
     ctx.fill();
-    for (let i = -3; i &lt;= 3; i += 1) {
-      ctx.fillRect(i * 28 - 3, -8, 6, 42);
+    if (!phoneGraphicsActive()) {
+      for (let i = -3; i &lt;= 3; i += 1) {
+        ctx.fillRect(i * 28 - 3, -8, 6, 42);
+      }
+    } else {
+      ctx.fillStyle = &quot;rgba(244,251,248,0.24)&quot;;
+      roundRect(-72, -2, 144, 5, 3);
+      ctx.fill();
     }
     drawReferencePeopleLine(1, accent, light, seed);
   }
@@ -15122,6 +15486,7 @@ function drawRoad(w, h, theme) {
   const horizon = cameraMode === &quot;cockpit&quot; ? h * 0.28 : cameraMode === &quot;hood&quot; ? h * 0.31 : h * 0.34;
   const roadTop = cameraMode === &quot;cockpit&quot; ? w * 0.12 : cameraMode === &quot;hood&quot; ? w * 0.15 : w * 0.14;
   const roadBottom = cameraMode === &quot;cockpit&quot; ? w * 1.05 : cameraMode === &quot;hood&quot; ? w * 0.95 : w * 1.02;
+  const phoneMode = phoneGraphicsActive();
   const roadCenter = (t) =&gt; w * 0.5 - cameraLaneOffset(0.24 + t * 0.86) * laneWidth() * (0.18 + t * 0.95);
   const topCenter = roadCenter(0);
   const bottomCenter = roadCenter(1);
@@ -15190,8 +15555,8 @@ function drawRoad(w, h, theme) {
   ctx.closePath();
   ctx.fill();
   ctx.save();
-  ctx.globalAlpha = 0.17;
-  for (let i = 0; i &lt; 130; i += 1) {
+  ctx.globalAlpha = phoneMode ? 0.08 : 0.17;
+  for (let i = 0; i &lt; (phoneMode ? 44 : 130); i += 1) {
     const y = ((i * 23 + raceState.roadOffset * 0.9) % (h + 40)) - 20;
     if (y &lt; horizon) continue;
     const t = (y - horizon) / (h - horizon);
@@ -15200,17 +15565,19 @@ function drawRoad(w, h, theme) {
     ctx.fillRect(x, y, 1 + t * 3, 1 + t * 5);
   }
   ctx.restore();
-  ctx.globalAlpha = 0.16;
-  ctx.strokeStyle = &quot;#f4fbf8&quot;;
-  ctx.lineWidth = 1;
-  for (let i = 0; i &lt; 26; i += 1) {
-    const y = ((i * 42 + raceState.roadOffset * 0.6) % (h + 80)) - 40;
-    const t = Math.max(0, (y - horizon) / (h - horizon));
-    const center = roadCenter(t);
-    ctx.beginPath();
-    ctx.moveTo(center - roadBottom * 0.65 * t, y);
-    ctx.lineTo(center + roadBottom * 0.65 * t, y + 4);
-    ctx.stroke();
+  if (!phoneMode) {
+    ctx.globalAlpha = 0.16;
+    ctx.strokeStyle = &quot;#f4fbf8&quot;;
+    ctx.lineWidth = 1;
+    for (let i = 0; i &lt; 26; i += 1) {
+      const y = ((i * 42 + raceState.roadOffset * 0.6) % (h + 80)) - 40;
+      const t = Math.max(0, (y - horizon) / (h - horizon));
+      const center = roadCenter(t);
+      ctx.beginPath();
+      ctx.moveTo(center - roadBottom * 0.65 * t, y);
+      ctx.lineTo(center + roadBottom * 0.65 * t, y + 4);
+      ctx.stroke();
+    }
   }
   ctx.globalAlpha = 1;
   const baseRoadX = (lane, t) =&gt; roadCenter(t) + lane * laneWidth() * (0.3 + t * 1.05);
@@ -15232,32 +15599,35 @@ function drawRoad(w, h, theme) {
     ctx.closePath();
     ctx.fill();
   };
-  for (let lane = -1.5; lane &lt;= 1.5; lane += 1) {
-    for (let i = 0; i &lt; 14; i += 1) {
+  const paintedLanes = phoneMode ? [-0.5, 0.5] : [-1.5, -0.5, 0.5, 1.5];
+  paintedLanes.forEach((lane) =&gt; {
+    for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
       const y = ((i * 116 + raceState.roadOffset * 1.42) % (h + 190)) - 95;
       if (y &lt; horizon) continue;
       const t = Math.max(0, (y - horizon) / (h - horizon));
-      const dashH = 20 + t * 72;
+      const dashH = 20 + t * (phoneMode ? 54 : 72);
       const x = baseRoadX(lane, t);
       const dash = ctx.createLinearGradient(x, y, x, y + dashH);
-      dash.addColorStop(0, &quot;rgba(244,251,248,0.08)&quot;);
-      dash.addColorStop(0.35, &quot;rgba(244,251,248,0.64)&quot;);
-      dash.addColorStop(1, &quot;rgba(244,251,248,0.12)&quot;);
-      basePaintSegment(lane, y, dashH, 7 + t * 8, dash);
+      dash.addColorStop(0, phoneMode ? &quot;rgba(244,251,248,0.04)&quot; : &quot;rgba(244,251,248,0.08)&quot;);
+      dash.addColorStop(0.35, phoneMode ? &quot;rgba(244,251,248,0.44)&quot; : &quot;rgba(244,251,248,0.64)&quot;);
+      dash.addColorStop(1, phoneMode ? &quot;rgba(244,251,248,0.08)&quot; : &quot;rgba(244,251,248,0.12)&quot;);
+      basePaintSegment(lane, y, dashH, 7 + t * (phoneMode ? 5 : 8), dash);
+    }
+  });
+  if (!phoneMode) {
+    ctx.strokeStyle = &quot;rgba(244,251,248,0.72)&quot;;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.42;
+    for (let lane = -2.5; lane &lt;= 2.5; lane += 1) {
+      ctx.beginPath();
+      ctx.moveTo(topCenter + lane * laneWidth() * 0.28, horizon);
+      ctx.lineTo(bottomCenter + lane * laneWidth() * 1.28, h);
+      ctx.stroke();
     }
   }
-  ctx.strokeStyle = &quot;rgba(244,251,248,0.72)&quot;;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.42;
-  for (let lane = -2.5; lane &lt;= 2.5; lane += 1) {
-    ctx.beginPath();
-    ctx.moveTo(topCenter + lane * laneWidth() * 0.28, horizon);
-    ctx.lineTo(bottomCenter + lane * laneWidth() * 1.28, h);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = &quot;rgba(244,251,248,0.58)&quot;;
-  ctx.lineWidth = 4;
-  ctx.globalAlpha = 0.7;
+  ctx.strokeStyle = phoneMode ? &quot;rgba(244,251,248,0.32)&quot; : &quot;rgba(244,251,248,0.58)&quot;;
+  ctx.lineWidth = phoneMode ? 3 : 4;
+  ctx.globalAlpha = phoneMode ? 0.26 : 0.7;
   ctx.beginPath();
   ctx.moveTo(topCenter - roadTop * 0.9, horizon);
   ctx.lineTo(bottomCenter - roadBottom * 0.7, h);
@@ -15272,6 +15642,7 @@ function drawRoad(w, h, theme) {
 
 function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
   ctx.save();
+  const phoneMode = phoneGraphicsActive();
   const topCenter = perspectiveRoadCenter(w, 0.04);
   const bottomCenter = perspectiveRoadCenter(w, 1);
   for (let side = -1; side &lt;= 1; side += 2) {
@@ -15287,14 +15658,16 @@ function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
     ctx.moveTo(topCenter + side * roadTop * 1.04, horizon + 26);
     ctx.lineTo(bottomCenter + side * roadBottom * 0.78, h);
     ctx.stroke();
-    for (let i = 0; i &lt; 18; i += 1) {
-      const y = ((i * 74 + raceState.roadOffset * 1.2) % (h + 120)) - 60;
-      if (y &lt; horizon) continue;
-      const t = (y - horizon) / (h - horizon);
-      const x = perspectiveRoadCenter(w, t) + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
-      ctx.fillStyle = i % 2 ? &quot;rgba(255,255,255,0.34)&quot; : &quot;rgba(180,192,188,0.34)&quot;;
-      roundRect(x - side * 4, y, side * 10, 22 + t * 34, 3);
-      ctx.fill();
+    if (!phoneMode) {
+      for (let i = 0; i &lt; 18; i += 1) {
+        const y = ((i * 74 + raceState.roadOffset * 1.2) % (h + 120)) - 60;
+        if (y &lt; horizon) continue;
+        const t = (y - horizon) / (h - horizon);
+        const x = perspectiveRoadCenter(w, t) + side * (roadTop * 1.08 + (roadBottom * 0.82 - roadTop * 1.08) * t);
+        ctx.fillStyle = i % 2 ? &quot;rgba(255,255,255,0.34)&quot; : &quot;rgba(180,192,188,0.34)&quot;;
+        roundRect(x - side * 4, y, side * 10, 22 + t * 34, 3);
+        ctx.fill();
+      }
     }
   }
   ctx.restore();
@@ -15302,7 +15675,8 @@ function drawGuardrails(w, h, theme, horizon, roadTop, roadBottom) {
 
 function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
   const place = selectedRace &amp;&amp; selectedRace.place ? selectedRace.place : &quot;city&quot;;
-  for (let i = 0; i &lt; 22; i += 1) {
+  const phoneMode = phoneGraphicsActive();
+  for (let i = 0; i &lt; (phoneMode ? 9 : 22); i += 1) {
     const y = ((i * 92 + raceState.roadOffset * 1.08) % (h + 160)) - 80;
     if (y &lt; horizon) continue;
     const t = (y - horizon) / (h - horizon);
@@ -15421,6 +15795,17 @@ function drawRoadsideDetails(w, h, theme, horizon, roadBottom) {
       ctx.closePath();
       ctx.fill();
     } else {
+      if (phoneMode) {
+        ctx.fillStyle = place === &quot;coast&quot; ? &quot;rgba(38,118,76,0.44)&quot; : &quot;rgba(44,62,58,0.46)&quot;;
+        ctx.beginPath();
+        ctx.ellipse(x, y + size * 0.2, size * 1.05, size * 0.32, -0.08 * side, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = place === &quot;coast&quot; ? &quot;rgba(70,217,255,0.18)&quot; : &quot;rgba(0,0,0,0.26)&quot;;
+        ctx.beginPath();
+        ctx.ellipse(x + side * size * 0.55, y + size * 0.4, size * 0.9, size * 0.18, -0.08 * side, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
       ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
       ctx.lineWidth = Math.max(2, size * 0.08);
       ctx.beginPath();
@@ -16919,6 +17304,8 @@ function drawRealWorldVehicleSkinDetails(w, h, color, vehicleType = &quot;car&qu
     }
   }
 
+  drawRealisticRearVehicleSignature(w, h, color, vehicleType, police, air, water);
+
   if (damage &gt; 24) {
     ctx.globalAlpha = Math.min(0.45, damage / 180);
     ctx.strokeStyle = &quot;rgba(255,91,107,0.82)&quot;;
@@ -16930,6 +17317,84 @@ function drawRealWorldVehicleSkinDetails(w, h, color, vehicleType = &quot;car&qu
     ctx.lineTo(w * 0.32, h * 0.18);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawRealisticRearVehicleSignature(w, h, color, vehicleType = &quot;car&quot;, police = false, air = false, water = false) {
+  if (air || water) return;
+  const heavy = [&quot;semi&quot;, &quot;truck&quot;, &quot;monster&quot;, &quot;tractor&quot;].includes(vehicleType);
+  const tank = vehicleType === &quot;tank&quot;;
+  const f1 = vehicleType === &quot;f1&quot; || vehicleType === &quot;prototype&quot;;
+  const led = police ? &quot;#46d9ff&quot; : heavy ? &quot;#ff5b6b&quot; : &quot;#ff3348&quot;;
+  ctx.save();
+  ctx.globalAlpha = phoneGraphicsActive() ? 0.86 : 0.78;
+  if (tank) {
+    ctx.fillStyle = &quot;rgba(4,6,4,0.68)&quot;;
+    roundRect(-w * 0.34, h * 0.28, w * 0.68, h * 0.1, Math.max(3, w * 0.018));
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(187,242,74,0.46)&quot;;
+    for (let i = -3; i &lt;= 3; i += 1) {
+      ctx.beginPath();
+      ctx.arc(i * w * 0.08, h * 0.33, Math.max(2, w * 0.014), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
+  ctx.fillStyle = &quot;rgba(3,5,5,0.88)&quot;;
+  if (heavy) {
+    roundRect(-w * 0.36, h * 0.18, w * 0.72, h * 0.16, Math.max(4, w * 0.026));
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.36, h * 0.2);
+    ctx.lineTo(w * 0.36, h * 0.2);
+    ctx.lineTo(w * 0.28, h * 0.42);
+    ctx.lineTo(-w * 0.28, h * 0.42);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = led;
+  ctx.shadowColor = led;
+  ctx.shadowBlur = Math.max(3, w * 0.025);
+  if (heavy) {
+    roundRect(-w * 0.32, h * 0.19, w * 0.11, h * 0.055, 4);
+    roundRect(w * 0.21, h * 0.19, w * 0.11, h * 0.055, 4);
+    ctx.fill();
+  } else {
+    roundRect(-w * 0.32, h * 0.21, w * 0.2, h * 0.04, Math.max(3, w * 0.02));
+    roundRect(w * 0.12, h * 0.21, w * 0.2, h * 0.04, Math.max(3, w * 0.02));
+    ctx.fill();
+    ctx.fillStyle = police ? &quot;#ff3348&quot; : &quot;rgba(255,91,107,0.86)&quot;;
+    roundRect(-w * 0.26, h * 0.27, w * 0.12, h * 0.018, 3);
+    roundRect(w * 0.14, h * 0.27, w * 0.12, h * 0.018, 3);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = &quot;rgba(244,251,248,0.76)&quot;;
+  roundRect(-w * 0.08, h * (f1 ? 0.29 : 0.32), w * 0.16, h * 0.035, 4);
+  ctx.fill();
+  if (!heavy) {
+    ctx.fillStyle = &quot;rgba(1,2,2,0.96)&quot;;
+    for (let i = -2; i &lt;= 2; i += 1) {
+      roundRect(i * w * 0.045 - w * 0.012, h * 0.39, w * 0.024, h * 0.09, 3);
+      ctx.fill();
+    }
+    ctx.fillStyle = &quot;rgba(0,0,0,0.86)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.22, h * 0.43, w * 0.07, h * 0.025, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.22, h * 0.43, w * 0.07, h * 0.025, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = &quot;rgba(255,255,255,0.18)&quot;;
+  ctx.lineWidth = Math.max(1, w * 0.01);
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.36, -h * 0.04);
+  ctx.bezierCurveTo(-w * 0.48, h * 0.12, -w * 0.43, h * 0.32, -w * 0.28, h * 0.46);
+  ctx.moveTo(w * 0.36, -h * 0.04);
+  ctx.bezierCurveTo(w * 0.48, h * 0.12, w * 0.43, h * 0.32, w * 0.28, h * 0.46);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -18512,7 +18977,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v90-visible-real-world-detail&quot;;
+const cacheName = &quot;velocity-vault-v91-road-drama-real-vehicles&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -18656,6 +19121,7 @@ Real-world style visuals:
 - The v88 living-world safety pass adds more bystanders and route-appropriate animals to the scenery: sidewalk spectators behind barriers, beach and dock crowds, farm pasture animals, mountain and desert wildlife, rainforest animals, and city dogs or birds. Some people or animals can become clear avoidable crossing hazards with on-screen warnings, reputation/coin penalties, and slowdown instead of unexplained damage.
 - The v89 ambient living-world pass adds more visible drive-by life that stays set back from the road: cyclists, joggers, sidewalk queues, patio crowds, dock workers, pier people, pasture animals, wildlife lookouts, airfield crews, airport beacons, freight forklifts, diesel-stop activity, stadium crowds, military/range crews, and shoreline/airfield motion. The same idea now feeds the WebGL route so browser and phone views feel more like passing through occupied places instead of empty scenery.
 - The v90 visible-detail pass makes the real-world build easier to see on phones: larger foreground landmarks, brighter roadside people/animals/crews, closer shoulder placement, stronger sidewalk/ground pads, more visible buildings/fences/lights/signs, and a late foreground pass drawn after the road so details are no longer washed into the background. The WebGL route also keeps scenery active on shorter landscape frames with a lighter object count.
+- The v91 road-drama and vehicle-detail pass removes the remaining phone grid look from guardrails, docks, road seams, and turn arrows; adds cleaner grounded asphalt and softer curve cues; adds more visible route moments for tunnels, city underpasses, hills, mountain drives, and sweeping turns; and gives canvas, phone, and WebGL vehicles more realistic rear signatures with LED tail lights, diffusers, exhausts, plates, heavy-vehicle panels, and tank tread detail.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

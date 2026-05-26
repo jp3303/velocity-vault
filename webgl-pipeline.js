@@ -718,6 +718,16 @@
         box(x - 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x + 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
         box(x, 0.46 * scale, z + 1.08 * scale, 0.58 * scale, 0.06 * scale, 0.08 * scale, shade(dark, 1.5));
+        box(x - 0.34 * scale, 0.58 * scale, z - 1.2 * scale, 0.34 * scale, 0.07 * scale, 0.08 * scale, police ? blue : red);
+        box(x + 0.34 * scale, 0.58 * scale, z - 1.2 * scale, 0.34 * scale, 0.07 * scale, 0.08 * scale, police ? red : red);
+        box(x, 0.42 * scale, z - 1.24 * scale, (type === "semi" || type === "truck" ? 1.38 : 0.82) * scale, 0.06 * scale, 0.08 * scale, dark);
+        if (type !== "semi" && type !== "truck" && type !== "tractor" && type !== "tank") {
+          box(x - 0.22 * scale, 0.34 * scale, z - 1.32 * scale, 0.14 * scale, 0.08 * scale, 0.09 * scale, chrome);
+          box(x + 0.22 * scale, 0.34 * scale, z - 1.32 * scale, 0.14 * scale, 0.08 * scale, 0.09 * scale, chrome);
+          for (let fin = -2; fin <= 2; fin += 1) {
+            box(x + fin * 0.1 * scale, 0.34 * scale, z - 1.2 * scale, 0.025 * scale, 0.14 * scale, 0.22 * scale, dark);
+          }
+        }
         box(x - 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.72));
         box(x + 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.84));
         box(x - 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.64));

@@ -517,6 +517,101 @@
     ctx.restore();
   }
 
+  function drawModernRearSignature(ctx, w, h, type, color, policeLivery, groundY) {
+    const heavy = ["semi", "truck", "monster", "tractor"].includes(type);
+    const tank = type === "tank";
+    const f1 = type === "f1" || type === "prototype";
+    const snow = type === "snowmobile";
+    if (tank) {
+      ctx.save();
+      ctx.fillStyle = "rgba(2,4,4,0.82)";
+      roundRect(ctx, w * 0.18, groundY - h * 0.105, w * 0.64, h * 0.07, 8);
+      ctx.fill();
+      ctx.fillStyle = "rgba(187,242,74,0.42)";
+      for (let i = 0; i < 7; i += 1) {
+        ctx.beginPath();
+        ctx.arc(w * (0.26 + i * 0.08), groundY - h * 0.07, w * 0.014, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      return;
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    const led = policeLivery ? "#46d9ff" : type === "semi" || heavy ? "#ff5b6b" : "#ff3348";
+    const plateY = groundY - h * (heavy ? 0.18 : f1 ? 0.15 : 0.17);
+    const tailY = groundY - h * (heavy ? 0.23 : f1 ? 0.19 : 0.25);
+    ctx.fillStyle = "rgba(3,5,5,0.94)";
+    if (f1) {
+      roundRect(ctx, w * 0.18, groundY - h * 0.16, w * 0.64, h * 0.06, 8);
+    } else if (heavy) {
+      roundRect(ctx, w * 0.17, groundY - h * 0.25, w * 0.66, h * 0.14, 10);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22, groundY - h * 0.25);
+      ctx.lineTo(w * 0.78, groundY - h * 0.25);
+      ctx.lineTo(w * 0.68, groundY - h * 0.1);
+      ctx.lineTo(w * 0.32, groundY - h * 0.1);
+      ctx.closePath();
+    }
+    ctx.fill();
+
+    ctx.fillStyle = led;
+    ctx.shadowColor = led;
+    ctx.shadowBlur = Math.max(4, w * 0.025);
+    if (heavy) {
+      roundRect(ctx, w * 0.22, tailY, w * 0.08, h * 0.052, 5);
+      ctx.fill();
+      roundRect(ctx, w * 0.7, tailY, w * 0.08, h * 0.052, 5);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(244,251,248,0.44)";
+      for (let i = 0; i < 4; i += 1) {
+        roundRect(ctx, w * 0.27, groundY - h * (0.38 - i * 0.06), w * 0.46, h * 0.012, 3);
+        ctx.fill();
+      }
+    } else {
+      roundRect(ctx, w * 0.24, tailY, w * 0.19, h * 0.035, 7);
+      ctx.fill();
+      roundRect(ctx, w * 0.57, tailY, w * 0.19, h * 0.035, 7);
+      ctx.fill();
+      ctx.fillStyle = policeLivery ? "#ff3348" : "rgba(255,91,107,0.92)";
+      roundRect(ctx, w * 0.28, tailY + h * 0.042, w * 0.12, h * 0.016, 5);
+      roundRect(ctx, w * 0.6, tailY + h * 0.042, w * 0.12, h * 0.016, 5);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(244,251,248,0.86)";
+    roundRect(ctx, w * 0.42, plateY, w * 0.16, h * 0.038, 5);
+    ctx.fill();
+    ctx.fillStyle = "rgba(3,5,5,0.78)";
+    roundRect(ctx, w * 0.36, groundY - h * 0.09, w * 0.28, h * 0.024, 5);
+    ctx.fill();
+
+    if (!heavy && !snow) {
+      ctx.fillStyle = "rgba(3,5,5,0.92)";
+      for (let i = -2; i <= 2; i += 1) {
+        roundRect(ctx, w * 0.5 + i * w * 0.045 - w * 0.012, groundY - h * 0.085, w * 0.024, h * 0.07, 4);
+        ctx.fill();
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.lineWidth = Math.max(1.5, w * 0.008);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.32);
+      ctx.bezierCurveTo(w * 0.16, h * 0.5, w * 0.2, h * 0.74, w * 0.32, groundY - h * 0.13);
+      ctx.moveTo(w * 0.76, h * 0.32);
+      ctx.bezierCurveTo(w * 0.84, h * 0.5, w * 0.8, h * 0.74, w * 0.68, groundY - h * 0.13);
+      ctx.stroke();
+    } else if (heavy) {
+      ctx.fillStyle = "rgba(3,5,5,0.86)";
+      roundRect(ctx, w * 0.19, groundY - h * 0.045, w * 0.18, h * 0.05, 5);
+      roundRect(ctx, w * 0.63, groundY - h * 0.045, w * 0.18, h * 0.05, 5);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
     const pursuit = type === "policecar";
     const policeLivery = police || pursuit;
@@ -731,6 +826,7 @@
     ctx.lineTo(w * 0.5, groundY - h * 0.08);
     ctx.stroke();
 
+    drawModernRearSignature(ctx, w, h, type, paint, policeLivery, groundY);
     drawPaintGrain(ctx, w, h, paint);
     drawDamage(ctx, w, h, damage);
     ctx.restore();
