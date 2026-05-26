@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v87-reference-world-scenes";
+const cacheName = "velocity-vault-v88-living-bystanders-animals";
 const appShell = [
   "./",
   "./index.html",

@@ -277,6 +277,34 @@
       box(x, 0.28, z + 0.85, 2.4, 0.14, 0.14, [0.78, 0.82, 0.78, 1]);
     }
 
+    function animalGroup(x, z, species = "dog", side = 1) {
+      const count = species === "birds" || species === "sheep" ? 3 : 2;
+      for (let j = 0; j < count; j += 1) {
+        const px = x + side * (j * 0.75 - 0.45);
+        const pz = z + (j % 2) * 0.34;
+        const large = species === "cow" || species === "horse" || species === "camel";
+        const body = species === "cow" || species === "sheep" || species === "birds" ? [0.84, 0.84, 0.76, 1]
+          : species === "deer" || species === "horse" || species === "dog" ? [0.48, 0.28, 0.16, 1]
+            : species === "camel" ? [0.76, 0.52, 0.28, 1]
+              : [0.25, 0.34, 0.2, 1];
+        if (species === "birds") {
+          box(px, 0.24, pz, 0.32, 0.12, 0.18, body);
+          box(px + side * 0.18, 0.34, pz, 0.12, 0.12, 0.12, body);
+          box(px - side * 0.08, 0.16, pz, 0.04, 0.24, 0.04, [0.08, 0.08, 0.06, 1]);
+          box(px + side * 0.08, 0.16, pz, 0.04, 0.24, 0.04, [0.08, 0.08, 0.06, 1]);
+        } else {
+          box(px, large ? 0.42 : 0.3, pz, large ? 0.92 : 0.62, large ? 0.42 : 0.3, large ? 0.36 : 0.26, body);
+          box(px + side * (large ? 0.52 : 0.36), large ? 0.54 : 0.4, pz - 0.04, large ? 0.24 : 0.18, large ? 0.26 : 0.2, large ? 0.22 : 0.16, body);
+          box(px - side * 0.28, 0.12, pz + 0.14, 0.08, 0.24, 0.08, [0.06, 0.045, 0.035, 1]);
+          box(px + side * 0.22, 0.12, pz + 0.14, 0.08, 0.24, 0.08, [0.06, 0.045, 0.035, 1]);
+          if (species === "deer") {
+            box(px + side * 0.6, 0.78, pz - 0.08, 0.05, 0.34, 0.05, [0.9, 0.76, 0.48, 1]);
+            box(px + side * 0.42, 0.78, pz - 0.08, 0.05, 0.3, 0.05, [0.9, 0.76, 0.48, 1]);
+          }
+        }
+      }
+    }
+
     function streetLight(x, z, accent) {
       const side = x < 0 ? 1 : -1;
       box(x, 1.35, z, 0.1, 2.7, 0.1, [0.38, 0.42, 0.39, 1]);
@@ -505,6 +533,7 @@
           if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === "tokyo" ? accent2 : accent);
           if (i % 14 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
           if (i % 9 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
+          if (i % 13 === 0) animalGroup(side * 9.8, z + 2.9, "dog", side);
         } else if (place === "farm") {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
           taperedBox(x, 1.95, z - 1.25, 2.45, 1.3, 0.6, 2.55, [0.44, 0.22, 0.12, 1]);
@@ -512,6 +541,7 @@
           if (i % 4 === 0) roadsideTree(side * 10.8, z + 1.5, [0.12, 0.44, 0.14, 1]);
           if (i % 5 === 0) box(x + side * 3.4, 0.65, z - 1, 2.2, 1.3, 1.8, [0.86, 0.72, 0.34, 1]);
           if (i % 9 === 0) spectatorCluster(side * 9.4, z + 2, accent, accent2);
+          if (i % 6 === 0) animalGroup(side * 11.6, z + 2.8, i % 12 === 0 ? "cow" : "sheep", side);
         } else if (place === "freight") {
           box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
           box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
@@ -522,16 +552,19 @@
           lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === "canyon" ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
           if (i % 6 === 0) lowMound(side * 18.5, z + 2.7, 7.5, 2.6, 5.2, place === "canyon" ? [0.64, 0.25, 0.13, 1] : [0.78, 0.5, 0.22, 1]);
           if (i % 16 === 0) box(side * 10.2, 0.6, z + 1.2, 2.2, 1.2, 1.2, [0.12, 0.08, 0.04, 1]);
+          if (i % 11 === 0) animalGroup(side * 10.8, z + 2.4, place === "desert" ? "camel" : "deer", side);
         } else if (place === "rainforest") {
           taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
           taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
           if (i % 4 === 0) roadsideTree(side * 8.6, z + 1.8, [0.08, 0.38, 0.18, 1]);
           if (i % 11 === 0) spectatorCluster(side * 8.7, z + 1.4, accent, accent2);
+          if (i % 9 === 0) animalGroup(side * 10.5, z + 2.4, "monkey", side);
         } else if (place === "snow" || place === "alpine" || place === "europe") {
           lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
           if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
           if (i % 5 === 0) roadsideTree(side * 9.2, z + 1.5, [0.08, 0.24, 0.18, 1]);
           if (place === "europe" && i % 8 === 0) spectatorCluster(side * 8.8, z + 2.2, accent, accent2);
+          if (i % 10 === 0) animalGroup(side * 10.4, z + 2.5, place === "europe" ? "sheep" : "deer", side);
         } else if (place === "harbor" || place === "coast") {
           box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
           box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
@@ -543,6 +576,7 @@
           if (i % 4 === 0) roadsideTree(side * 10.4, z + 0.9, [0.18, 0.48, 0.2, 1], "palm");
           if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
           if (i % 9 === 0) spectatorCluster(side * 9.1, z + 2.8, accent, accent2);
+          if (i % 10 === 0) animalGroup(side * 9.8, z + 2.2, "birds", side);
         } else if (place === "airfield") {
           box(x, 1.1, z, 4.4, 2.2, 3.4, [0.18, 0.18, 0.16, 1]);
           taperedBox(x, 2.35, z - 1.8, 4.8, 2.4, 0.6, 3.6, [0.24, 0.24, 0.22, 1]);

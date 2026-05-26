@@ -2199,7 +2199,11 @@ function updateHazardWarning(object, kind = "traffic") {
   const warningRange = phoneMode ? 260 : 190;
   if (gap > 38 && gap < warningRange && laneGap < 0.96 && screenY > canvas.height * 0.42 && screenY < canvas.height * 0.88) {
     raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, 0.35);
-    raceState.hazardWarningLabel = kind === "police" ? "POLICE AHEAD - CHANGE LANES" : "CAR AHEAD - CHANGE LANES";
+    raceState.hazardWarningLabel = kind === "civilian"
+      ? ((object && object.kind === "animal") ? "ANIMAL AHEAD - SLOW DOWN" : "CIVILIAN AHEAD - CHANGE LANES")
+      : kind === "police"
+        ? "POLICE AHEAD - CHANGE LANES"
+        : "CAR AHEAD - CHANGE LANES";
   }
 }
 
@@ -2335,17 +2339,66 @@ function spawnPoliceUnit() {
 
 function spawnCivilian() {
   const side = Math.random() > 0.5 ? 1 : -1;
-  const crossing = Math.random() < 0.26;
+  const species = routeAnimalSpecies(selectedRace && selectedRace.place ? selectedRace.place : "city", Math.random() * 9999);
+  const animal = Boolean(species) && Math.random() < routeAnimalChance(selectedRace && selectedRace.place ? selectedRace.place : "city");
+  const crossing = animal ? Math.random() < 0.18 : Math.random() < 0.26;
   raceState.civilians.push({
-    lane: crossing ? side * (1.9 + Math.random() * 0.22) : side * (2.34 + Math.random() * 0.28),
+    lane: crossing ? side * (animal ? 1.7 + Math.random() * 0.24 : 1.9 + Math.random() * 0.22) : side * (animal ? 2.42 + Math.random() * 0.34 : 2.34 + Math.random() * 0.28),
     distance: roadSpawnDistance(0.24, 0.34),
     side,
     crossing,
-    speed: crossing ? 0.34 + Math.random() * 0.26 : 0,
+    speed: crossing ? (animal ? 0.42 + Math.random() * 0.34 : 0.34 + Math.random() * 0.26) : 0,
     step: Math.random() * Math.PI * 2,
     hit: false,
-    warned: false
+    warned: false,
+    kind: animal ? "animal" : "person",
+    species: animal ? species : "",
+    jacket: animal ? "" : (Math.random() > 0.5 ? "#ffd166" : "#46d9ff")
   });
+}
+
+function routeAnimalChance(place = "city") {
+  const chances = {
+    coast: 0.32,
+    city: 0.14,
+    canyon: 0.34,
+    alpine: 0.34,
+    harbor: 0.2,
+    freight: 0.12,
+    interstate: 0.16,
+    farm: 0.48,
+    tokyo: 0.1,
+    desert: 0.32,
+    rainforest: 0.42,
+    europe: 0.3,
+    pursuit: 0.12
+  };
+  return chances[place] || 0.18;
+}
+
+function routeAnimalSet(place = "city") {
+  const sets = {
+    coast: ["dog", "shoreBird", "horse"],
+    city: ["dog", "bird"],
+    canyon: ["deer", "coyote", "bird"],
+    alpine: ["deer", "goat", "bird"],
+    harbor: ["dog", "shoreBird"],
+    freight: ["dog", "bird"],
+    interstate: ["deer", "dog"],
+    farm: ["cow", "horse", "sheep", "dog"],
+    tokyo: ["dog", "bird"],
+    desert: ["camel", "coyote", "bird"],
+    rainforest: ["monkey", "tapir", "bird"],
+    europe: ["deer", "sheep", "dog"],
+    pursuit: ["dog", "bird"]
+  };
+  return sets[place] || sets.city;
+}
+
+function routeAnimalSpecies(place = "city", seed = 0) {
+  const list = routeAnimalSet(place);
+  if (!list || !list.length) return "";
+  return list[Math.abs(Math.floor(seed)) % list.length];
 }
 
 function spawnOncomingTraffic() {
@@ -2863,29 +2916,32 @@ function moveObjects(dt) {
   raceState.civilians = Array.isArray(raceState.civilians) ? raceState.civilians : [];
   raceState.civilians.forEach((person) => {
     ensureRoadDistance(person, -120);
-    person.step = (person.step || 0) + dt * 6;
+    const animal = person.kind === "animal";
+    person.step = (person.step || 0) + dt * (animal ? 8 : 6);
     if (person.crossing && !person.hit) {
       person.lane -= person.side * (person.speed || 0.42) * dt;
       if (Math.abs(person.lane) < 0.55 && !person.warned) {
         person.warned = true;
-        raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, 0.8);
-        raceState.hazardWarningLabel = "CIVILIAN CROSSING - AVOID";
+        raceState.hazardWarningTimer = Math.max(raceState.hazardWarningTimer || 0, animal ? 1 : 0.8);
+        raceState.hazardWarningLabel = animal ? "ANIMAL CROSSING - SLOW DOWN" : "CIVILIAN CROSSING - AVOID";
       }
     }
+    updateHazardWarning(person, "civilian");
     const contact = visiblePlayerVehicleContact(person, "civilian");
     if (contact.hit && !person.hit && raceState.resetTimer <= 0) {
       person.hit = true;
       raceState.civilianHits = (raceState.civilianHits || 0) + 1;
-      raceState.penaltyCoins = (raceState.penaltyCoins || 0) + 160;
-      raceState.penaltyRep = (raceState.penaltyRep || 0) + 5;
-      raceState.coins = Math.max(0, raceState.coins - 2);
-      raceState.score = Math.max(0, raceState.score - 520);
-      raceState.focus = Math.max(0, raceState.focus - 12);
+      raceState.penaltyCoins = (raceState.penaltyCoins || 0) + (animal ? 120 : 160);
+      raceState.penaltyRep = (raceState.penaltyRep || 0) + (animal ? 4 : 5);
+      raceState.coins = Math.max(0, raceState.coins - (animal ? 1 : 2));
+      raceState.score = Math.max(0, raceState.score - (animal ? 420 : 520));
+      raceState.focus = Math.max(0, raceState.focus - (animal ? 9 : 12));
       raceState.combo = 1;
-      raceState.cameraShake = Math.max(raceState.cameraShake, 6);
-      burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.78, "#f4fbf8");
-      showToast("Civilian hit. Reputation and coins penalized.");
-      playHitSound("impact");
+      raceState.cameraShake = Math.max(raceState.cameraShake, animal ? 3 : 6);
+      raceState.speed *= animal ? 0.72 : 0.82;
+      burst(canvas.width / 2 + raceState.lane * laneWidth(), canvas.height * 0.78, animal ? "#bbf24a" : "#f4fbf8");
+      showToast(animal ? "Animal hazard penalty. Slow down and steer clear." : "Civilian hit. Reputation and coins penalized.");
+      playHitSound(animal ? "coin" : "impact");
     }
   });
   const magnet = activeVehicleUpgrades(activeProfile).magnet;
@@ -2909,7 +2965,7 @@ function moveObjects(dt) {
   raceState.rivals = raceState.rivals.filter((r) => roadObjectY(r) < canvas.height + 220 && r.distance > raceState.distance - 360);
   raceState.police = raceState.police.filter((p) => roadObjectY(p) < canvas.height + 240 && p.distance > raceState.distance - 390);
   raceState.oncoming = raceState.oncoming.filter((p) => roadObjectY(p) < canvas.height + 260 && p.distance > raceState.distance - 420);
-  raceState.civilians = raceState.civilians.filter((p) => roadObjectY(p) < canvas.height + 160 && p.distance > raceState.distance - 280 && !p.hit);
+  raceState.civilians = raceState.civilians.filter((p) => roadObjectY(p) < canvas.height + 180 && p.distance > raceState.distance - 300 && !p.hit);
   if (!raceState.police.length && raceState.heat < 16) raceState.chaseActive = false;
   raceState.coinsOnRoad = raceState.coinsOnRoad.filter((c) => roadObjectY(c) < canvas.height + 80 && !c.hit);
   raceState.particles.forEach((p) => {
@@ -4553,24 +4609,24 @@ function referenceInspiredSceneSet(place, stage) {
   if (stage && (stage.prop === "bridge" || stage.prop === "pier")) return ["bridgeGuardrailScene", "waterSpanScene", "inspectionTruckScene", "pierDeckScene"];
   if (stage && stage.prop === "checkpoint") return ["marshalPullout", "cameraCrewSetback", "crowdBehindBarrier", "serviceVanPullout"];
   const sets = {
-    coast: ["shorelineHomes", "beachPullout", "palmShoulder", "marinaShore", "seaCliffRail"],
-    city: ["storefrontBlock", "parkedStreet", "glassOfficeSetback", "sidewalkCafe", "crosswalkCorner"],
-    canyon: ["rockCutGuardrail", "photoPullout", "desertScrubBasin", "mesaWall", "tourVanPullout"],
-    alpine: ["pineSlope", "stoneGuardwall", "chaletCluster", "snowbankCurve", "mountainPullout"],
-    harbor: ["containerYardRow", "dockWarehouse", "craneSilhouette", "marinaPier", "serviceQuay"],
+    coast: ["shorelineHomes", "beachPullout", "palmShoulder", "marinaShore", "seaCliffRail", "beachBystanders"],
+    city: ["storefrontBlock", "parkedStreet", "glassOfficeSetback", "sidewalkCafe", "crosswalkCorner", "bystanderCorner"],
+    canyon: ["rockCutGuardrail", "photoPullout", "desertScrubBasin", "mesaWall", "tourVanPullout", "wildlifePullout"],
+    alpine: ["pineSlope", "stoneGuardwall", "chaletCluster", "snowbankCurve", "mountainPullout", "wildlifeSlope"],
+    harbor: ["containerYardRow", "dockWarehouse", "craneSilhouette", "marinaPier", "serviceQuay", "dockBystanders"],
     snow: ["pineSnowfield", "snowFenceRun", "skiLodgeCluster", "plowPullout", "stoneGuardwall"],
     airfield: ["hangarApron", "runwayServiceRow", "controlTowerSet", "beaconFence", "fuelTruckPad"],
     pursuit: ["cityPoliceBlock", "parkedStreet", "streetLightRun", "crowdBehindBarrier", "serviceVanPullout"],
     freight: ["truckStopRow", "semiLot", "soundWallTraffic", "dieselCanopy", "containerYardRow"],
     interstate: ["truckStopRow", "soundWallTraffic", "dieselCanopy", "semiLot", "restAreaPullout"],
-    farm: ["fieldFenceRows", "barnYard", "grainSiloSet", "tractorField", "countyRoadShoulder"],
+    farm: ["fieldFenceRows", "barnYard", "grainSiloSet", "tractorField", "countyRoadShoulder", "pastureAnimals"],
     monsterpark: ["grandstandBerm", "dirtArenaEdge", "crushCarYard", "servicePitRow", "crowdBehindBarrier"],
     military: ["bunkerSetback", "watchTowerRidge", "blastWallRun", "serviceConvoyPullout", "rangeMound"],
     skybase: ["hangarApron", "controlTowerSet", "beaconFence", "serviceConvoyPullout", "radarPad"],
-    tokyo: ["neonStreetRow", "railOverpassScene", "taxiCurb", "towerAlley", "wetSidewalkGlow"],
-    desert: ["openDesertHighway", "telephonePoleLine", "rallyCampSparse", "distantButtes", "desertScrubBasin"],
-    rainforest: ["canopyVillage", "riverBridgeScene", "marketRoadside", "mistWaterfall", "woodRailRun"],
-    europe: ["stoneVillageStreet", "terraceVineyard", "switchbackWall", "tramStreet", "cafeCurve"]
+    tokyo: ["neonStreetRow", "railOverpassScene", "taxiCurb", "towerAlley", "wetSidewalkGlow", "bystanderCorner"],
+    desert: ["openDesertHighway", "telephonePoleLine", "rallyCampSparse", "distantButtes", "desertScrubBasin", "wildlifePullout"],
+    rainforest: ["canopyVillage", "riverBridgeScene", "marketRoadside", "mistWaterfall", "woodRailRun", "canopyAnimals"],
+    europe: ["stoneVillageStreet", "terraceVineyard", "switchbackWall", "tramStreet", "cafeCurve", "pastureAnimals"]
   };
   return sets[place] || sets.city;
 }
@@ -4662,19 +4718,19 @@ function drawReferenceInspiredSceneCluster(kind, x, y, scale, side, place, route
     drawReferenceTreeLine("palm", side, seed);
     if (/Homes|beach|marina/i.test(kind)) drawReferenceSmallHouseRow(side, accent, light, seed);
     if (/seaCliff|bridge|waterSpan/i.test(kind)) drawReferenceGuardrail(side, "rgba(214,226,221,0.62)");
-  } else if (/rock|mesa|desert|telephone|rallyCamp|distantButtes|photoPullout|tourVan/i.test(kind)) {
+  } else if (/rock|mesa|desert|telephone|rallyCamp|distantButtes|photoPullout|tourVan|wildlifePullout/i.test(kind)) {
     drawReferenceRockAndDesertScene(side, kind, accent, light, seed);
     drawReferenceGuardrail(side, "rgba(210,190,156,0.42)");
     if (/telephone/i.test(kind)) drawReferenceUtilityPoleLine(side, accent, light);
     if (/rallyCamp|photoPullout|tourVan/i.test(kind)) drawReferenceParkedVehicleLine(side, accent, light, seed);
-  } else if (/pine|stoneGuard|chalet|snowbank|mountainPullout|skiLodge|snowFence|plow/i.test(kind)) {
+  } else if (/pine|stoneGuard|chalet|snowbank|mountainPullout|skiLodge|snowFence|plow|wildlifeSlope/i.test(kind)) {
     drawReferenceTreeLine("pine", side, seed);
     drawReferenceMountainVillage(side, kind, accent, light, seed);
     drawReferenceGuardrail(side, /snow|pine/i.test(kind) ? "rgba(244,251,248,0.58)" : "rgba(170,178,170,0.58)");
   } else if (/container|dockWarehouse|crane|serviceQuay|truckStop|semiLot|soundWall|diesel|restArea/i.test(kind)) {
     drawReferenceIndustrialScene(side, kind, accent, light, seed);
     if (/truckStop|semiLot|diesel|restArea/i.test(kind)) drawReferenceParkedVehicleLine(side, light, accent, seed);
-  } else if (/field|barn|grainSilo|tractor|countyRoad/i.test(kind)) {
+  } else if (/field|barn|grainSilo|tractor|countyRoad|pastureAnimals/i.test(kind)) {
     drawReferenceFarmScene(side, kind, accent, light, seed);
   } else if (/hangar|runway|controlTower|beacon|fuelTruck|radar/i.test(kind)) {
     drawReferenceAirfieldScene(side, kind, accent, light, seed);
@@ -4682,11 +4738,17 @@ function drawReferenceInspiredSceneCluster(kind, x, y, scale, side, place, route
     drawReferenceMilitaryScene(side, kind, accent, light, seed);
   } else if (/grandstand|dirtArena|crushCar|servicePit|Berm/i.test(kind)) {
     drawReferenceMonsterScene(side, kind, accent, light, seed);
-  } else if (/canopy|riverBridge|market|mistWaterfall|woodRail/i.test(kind)) {
+  } else if (/canopy|riverBridge|market|mistWaterfall|woodRail|canopyAnimals/i.test(kind)) {
     drawReferenceRainforestScene(side, kind, accent, light, seed);
   } else {
     drawReferenceBuildingRow(side, kind, place, accent, light, seed);
     drawReferenceParkedVehicleLine(side, accent, light, seed);
+  }
+  if (/bystander|crowd|cafe|crosswalk|market|dock|beach|station|service|village|corner/i.test(kind) && seededUnit(seed, 730) > 0.18) {
+    drawReferenceBystanderBarrier(side, accent, light, seed + 17);
+  }
+  if (routeAnimalSet(place).length && (/animal|wildlife|pasture|farm|field|pine|forest|beach|shore|desert|rainforest|village|slope|pullout/i.test(kind) || seededUnit(seed, 740) > 0.62)) {
+    drawReferenceAnimalGroup(routeAnimalSpecies(place, seed + 741), side, accent, light, seed + 23);
   }
   ctx.restore();
 }
@@ -5032,6 +5094,113 @@ function drawReferencePeopleLine(side, accent, light, seed) {
     roundRect(x - 4, -14 + (i % 2) * 3, 8, 18, 3);
     ctx.fill();
   }
+}
+
+function drawReferenceBystanderBarrier(side, accent, light, seed) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(244,251,248,0.48)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-74 * side, 6);
+  ctx.lineTo(82 * side, -3);
+  ctx.moveTo(-74 * side, -8);
+  ctx.lineTo(82 * side, -17);
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.moveTo(i * 32 * side, -22);
+    ctx.lineTo(i * 32 * side, 10);
+  }
+  ctx.stroke();
+  ctx.translate(side * 4, -24);
+  drawReferencePeopleLine(side, accent, light, seed);
+  ctx.restore();
+}
+
+function drawReferenceAnimalGroup(species, side, accent, light, seed) {
+  if (!species) return;
+  const count = species === "bird" || species === "shoreBird" ? 3 : species === "sheep" ? 3 : 2;
+  ctx.save();
+  for (let i = 0; i < count; i += 1) {
+    const x = side * (-34 + i * 32 + seededUnit(seed, i + 2) * 10);
+    const y = 15 + (i % 2) * 5;
+    const s = species === "camel" || species === "horse" || species === "cow" ? 1.08 : species === "bird" || species === "shoreBird" ? 0.54 : 0.82;
+    drawReferenceAnimalShape(species, x, y, s, side, accent, light, seed + i * 19);
+  }
+  ctx.restore();
+}
+
+function drawReferenceAnimalShape(species, x, y, scale, side, accent, light, seed) {
+  const body = species === "cow" ? "rgba(244,251,248,0.86)"
+    : species === "horse" || species === "deer" ? "rgba(132,86,46,0.86)"
+      : species === "camel" ? "rgba(196,142,78,0.86)"
+        : species === "sheep" ? "rgba(230,230,210,0.88)"
+          : species === "monkey" ? "rgba(108,72,46,0.86)"
+            : species === "tapir" ? "rgba(74,64,58,0.86)"
+              : species === "bird" || species === "shoreBird" ? "rgba(244,251,248,0.82)"
+                : "rgba(90,70,52,0.86)";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * side, scale);
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.ellipse(0, 8, species === "bird" || species === "shoreBird" ? 16 : 30, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = body;
+  if (species === "bird" || species === "shoreBird") {
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 18, 7, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(14, -9, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(40,40,34,0.72)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-4, 2);
+    ctx.lineTo(-9, 10);
+    ctx.moveTo(7, 2);
+    ctx.lineTo(2, 10);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.ellipse(0, -10, species === "camel" ? 34 : 30, species === "sheep" ? 16 : 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (species === "camel") {
+      ctx.beginPath();
+      ctx.ellipse(-10, -24, 11, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(28, -18, species === "horse" || species === "deer" ? 9 : 8, 0, Math.PI * 2);
+    ctx.fill();
+    if (species === "deer" || species === "goat") {
+      ctx.strokeStyle = light;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(31, -26);
+      ctx.lineTo(38, -42);
+      ctx.moveTo(25, -26);
+      ctx.lineTo(18, -39);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(36,28,20,0.78)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let leg = -1; leg <= 1; leg += 2) {
+      ctx.moveTo(leg * 15, 0);
+      ctx.lineTo(leg * 17, 13);
+      ctx.moveTo(leg * 2, 1);
+      ctx.lineTo(leg * 4, 13);
+    }
+    ctx.stroke();
+    if (species === "cow") {
+      ctx.fillStyle = "rgba(30,25,20,0.76)";
+      ctx.beginPath();
+      ctx.ellipse(-8, -13, 8, 5, 0.2, 0, Math.PI * 2);
+      ctx.ellipse(10, -8, 7, 4, -0.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
 }
 
 function drawReferenceStreetFurniture(side, kind, accent, light) {
@@ -7847,19 +8016,19 @@ function drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, de
 
 function realWorldPropSet(place) {
   const sets = {
-    coast: ["person", "parked", "palm", "cliff", "fence", "roadSign", "lifeguard", "pier", "billboard"],
-    city: ["building", "person", "parked", "streetlight", "busStop", "roadSign", "fence", "billboard", "speedCamera"],
-    canyon: ["rock", "cliff", "person", "roadSign", "fence", "parked", "telephone", "mileMarker", "tunnelMouth"],
-    alpine: ["pine", "mountain", "person", "cabin", "guardrail", "roadSign", "snowbank", "tunnelMouth", "mileMarker"],
-    harbor: ["crane", "boat", "person", "warehouse", "streetlight", "parked", "fence", "pier", "container"],
-    snow: ["pine", "snowbank", "person", "cabin", "roadSign", "fence", "mountain", "tunnelMouth", "mileMarker"],
-    airfield: ["hangar", "beacon", "plane", "person", "fence", "roadSign", "warehouse", "radar", "serviceTruck"],
-    freight: ["trailer", "warehouse", "person", "streetlight", "parked", "roadSign", "fence", "fuelStop", "container"],
-    farm: ["barn", "field", "tractor", "person", "fence", "telephone", "roadSign", "silo", "market"],
-    tokyo: ["neon", "building", "person", "parked", "streetlight", "busStop", "roadSign", "billboard", "speedCamera"],
-    desert: ["dune", "rock", "person", "roadSign", "fence", "telephone", "parked", "mileMarker", "tunnelMouth"],
-    rainforest: ["canopy", "person", "bridge", "fence", "roadSign", "parked", "telephone", "market", "waterfall"],
-    europe: ["village", "mountain", "person", "parked", "streetlight", "roadSign", "fence", "tunnelMouth", "market"]
+    coast: ["person", "bystanders", "animal", "parked", "palm", "cliff", "fence", "roadSign", "lifeguard", "pier"],
+    city: ["building", "person", "bystanders", "animal", "parked", "streetlight", "busStop", "roadSign", "fence", "speedCamera"],
+    canyon: ["rock", "cliff", "animal", "person", "roadSign", "fence", "parked", "telephone", "mileMarker", "tunnelMouth"],
+    alpine: ["pine", "animal", "mountain", "person", "cabin", "guardrail", "roadSign", "snowbank", "tunnelMouth"],
+    harbor: ["crane", "boat", "person", "bystanders", "animal", "warehouse", "streetlight", "parked", "fence", "pier"],
+    snow: ["pine", "snowbank", "animal", "person", "cabin", "roadSign", "fence", "mountain", "tunnelMouth"],
+    airfield: ["hangar", "beacon", "plane", "person", "bystanders", "fence", "roadSign", "warehouse", "radar", "serviceTruck"],
+    freight: ["trailer", "warehouse", "person", "bystanders", "animal", "streetlight", "parked", "roadSign", "fence", "fuelStop"],
+    farm: ["barn", "field", "animal", "tractor", "person", "bystanders", "fence", "telephone", "silo", "market"],
+    tokyo: ["neon", "building", "person", "bystanders", "animal", "parked", "streetlight", "busStop", "roadSign", "speedCamera"],
+    desert: ["dune", "rock", "animal", "person", "roadSign", "fence", "telephone", "parked", "mileMarker", "tunnelMouth"],
+    rainforest: ["canopy", "animal", "person", "bystanders", "bridge", "fence", "roadSign", "parked", "market", "waterfall"],
+    europe: ["village", "mountain", "animal", "person", "bystanders", "parked", "streetlight", "roadSign", "fence", "market"]
   };
   return sets[place] || sets.city;
 }
@@ -7914,6 +8083,10 @@ function drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme
   ctx.globalAlpha *= Math.max(0.38, Math.min(0.92, 0.44 + scale * 0.18));
   if (kind === "person") {
     drawRoadsidePeopleCluster(side, accent, light, seed);
+  } else if (kind === "bystanders") {
+    drawRoadsideBystanderBarrier(side, accent, light, seed);
+  } else if (kind === "animal") {
+    drawRoadsideAnimalGroup(routeAnimalSpecies(place, seed), side, accent, light, seed);
   } else if (kind === "parked") {
     drawRoadsideParkedVehicle(side, seededUnit(seed, 2) > 0.5 ? accent : light);
   } else if (kind === "building" || kind === "neon" || kind === "village" || kind === "warehouse") {
@@ -7966,6 +8139,40 @@ function drawRoadsidePeopleCluster(side, accent, light, seed) {
     ctx.arc(px, py - 11, 4, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawRoadsideBystanderBarrier(side, accent, light, seed) {
+  ctx.strokeStyle = "rgba(244,251,248,0.48)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-56 * side, 3);
+  ctx.lineTo(62 * side, -3);
+  ctx.moveTo(-56 * side, -9);
+  ctx.lineTo(62 * side, -15);
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.moveTo(i * 24 * side, -18);
+    ctx.lineTo(i * 24 * side, 12);
+  }
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(0, -24);
+  drawRoadsidePeopleCluster(side, accent, light, seed);
+  ctx.restore();
+}
+
+function drawRoadsideAnimalGroup(species, side, accent, light, seed) {
+  if (!species) return;
+  const count = species === "bird" || species === "shoreBird" ? 3 : species === "sheep" ? 3 : 2;
+  for (let i = 0; i < count; i += 1) {
+    const x = side * (i * 24 - 18 + seededUnit(seed, i + 6) * 8);
+    const y = 8 + (i % 2) * 5;
+    const scale = species === "camel" || species === "horse" || species === "cow" ? 0.82 : species === "bird" || species === "shoreBird" ? 0.48 : 0.66;
+    drawRoadsideAnimalShape(species, x, y, scale, side, accent, light, seed + i * 13);
+  }
+}
+
+function drawRoadsideAnimalShape(species, x, y, scale, side, accent, light, seed) {
+  drawReferenceAnimalShape(species, x, y, scale, side, accent, light, seed);
 }
 
 function drawRoadsideParkedVehicle(side, color) {
@@ -11256,6 +11463,21 @@ function drawRouteFeatureMarker(x, y, scale, feature) {
 function drawCivilianMarker(x, y, scale, person) {
   const s = Math.max(0.42, Math.min(1.18, scale || 1));
   const step = Math.sin(person.step || 0) * 3 * s;
+  if (person && person.kind === "animal") {
+    ctx.save();
+    ctx.translate(x, y + 12 * s);
+    ctx.globalAlpha = person.crossing ? 0.94 : 0.76;
+    drawReferenceAnimalShape(person.species || "dog", 0, 0, Math.max(0.72, s * 0.9), person.side || 1, "#bbf24a", "#ffd166", person.step || 0);
+    if (person.crossing) {
+      ctx.strokeStyle = "rgba(255,209,102,0.76)";
+      ctx.lineWidth = Math.max(1.4, 2.4 * s);
+      ctx.beginPath();
+      ctx.arc(0, 0, 25 * s, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
   ctx.save();
   ctx.translate(x, y + 8 * s);
   ctx.globalAlpha = person.crossing ? 0.92 : 0.72;
