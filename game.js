@@ -1265,9 +1265,15 @@ function endRace(manual = false) {
   profiles[activeProfile.id] = activeProfile;
   saveProfiles();
   clearSavedRace();
+  const finalRankings = raceRankings();
+  const fieldSize = finalRankings.length;
+  const finishPlace = racePlacementLabel(finishPosition);
+  const finishStage = routeStageInfo(selectedRace.place, 0.999);
   $("#finishTitle").textContent = success && finishPosition === 1 ? "Race Won" : success ? "Challenge Cleared" : "Race Complete";
   $("#finishStats").innerHTML = `
-    <div><span>Position</span><strong>${finishPosition}/${raceRankings().length}</strong></div>
+    <div class="finish-banner"><i aria-hidden="true"></i><strong>${finishPlace}</strong><span>${selectedRace.name} | ${finishStage.label}</span></div>
+    <div><span>Finish place</span><strong>${finishPlace} of ${fieldSize}</strong></div>
+    <div><span>Position</span><strong>${finishPosition}/${fieldSize}</strong></div>
     <div><span>Coins earned</span><strong>${reward}</strong></div>
     <div><span>Reputation</span><strong>+${rep}</strong></div>
     <div><span>Penalties</span><strong>${raceState.civilianHits || 0}</strong></div>
@@ -1295,6 +1301,13 @@ function raceGoalText(race = selectedRace, vehicle = selectedVehicle()) {
   const clean = vehicle.type === "tank" ? "clear the route" : isWaterVehicleType(vehicle.type) ? "hold the water line" : isAirVehicleType(vehicle.type) ? "fly the gates" : vehicle.type === "policecar" ? "run the pursuit line" : "race the pack";
   const pursuit = scenario.hotPursuit ? "Police pressure climbs the longer you stay visible. " : "";
   return `${race.target}; ${clean} through ${route.scene}. ${pursuit}Use hideouts and shortcut branches when they appear.`;
+}
+
+function racePlacementLabel(position) {
+  const value = Math.max(1, Math.round(Number(position) || 1));
+  const mod100 = value % 100;
+  const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : value % 10 === 1 ? "st" : value % 10 === 2 ? "nd" : value % 10 === 3 ? "rd" : "th";
+  return `${value}${suffix}`;
 }
 
 function updateHud() {
@@ -3680,7 +3693,7 @@ function drawPhoneSceneryBackdrop(w, h, horizon, place, theme) {
   if (!phoneGraphicsActive()) return;
   const offset = (raceState.roadOffset || 0) * 0.018;
   ctx.save();
-  ctx.globalAlpha = 0.9;
+  ctx.globalAlpha = 0.86;
   const farY = horizon - h * 0.02;
   if (place === "city" || place === "tokyo") {
     for (let i = 0; i < 22; i += 1) {
@@ -3695,27 +3708,29 @@ function drawPhoneSceneryBackdrop(w, h, horizon, place, theme) {
       ctx.fillStyle = tower;
       roundRect(x, farY - bh, bw, bh, 3);
       ctx.fill();
-      ctx.fillStyle = i % 2 ? `${theme[1]}88` : `${theme[2]}77`;
-      for (let yy = 14; yy < bh - 10; yy += 24) {
-        ctx.globalAlpha = 0.42;
-        ctx.fillRect(x + 8 + (yy % 3) * 7, farY - bh + yy, 5, 12);
-        ctx.fillRect(x + bw - 15, farY - bh + yy + 5, 5, 10);
+      ctx.fillStyle = i % 2 ? `${theme[1]}66` : `${theme[2]}55`;
+      if (i % 3 === 0) {
+        for (let yy = 18; yy < bh - 10; yy += 48) {
+          ctx.globalAlpha = 0.28;
+          ctx.fillRect(x + 8 + (yy % 3) * 7, farY - bh + yy, 5, 10);
+          ctx.fillRect(x + bw - 15, farY - bh + yy + 5, 5, 8);
+        }
       }
-      ctx.globalAlpha = 0.9;
+      ctx.globalAlpha = 0.86;
     }
   } else if (place === "coast" || place === "harbor") {
     const water = ctx.createLinearGradient(0, horizon - h * 0.01, 0, horizon + h * 0.2);
-    water.addColorStop(0, "rgba(70,217,255,0.16)");
-    water.addColorStop(1, "rgba(4,21,24,0.42)");
+    water.addColorStop(0, "rgba(44,92,104,0.16)");
+    water.addColorStop(1, "rgba(4,21,24,0.32)");
     ctx.fillStyle = water;
     ctx.fillRect(0, horizon - h * 0.02, w, h * 0.24);
-    for (let i = 0; i < 12; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       const x = ((i * 128 - offset * 1.9) % (w + 180)) - 90;
-      ctx.fillStyle = "rgba(8,38,43,0.86)";
+      ctx.fillStyle = "rgba(9,32,36,0.72)";
       ctx.beginPath();
       ctx.ellipse(x, horizon + h * 0.06, 54 + (i % 4) * 12, 12 + (i % 3) * 4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(244,251,248,0.28)";
+      ctx.fillStyle = "rgba(244,251,248,0.18)";
       roundRect(x - 26, horizon + h * 0.025, 52, 6, 2);
       ctx.fill();
     }
@@ -3736,11 +3751,11 @@ function drawPhoneSceneryBackdrop(w, h, horizon, place, theme) {
     for (let i = 0; i < 26; i += 1) {
       const x = ((i * 82 - offset * 2.2) % (w + 160)) - 80;
       const treeH = h * (0.1 + (i % 5) * 0.018);
-      ctx.fillStyle = place === "desert" || place === "canyon" ? "rgba(132,72,38,0.64)" : "rgba(24,78,52,0.66)";
+      ctx.fillStyle = place === "desert" || place === "canyon" ? "rgba(132,72,38,0.64)" : "rgba(22,68,49,0.6)";
       ctx.beginPath();
       ctx.ellipse(x, horizon + h * 0.04, 34 + (i % 4) * 8, treeH * 0.42, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = place === "farm" ? "rgba(187,242,74,0.24)" : "rgba(54,217,138,0.2)";
+      ctx.fillStyle = place === "farm" ? "rgba(122,143,64,0.18)" : "rgba(44,118,76,0.16)";
       ctx.fillRect(x - 2, horizon - treeH * 0.42, 4, treeH * 0.72);
     }
   }
@@ -3754,7 +3769,7 @@ function drawPhoneSceneryBackdrop(w, h, horizon, place, theme) {
 
 function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
   ctx.save();
-  ctx.globalAlpha = 0.52;
+  ctx.globalAlpha = phoneGraphicsActive() ? 0.62 : 0.52;
   const baseY = horizon + h * 0.05;
   const offset = (raceState.roadOffset * 0.025) % 180;
   const route = routeWorldInfo(place);
@@ -3767,18 +3782,20 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.fillStyle = place === "tokyo" ? "rgba(18,14,36,0.82)" : "rgba(14,20,23,0.86)";
       roundRect(x, baseY - bh, bw, bh, 2);
       ctx.fill();
-      ctx.fillStyle = i % 2 ? `${theme[1]}66` : `${theme[2]}55`;
-      ctx.fillRect(x + bw * 0.22, baseY - bh + 8, bw * 0.12, bh * 0.62);
-      ctx.fillRect(x + bw * 0.62, baseY - bh + 18, bw * 0.12, bh * 0.48);
+      ctx.fillStyle = i % 2 ? `${theme[1]}44` : `${theme[2]}3f`;
+      if (i % 3 === 0) {
+        ctx.fillRect(x + bw * 0.22, baseY - bh + 12, bw * 0.12, Math.min(32, bh * 0.32));
+        ctx.fillRect(x + bw * 0.62, baseY - bh + 26, bw * 0.12, Math.min(28, bh * 0.26));
+      }
     } else if (place === "coast" || place === "harbor") {
-      ctx.fillStyle = "rgba(8,38,43,0.72)";
+      ctx.fillStyle = "rgba(9,32,36,0.68)";
       ctx.beginPath();
       ctx.ellipse(x, baseY + 8, 48 + (i % 3) * 12, 12 + (i % 4) * 3, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(244,251,248,0.16)";
+      ctx.fillStyle = "rgba(244,251,248,0.12)";
       roundRect(x - 24, baseY - 5, 48, 5, 2);
       ctx.fill();
-      ctx.fillStyle = `${theme[1]}33`;
+      ctx.fillStyle = "rgba(34,40,38,0.4)";
       roundRect(x - 8, baseY - 24 - (i % 3) * 4, 16, 20 + (i % 3) * 4, 2);
       ctx.fill();
     } else if (place === "desert" || place === "canyon") {
@@ -3976,7 +3993,7 @@ function drawRouteStageLandmarks(w, h, theme) {
   ctx.globalAlpha = phoneMode ? 0.72 : 0.82;
   drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed);
   const loopSpan = h - horizon + 360;
-  const count = phoneMode ? 7 : 11;
+  const count = phoneMode ? 5 : 11;
   for (let i = 0; i < count; i += 1) {
     const raw = ((i * (phoneMode ? 245 : 210) + (raceState.roadOffset || 0) * (0.58 + seededUnit(seed, i) * 0.16) + stage.index * 63) % loopSpan) - 104;
     const y = horizon + raw;
@@ -3984,13 +4001,14 @@ function drawRouteStageLandmarks(w, h, theme) {
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const center = perspectiveRoadCenter(w, t);
-    const sideOffset = w * (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07);
+    const sideOffset = w * (phoneMode ? (0.26 + t * 0.56 + seededUnit(seed, i + 10) * 0.08) : (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07));
     const x = center + side * sideOffset;
     const scale = 0.38 + t * (phoneMode ? 0.92 : 1.22);
     const prop = worldSceneryProp(i % 6 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length], place, i + stage.index, phoneMode);
     drawRouteStageProp(prop, x, y, scale, side, design, theme, seed + i * 17);
   }
   if (!phoneMode) drawRouteStageSign(w, h, horizon, stage, design, theme);
+  drawStartGate(w, h, theme);
   drawFinishGate(w, h, theme);
   ctx.restore();
 }
@@ -4041,6 +4059,7 @@ function drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed) {
 }
 
 function drawRouteStageProp(prop, x, y, scale, side, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
@@ -4065,16 +4084,16 @@ function drawRouteStageProp(prop, x, y, scale, side, design, theme, seed) {
       ctx.fill();
     }
   } else if (prop === "palm" || prop === "pine" || prop === "canopy") {
-    ctx.strokeStyle = prop === "palm" ? "rgba(140,100,55,0.9)" : "rgba(30,78,52,0.92)";
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = prop === "palm" ? "rgba(132,92,54,0.82)" : "rgba(28,70,50,0.86)";
+    ctx.lineWidth = phoneMode ? 3.5 : 5;
     ctx.beginPath();
     ctx.moveTo(0, 12);
-    ctx.lineTo(side * 6, -70);
+    ctx.lineTo(side * (phoneMode ? 4 : 6), phoneMode ? -56 : -70);
     ctx.stroke();
-    ctx.fillStyle = prop === "pine" ? "rgba(34,93,59,0.86)" : "rgba(54,217,138,0.62)";
+    ctx.fillStyle = prop === "pine" ? "rgba(34,84,58,0.78)" : phoneMode ? "rgba(38,118,76,0.42)" : "rgba(54,217,138,0.62)";
     for (let i = 0; i < 3; i += 1) {
       ctx.beginPath();
-      ctx.ellipse(side * (4 + i * 3), -70 + i * 12, 36 - i * 7, 12, side * 0.4, 0, Math.PI * 2);
+      ctx.ellipse(side * (4 + i * 3), (phoneMode ? -56 : -70) + i * (phoneMode ? 10 : 12), (phoneMode ? 27 : 36) - i * 6, phoneMode ? 9 : 12, side * 0.4, 0, Math.PI * 2);
       ctx.fill();
     }
   } else if (prop === "bridge" || prop === "crane" || prop === "beacon") {
@@ -4140,6 +4159,55 @@ function drawRouteStageSign(w, h, horizon, stage, design, theme) {
   ctx.restore();
 }
 
+function drawCheckeredStrip(x, y, width, height, cols = 14, rows = 2) {
+  const tileW = width / cols;
+  const tileH = height / rows;
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      ctx.fillStyle = (row + col) % 2 ? "#050807" : "#f4fbf8";
+      ctx.fillRect(x + col * tileW, y + row * tileH, tileW + 1, tileH + 1);
+    }
+  }
+}
+
+function drawRaceGateLabel(x, y, half, scale, label, theme) {
+  const barH = 34 * scale;
+  const postW = 12 * scale;
+  ctx.fillStyle = "rgba(5,8,7,0.82)";
+  roundRect(x - half * 0.92, y - 86 * scale, postW, 108 * scale, 4 * scale);
+  ctx.fill();
+  roundRect(x + half * 0.92 - postW, y - 86 * scale, postW, 108 * scale, 4 * scale);
+  ctx.fill();
+  ctx.fillStyle = "rgba(5,8,7,0.88)";
+  roundRect(x - half * 0.72, y - 104 * scale, half * 1.44, barH, 5 * scale);
+  ctx.fill();
+  drawCheckeredStrip(x - half * 0.72, y - 104 * scale, half * 1.44, Math.max(7, 8 * scale), 16, 2);
+  ctx.strokeStyle = theme[1] || "#46d9ff";
+  ctx.lineWidth = Math.max(1.5, 2.5 * scale);
+  ctx.stroke();
+  ctx.fillStyle = "#f4fbf8";
+  ctx.font = `900 ${Math.max(9, 17 * scale)}px system-ui`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x, y - 84 * scale);
+}
+
+function drawStartGate(w, h, theme) {
+  if (!raceState.active || raceState.distance > 920) return;
+  const horizon = cameraMode === "cockpit" ? h * 0.27 : cameraMode === "hood" ? h * 0.31 : h * 0.34;
+  const p = roadObjectPos(0, 0);
+  if (p.y > h + 110) return;
+  const y = Math.max(horizon + h * 0.05, Math.min(h * 0.94, p.y));
+  const scale = Math.max(0.38, Math.min(1.2, p.scale || 1));
+  const half = laneWidth() * (2.08 + scale * 0.58);
+  const x = p.x;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.2, Math.min(0.94, 1 - raceState.distance / 920));
+  drawCheckeredStrip(x - half, y + Math.max(4, 15 * scale), half * 2, Math.max(8, 20 * scale), 18, 2);
+  drawRaceGateLabel(x, y, half, scale, "START", theme);
+  ctx.restore();
+}
+
 function drawFinishGate(w, h, theme) {
   if (!raceState.active) return;
   const length = raceLength();
@@ -4154,27 +4222,8 @@ function drawFinishGate(w, h, theme) {
   const lineH = Math.max(8, 20 * scale);
   ctx.save();
   ctx.globalAlpha = Math.max(0.48, Math.min(0.96, 1 - Math.max(0, gap - 1800) / 1600));
-  for (let i = 0; i < 12; i += 1) {
-    ctx.fillStyle = i % 2 ? "#050807" : "#f4fbf8";
-    const tileW = (half * 2) / 12;
-    ctx.fillRect(x - half + i * tileW, y + lineH * 0.25, tileW + 1, lineH);
-  }
-  ctx.fillStyle = "rgba(5,8,7,0.82)";
-  roundRect(x - half * 0.92, y - 86 * scale, 12 * scale, 108 * scale, 4 * scale);
-  ctx.fill();
-  roundRect(x + half * 0.92 - 12 * scale, y - 86 * scale, 12 * scale, 108 * scale, 4 * scale);
-  ctx.fill();
-  ctx.fillStyle = "rgba(5,8,7,0.88)";
-  roundRect(x - half * 0.72, y - 104 * scale, half * 1.44, 34 * scale, 5 * scale);
-  ctx.fill();
-  ctx.strokeStyle = theme[1] || "#46d9ff";
-  ctx.lineWidth = Math.max(1.5, 2.5 * scale);
-  ctx.stroke();
-  ctx.fillStyle = "#f4fbf8";
-  ctx.font = `900 ${Math.max(9, 17 * scale)}px system-ui`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("FINISH", x, y - 87 * scale);
+  drawCheckeredStrip(x - half, y + lineH * 0.25, half * 2, lineH, 18, 2);
+  drawRaceGateLabel(x, y, half, scale, "FINISH", theme);
   ctx.restore();
 }
 
@@ -4256,7 +4305,7 @@ function drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBotto
   const progress = Math.max(0, Math.min(1, raceState.distance / length));
   const stage = routeStageInfo(place, progress);
   const detailSet = highVisibilityDetailSet(place, stage);
-  const rows = phoneMode ? 7 : 10;
+  const rows = phoneMode ? 5 : 10;
   const motion = (raceState.roadOffset || 0) * (0.56 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 0 : 4);
@@ -4267,10 +4316,10 @@ function drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBotto
     if (y < horizon + 10 || y > h + 70) continue;
     const side = (i + Math.floor(seed % 3)) % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const projectedX = perspectiveRoadCenter(w, t) + side * (half * (phoneMode ? 1.01 : 1.06) + w * (phoneMode ? 0.02 : 0.032));
-    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 4 : 10);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half * (phoneMode ? 1.14 : 1.06) + w * (phoneMode ? 0.055 : 0.032));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 18 : 10);
     const near = Math.max(0.12, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
-    const scale = Math.max(phoneMode ? 0.82 : 0.76, Math.min(phoneMode ? 2.08 : 2.32, (0.76 + near * (phoneMode ? 1.08 : 1.22)) * (0.94 + seededUnit(seed, i + 712) * 0.16)));
+    const scale = Math.max(phoneMode ? 0.58 : 0.76, Math.min(phoneMode ? 1.34 : 2.32, (0.76 + near * (phoneMode ? 0.62 : 1.22)) * (0.94 + seededUnit(seed, i + 712) * 0.16)));
     const kind = detailSet[(i + Math.floor(seed % detailSet.length)) % detailSet.length];
     ctx.globalAlpha = Math.min(1, phoneMode ? 0.84 + near * 0.16 : 0.78 + near * 0.18);
     drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed + i * 43);
@@ -4314,8 +4363,8 @@ function highVisibilityDetailSet(place, stage) {
 function drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed) {
   const accent = design.accent || theme[1] || "#46d9ff";
   const ground = place === "city" || place === "tokyo" || place === "europe" ? "rgba(205,214,208,0.32)"
-    : place === "harbor" || place === "coast" ? "rgba(70,217,255,0.26)"
-      : place === "farm" || place === "rainforest" ? "rgba(54,217,138,0.25)"
+    : place === "harbor" || place === "coast" ? "rgba(18,46,52,0.18)"
+      : place === "farm" || place === "rainforest" ? "rgba(38,88,55,0.18)"
         : place === "snow" || place === "alpine" ? "rgba(244,251,248,0.3)"
           : place === "desert" || place === "canyon" ? "rgba(255,183,74,0.26)"
             : "rgba(180,192,188,0.24)";
@@ -5030,7 +5079,7 @@ function drawReferenceInspiredSceneCluster(kind, x, y, scale, side, place, route
 
 function drawReferenceSceneGroundPatch(kind, side, place, design, theme) {
   const ground = place === "desert" || place === "canyon" ? "rgba(178,92,48,0.26)"
-    : place === "coast" || place === "harbor" ? "rgba(70,217,255,0.18)"
+    : place === "coast" || place === "harbor" ? (phoneGraphicsActive() ? "rgba(20,48,54,0.14)" : "rgba(70,217,255,0.18)")
       : place === "farm" ? "rgba(115,146,56,0.2)"
         : place === "snow" || place === "alpine" ? "rgba(244,251,248,0.2)"
           : "rgba(16,24,23,0.26)";
@@ -5094,11 +5143,11 @@ function drawReferenceSmallHouseRow(side, accent, light, seed) {
 
 function drawReferenceWaterEdge(side, kind, accent, light, seed) {
   const phoneMode = phoneGraphicsActive();
-  ctx.fillStyle = "rgba(70,217,255,0.22)";
+  ctx.fillStyle = phoneMode ? "rgba(28,58,64,0.16)" : "rgba(70,217,255,0.22)";
   ctx.beginPath();
-  ctx.ellipse(side * -14, 18, 130, 22, -0.05 * side, 0, Math.PI * 2);
+  ctx.ellipse(side * -14, 18, phoneMode ? 102 : 130, phoneMode ? 16 : 22, -0.05 * side, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(244,251,248,0.28)";
+  ctx.strokeStyle = phoneMode ? "rgba(244,251,248,0.08)" : "rgba(244,251,248,0.28)";
   ctx.lineWidth = 2;
   for (let i = 0; i < (phoneMode ? 1 : 3); i += 1) {
     ctx.beginPath();
@@ -5108,14 +5157,14 @@ function drawReferenceWaterEdge(side, kind, accent, light, seed) {
   }
   if (/marina|pier|waterSpan/i.test(kind)) {
     if (phoneMode) {
-      ctx.fillStyle = "rgba(126,86,48,0.68)";
-      roundRect(-94, -19, 188, 24, 6);
+      ctx.fillStyle = "rgba(104,76,48,0.58)";
+      roundRect(-72, -17, 144, 18, 6);
       ctx.fill();
-      ctx.strokeStyle = "rgba(244,251,248,0.24)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(244,251,248,0.12)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-82 * side, -13);
-      ctx.lineTo(82 * side, -23);
+      ctx.moveTo(-64 * side, -12);
+      ctx.lineTo(64 * side, -19);
       ctx.stroke();
     } else {
       ctx.strokeStyle = "rgba(138,102,62,0.78)";
@@ -5319,31 +5368,34 @@ function drawReferenceRainforestScene(side, kind, accent, light, seed) {
 }
 
 function drawReferenceTreeLine(kind, side, seed) {
-  for (let i = -2; i <= 2; i += 1) {
-    const x = side * (i * 34 + seededUnit(seed, i + 12) * 9);
+  const phoneMode = phoneGraphicsActive();
+  const start = phoneMode ? -1 : -2;
+  const end = phoneMode ? 1 : 2;
+  for (let i = start; i <= end; i += 1) {
+    const x = side * (i * (phoneMode ? 24 : 34) + seededUnit(seed, i + 12) * (phoneMode ? 5 : 9));
     const trunk = kind === "palm" ? "rgba(136,88,46,0.86)" : "rgba(70,54,34,0.86)";
     ctx.strokeStyle = trunk;
-    ctx.lineWidth = kind === "canopy" ? 5 : 4;
+    ctx.lineWidth = phoneMode ? 2.5 : kind === "canopy" ? 5 : 4;
     ctx.beginPath();
     ctx.moveTo(x, 14);
-    ctx.lineTo(x + side * 4, -48 - seededUnit(seed, i + 18) * 26);
+    ctx.lineTo(x + side * (phoneMode ? 2 : 4), (phoneMode ? -34 : -48) - seededUnit(seed, i + 18) * (phoneMode ? 14 : 26));
     ctx.stroke();
-    ctx.fillStyle = kind === "palm" ? "rgba(54,164,88,0.8)" : kind === "canopy" ? "rgba(32,118,58,0.82)" : "rgba(24,92,54,0.84)";
+    ctx.fillStyle = kind === "palm" ? (phoneMode ? "rgba(36,104,72,0.48)" : "rgba(54,164,88,0.8)") : kind === "canopy" ? "rgba(32,118,58,0.82)" : "rgba(24,92,54,0.84)";
     if (kind === "pine") {
       for (let tier = 0; tier < 3; tier += 1) {
         ctx.beginPath();
-        ctx.moveTo(x, -82 + tier * 22);
-        ctx.lineTo(x - 28, -38 + tier * 18);
-        ctx.lineTo(x + 30, -38 + tier * 18);
+        ctx.moveTo(x, (phoneMode ? -58 : -82) + tier * (phoneMode ? 16 : 22));
+        ctx.lineTo(x - (phoneMode ? 18 : 28), (phoneMode ? -28 : -38) + tier * (phoneMode ? 14 : 18));
+        ctx.lineTo(x + (phoneMode ? 20 : 30), (phoneMode ? -28 : -38) + tier * (phoneMode ? 14 : 18));
         ctx.closePath();
         ctx.fill();
       }
     } else {
       ctx.beginPath();
-      ctx.ellipse(x + side * 4, -64, kind === "canopy" ? 42 : 30, kind === "palm" ? 10 : 22, 0.15 * side, 0, Math.PI * 2);
+      ctx.ellipse(x + side * (phoneMode ? 2 : 4), phoneMode ? -44 : -64, kind === "canopy" ? 42 : (phoneMode ? 18 : 30), kind === "palm" ? (phoneMode ? 6 : 10) : 22, 0.15 * side, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(x - side * 14, -52, kind === "canopy" ? 34 : 26, kind === "palm" ? 9 : 20, -0.35 * side, 0, Math.PI * 2);
+      ctx.ellipse(x - side * (phoneMode ? 8 : 14), phoneMode ? -36 : -52, kind === "canopy" ? 34 : (phoneMode ? 16 : 26), kind === "palm" ? (phoneMode ? 5 : 9) : 20, -0.35 * side, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -5835,6 +5887,7 @@ function drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, plac
 }
 
 function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
   const accent = design.accent || theme[1] || "#46d9ff";
   const light = design.light || theme[2] || "#ffd166";
   const label = route && route.scene ? route.scene : "Route";
@@ -5867,7 +5920,7 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.fill();
     ctx.globalCompositeOperation = "source-over";
   } else if (kind === "palm" || kind === "pine" || kind === "canopyTree" || kind === "desertScrub") {
-    ctx.fillStyle = kind === "desertScrub" ? "rgba(92,118,48,0.86)" : kind === "palm" ? "rgba(39,124,78,0.9)" : "rgba(24,88,56,0.92)";
+    ctx.fillStyle = kind === "desertScrub" ? "rgba(92,118,48,0.86)" : kind === "palm" ? (phoneMode ? "rgba(31,88,62,0.68)" : "rgba(39,124,78,0.9)") : "rgba(24,88,56,0.92)";
     if (kind === "desertScrub") {
       for (let i = -2; i <= 2; i += 1) {
         ctx.beginPath();
@@ -5875,16 +5928,18 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
         ctx.fill();
       }
     } else {
-      ctx.fillStyle = kind === "palm" ? "rgba(132,88,48,0.9)" : "rgba(72,54,34,0.9)";
-      roundRect(-5, -72, 10, 74, 4);
+      const treeTop = phoneMode ? -54 : -76;
+      ctx.fillStyle = kind === "palm" ? "rgba(126,86,50,0.82)" : "rgba(72,54,34,0.9)";
+      roundRect(-4, phoneMode ? -52 : -72, 8, phoneMode ? 54 : 74, 4);
       ctx.fill();
-      ctx.fillStyle = kind === "palm" ? "rgba(44,146,82,0.94)" : "rgba(24,94,58,0.94)";
-      for (let i = 0; i < 6; i += 1) {
+      ctx.fillStyle = kind === "palm" ? (phoneMode ? "rgba(38,110,74,0.52)" : "rgba(44,146,82,0.94)") : "rgba(24,94,58,0.94)";
+      const leaves = phoneMode ? 4 : 6;
+      for (let i = 0; i < leaves; i += 1) {
         ctx.save();
-        ctx.translate(0, -76);
-        ctx.rotate(i * Math.PI / 3 + (kind === "palm" ? 0.18 : 0));
+        ctx.translate(0, treeTop);
+        ctx.rotate(i * Math.PI / Math.max(2, leaves / 2) + (kind === "palm" ? 0.18 : 0));
         ctx.beginPath();
-        ctx.ellipse(24, 0, kind === "palm" ? 34 : 18, kind === "palm" ? 8 : 26, 0, 0, Math.PI * 2);
+        ctx.ellipse(phoneMode ? 18 : 24, 0, kind === "palm" ? (phoneMode ? 20 : 34) : 18, kind === "palm" ? (phoneMode ? 5 : 8) : 26, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
@@ -6127,21 +6182,19 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.fill();
     ctx.globalCompositeOperation = "source-over";
   } else if (kind === "marinaDock") {
-    ctx.fillStyle = "rgba(70,217,255,0.18)";
+    ctx.fillStyle = phoneMode ? "rgba(28,58,64,0.16)" : "rgba(70,217,255,0.18)";
     ctx.beginPath();
-    ctx.ellipse(0, 5, 108, 20, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 5, phoneMode ? 84 : 108, phoneMode ? 14 : 20, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (phoneGraphicsActive()) {
-      ctx.fillStyle = "rgba(132,92,48,0.72)";
-      roundRect(-94, -26, 188, 24, 7);
+    if (phoneMode) {
+      ctx.fillStyle = "rgba(104,76,48,0.58)";
+      roundRect(-74, -22, 148, 18, 6);
       ctx.fill();
-      ctx.strokeStyle = "rgba(244,251,248,0.28)";
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(244,251,248,0.14)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-82, -18);
-      ctx.lineTo(84, -24);
-      ctx.moveTo(-82, -8);
-      ctx.lineTo(84, -14);
+      ctx.moveTo(-62, -15);
+      ctx.lineTo(64, -20);
       ctx.stroke();
     } else {
       ctx.strokeStyle = "rgba(214,180,112,0.84)";
@@ -6155,7 +6208,7 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       }
       ctx.stroke();
     }
-    ctx.fillStyle = `${light}aa`;
+    ctx.fillStyle = phoneMode ? "rgba(222,198,136,0.54)" : `${light}aa`;
     ctx.beginPath();
     ctx.arc(72, -46, 8, 0, Math.PI * 2);
     ctx.fill();
@@ -6351,8 +6404,8 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       ctx.moveTo(-86, -6);
       ctx.lineTo(90, -13);
       ctx.stroke();
-    } else if (phoneGraphicsActive() && kind !== "reflectorPost") {
-      ctx.fillStyle = kind === "stoneWall" || kind === "seaWall" ? "rgba(174,186,180,0.62)" : kind === "snowFence" ? "rgba(244,251,248,0.52)" : kind === "coastRail" || kind === "bridgeRail" ? "rgba(205,218,214,0.42)" : "rgba(78,96,76,0.42)";
+    } else if (phoneMode && kind !== "reflectorPost") {
+      ctx.fillStyle = kind === "stoneWall" || kind === "seaWall" ? "rgba(174,186,180,0.58)" : kind === "snowFence" ? "rgba(244,251,248,0.48)" : kind === "coastRail" || kind === "bridgeRail" ? "rgba(156,170,166,0.34)" : "rgba(78,96,76,0.34)";
       roundRect(-54, -24, 108, 20, 7);
       ctx.fill();
       ctx.strokeStyle = kind === "coastRail" || kind === "bridgeRail" ? "rgba(244,251,248,0.34)" : `${light}77`;
@@ -6405,7 +6458,7 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
     ctx.arc(0, -98, 9, 0, Math.PI * 2);
     ctx.fill();
   } else if (kind === "waterEdge" || kind === "marketStand" || kind === "supportTent" || kind === "truckStop") {
-    ctx.fillStyle = kind === "waterEdge" ? "rgba(70,217,255,0.22)" : "rgba(36,46,44,0.9)";
+    ctx.fillStyle = kind === "waterEdge" ? (phoneMode ? "rgba(28,58,64,0.16)" : "rgba(70,217,255,0.22)") : "rgba(36,46,44,0.9)";
     roundRect(-70, -38, 140, 38, 5);
     ctx.fill();
     ctx.fillStyle = light;
@@ -6467,14 +6520,14 @@ function drawDepthParallaxBands(w, h, horizon, roadTop, roadBottom, place, stage
   const bandHeight = h * (phoneMode ? 0.22 : 0.26);
   const offset = motion * 0.006;
   ctx.save();
-  ctx.globalAlpha = phoneMode ? 0.26 : 0.36;
+  ctx.globalAlpha = phoneMode ? 0.42 : 0.36;
   const skyFade = ctx.createLinearGradient(0, bandTop, 0, horizon + bandHeight);
   skyFade.addColorStop(0, "rgba(0,0,0,0)");
   skyFade.addColorStop(0.7, `${design.accent || theme[1]}10`);
   skyFade.addColorStop(1, "rgba(0,0,0,0.08)");
   ctx.fillStyle = skyFade;
   ctx.fillRect(0, bandTop, w, horizon + bandHeight - bandTop);
-  const count = phoneMode ? 10 : 16;
+  const count = phoneMode ? 7 : 16;
   for (let i = 0; i < count; i += 1) {
     const sideDrift = ((i * w * 0.18 - offset * (10 + i % 3 * 4)) % (w + 180)) - 90;
     const y = horizon + h * (0.025 + seededUnit(seed, i + 4) * 0.12);
@@ -6495,11 +6548,14 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
     for (let i = -2; i <= 2; i += 1) {
       const bw = 26 + seededUnit(seed, i + 1) * 28;
       const bh = 54 + seededUnit(seed, i + 8) * 96;
-      ctx.fillStyle = kind === "neonTowers" ? "rgba(18,10,32,0.55)" : "rgba(8,18,20,0.5)";
+      ctx.fillStyle = phoneMode ? (kind === "neonTowers" ? "rgba(14,9,24,0.72)" : "rgba(7,15,17,0.68)") : (kind === "neonTowers" ? "rgba(18,10,32,0.55)" : "rgba(8,18,20,0.5)");
       roundRect(i * 42 - bw / 2, 22 - bh, bw, bh, 4);
       ctx.fill();
-      ctx.fillStyle = i % 2 ? `${accent}55` : `${light}44`;
-      for (let row = 0; row < 4; row += 1) ctx.fillRect(i * 42 - bw * 0.26, 32 - bh + row * 18, bw * 0.52, 3);
+      if (!phoneMode || i % 2 === 0) {
+        ctx.fillStyle = i % 2 ? `${accent}44` : `${light}38`;
+        const rows = phoneMode ? 1 : 4;
+        for (let row = 0; row < rows; row += 1) ctx.fillRect(i * 42 - bw * 0.26, 32 - bh + row * 22, bw * 0.52, 3);
+      }
     }
   } else if (kind === "mountainLayers" || kind === "rockCuts" || kind === "duneLayers" || kind === "villageSlope") {
     const color = kind === "duneLayers" ? "rgba(255,183,74,0.28)" : kind === "rockCuts" ? "rgba(178,92,48,0.28)" : kind === "villageSlope" ? "rgba(120,142,132,0.25)" : "rgba(160,172,164,0.26)";
@@ -6515,13 +6571,15 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
       for (let i = -2; i <= 2; i += 1) roundRect(i * 30 - 10, -8 + (i % 2) * 8, 20, 14, 2);
     }
   } else if (kind === "waterCliff" || kind === "waterSpan") {
-    ctx.fillStyle = "rgba(70,217,255,0.16)";
+    ctx.fillStyle = phoneMode ? "rgba(35,70,78,0.18)" : "rgba(70,217,255,0.16)";
     ctx.beginPath();
     ctx.ellipse(0, 18, 120, 20, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "rgba(244,251,248,0.22)";
+    ctx.strokeStyle = phoneMode ? "rgba(244,251,248,0.08)" : "rgba(244,251,248,0.22)";
     ctx.lineWidth = 2;
-    for (let i = -2; i <= 2; i += 1) {
+    const waveMin = phoneMode ? 0 : -2;
+    const waveMax = phoneMode ? 0 : 2;
+    for (let i = waveMin; i <= waveMax; i += 1) {
       ctx.beginPath();
       ctx.moveTo(-96, i * 8 + 14);
       ctx.quadraticCurveTo(-20, i * 8 + 4, 92, i * 8 + 14);
@@ -10175,9 +10233,10 @@ function drawLivingTransitStop(kind, side, accent, light, seed) {
 function drawLivingWaterEdgeMoment(kind, side, place, accent, light, seed) {
   ctx.save();
   ctx.scale(side, 1);
-  ctx.fillStyle = place === "rainforest" ? "rgba(54,217,138,0.2)" : "rgba(70,217,255,0.2)";
+  const phoneMode = phoneGraphicsActive();
+  ctx.fillStyle = place === "rainforest" ? (phoneMode ? "rgba(38,92,58,0.12)" : "rgba(54,217,138,0.2)") : (phoneMode ? "rgba(28,58,64,0.14)" : "rgba(70,217,255,0.2)");
   ctx.beginPath();
-  ctx.ellipse(0, 20, 118, 18, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 20, phoneMode ? 88 : 118, phoneMode ? 14 : 18, 0, 0, Math.PI * 2);
   ctx.fill();
   if (kind === "boatWake" || kind === "riverCrew") {
     ctx.strokeStyle = "rgba(244,251,248,0.38)";
@@ -10193,16 +10252,16 @@ function drawLivingWaterEdgeMoment(kind, side, place, accent, light, seed) {
     drawReferenceAnimalGroup("shoreBird", 1, accent, light, seed);
     drawLivingBirdFlock(0, -58, 0.82, 1, light, seed);
   } else {
-    ctx.fillStyle = "rgba(102,72,40,0.9)";
-    roundRect(-88, -8, 176, phoneGraphicsActive() ? 22 : 16, 5);
+    ctx.fillStyle = phoneMode ? "rgba(92,68,44,0.72)" : "rgba(102,72,40,0.9)";
+    roundRect(phoneMode ? -66 : -88, -8, phoneMode ? 132 : 176, phoneMode ? 18 : 16, 5);
     ctx.fill();
-    if (!phoneGraphicsActive()) {
+    if (!phoneMode) {
       for (let i = -3; i <= 3; i += 1) {
         ctx.fillRect(i * 28 - 3, -8, 6, 42);
       }
     } else {
       ctx.fillStyle = "rgba(244,251,248,0.24)";
-      roundRect(-72, -2, 144, 5, 3);
+      roundRect(-52, -2, 104, 4, 3);
       ctx.fill();
     }
     drawReferencePeopleLine(1, accent, light, seed);
@@ -11138,7 +11197,7 @@ function drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place
 function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed) {
   ctx.save();
   const phoneMode = phoneGraphicsActive();
-  const alpha = phoneMode ? 0.58 : 0.72;
+  const alpha = phoneMode ? 0.78 : 0.72;
   ctx.globalAlpha = alpha;
   const farBase = horizon + h * 0.025;
   if (place === "city" || place === "tokyo") {
@@ -11153,23 +11212,26 @@ function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed)
       ctx.fillStyle = tower;
       roundRect(x, farBase - bh, bw, bh, 3);
       ctx.fill();
-      ctx.fillStyle = i % 2 ? `${design.accent}66` : `${design.light}55`;
-      for (let yy = 12; yy < bh - 8; yy += 22) ctx.fillRect(x + bw * 0.24, farBase - bh + yy, bw * 0.52, 3);
+      if (!phoneMode || i % 4 === 0) {
+        ctx.fillStyle = i % 2 ? `${design.accent}55` : `${design.light}44`;
+        const step = phoneMode ? 56 : 22;
+        for (let yy = 16; yy < bh - 8; yy += step) ctx.fillRect(x + bw * 0.24, farBase - bh + yy, bw * 0.52, 3);
+      }
     }
   } else if (place === "coast" || place === "harbor") {
     const water = ctx.createLinearGradient(0, horizon - h * 0.01, 0, horizon + h * 0.19);
-    water.addColorStop(0, "rgba(70,217,255,0.22)");
-    water.addColorStop(1, "rgba(4,22,26,0.54)");
+    water.addColorStop(0, phoneMode ? "rgba(42,84,94,0.18)" : "rgba(70,217,255,0.22)");
+    water.addColorStop(1, phoneMode ? "rgba(4,22,26,0.46)" : "rgba(4,22,26,0.54)");
     ctx.fillStyle = water;
     ctx.fillRect(0, horizon - h * 0.01, w, h * 0.22);
     for (let i = 0; i < 7; i += 1) {
       const x = ((i * w * 0.18 - (raceState.roadOffset || 0) * 0.026) % (w + 160)) - 80;
-      ctx.fillStyle = place === "harbor" ? "rgba(10,42,46,0.78)" : "rgba(35,54,45,0.72)";
+      ctx.fillStyle = place === "harbor" ? "rgba(10,36,40,0.78)" : "rgba(10,31,34,0.76)";
       ctx.beginPath();
       ctx.ellipse(x, horizon + h * 0.085, w * 0.08, h * 0.028, 0, 0, Math.PI * 2);
       ctx.fill();
       if (place === "harbor") {
-        ctx.strokeStyle = `${design.light}88`;
+        ctx.strokeStyle = phoneMode ? "rgba(185,170,128,0.48)" : `${design.light}88`;
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x, horizon + h * 0.07);
@@ -11615,14 +11677,15 @@ function drawRouteLightingPass(w, h, theme) {
 
 function drawAtmosphericDepth(w, h, theme) {
   const place = selectedRace && selectedRace.place ? selectedRace.place : "city";
+  const phoneMode = phoneGraphicsActive();
   const haze = ctx.createLinearGradient(0, h * 0.16, 0, h * 0.55);
   haze.addColorStop(0, "rgba(244,251,248,0.06)");
-  haze.addColorStop(0.65, "rgba(70,217,255,0.05)");
+  haze.addColorStop(0.65, phoneMode ? "rgba(22,44,48,0.05)" : "rgba(70,217,255,0.05)");
   haze.addColorStop(1, "rgba(5,8,7,0)");
   ctx.fillStyle = haze;
   ctx.fillRect(0, h * 0.12, w, h * 0.44);
 
-  if (place === "coast") {
+  if (place === "coast" && !phoneMode) {
     for (let i = 0; i < 10; i += 1) {
       const x = ((i * 131 + raceState.roadOffset * 0.03) % (w + 120)) - 60;
       ctx.strokeStyle = "rgba(244,251,248,0.22)";
@@ -11667,7 +11730,8 @@ function drawAtmosphericDepth(w, h, theme) {
   if (place === "harbor") {
     ctx.strokeStyle = "rgba(244,251,248,0.24)";
     ctx.lineWidth = 3;
-    for (let i = 0; i < 9; i += 1) {
+    const count = phoneMode ? 4 : 9;
+    for (let i = 0; i < count; i += 1) {
       const x = ((i * 137 + raceState.roadOffset * 0.05) % (w + 150)) - 75;
       ctx.beginPath();
       ctx.moveTo(x, h * 0.24);
@@ -11709,7 +11773,7 @@ function drawAtmosphericDepth(w, h, theme) {
     }
   }
 
-  if (place === "farm" || place === "freight") {
+  if ((place === "farm" || place === "freight") && !phoneMode) {
     ctx.strokeStyle = "rgba(255,209,102,0.16)";
     ctx.lineWidth = 2;
     for (let i = 0; i < 16; i += 1) {
@@ -11722,8 +11786,9 @@ function drawAtmosphericDepth(w, h, theme) {
   }
 
   if (place === "rainforest") {
-    ctx.fillStyle = "rgba(54,217,138,0.16)";
-    for (let i = 0; i < 70; i += 1) {
+    ctx.fillStyle = phoneMode ? "rgba(38,94,60,0.08)" : "rgba(54,217,138,0.16)";
+    const count = phoneMode ? 24 : 70;
+    for (let i = 0; i < count; i += 1) {
       const x = ((i * 47 + raceState.roadOffset * 0.05) % (w + 80)) - 40;
       const y = h * 0.18 + (i % 18) * 16;
       ctx.beginPath();
@@ -11769,34 +11834,37 @@ function drawMetroScenery(w, h, theme) {
 }
 
 function drawCoastalScenery(w, h, theme) {
+  const phoneMode = phoneGraphicsActive();
   const sun = ctx.createRadialGradient(w * 0.16, h * 0.16, 8, w * 0.16, h * 0.16, 130);
   sun.addColorStop(0, "rgba(255,209,102,0.58)");
   sun.addColorStop(1, "rgba(255,209,102,0)");
   ctx.fillStyle = sun;
   ctx.fillRect(0, 0, w, h * 0.4);
   const water = ctx.createLinearGradient(0, h * 0.32, 0, h * 0.58);
-  water.addColorStop(0, "rgba(70,217,255,0.2)");
+  water.addColorStop(0, phoneMode ? "rgba(42,82,92,0.14)" : "rgba(70,217,255,0.2)");
   water.addColorStop(1, "rgba(5,8,7,0.1)");
   ctx.fillStyle = water;
   ctx.fillRect(0, h * 0.32, w, h * 0.22);
-  ctx.strokeStyle = "rgba(244,251,248,0.18)";
+  ctx.strokeStyle = phoneMode ? "rgba(244,251,248,0.07)" : "rgba(244,251,248,0.18)";
   ctx.lineWidth = 2;
-  for (let i = 0; i < 8; i += 1) {
+  const waveCount = phoneMode ? 2 : 8;
+  for (let i = 0; i < waveCount; i += 1) {
     const y = h * 0.37 + i * 18;
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.bezierCurveTo(w * 0.25, y + 14, w * 0.5, y - 12, w, y + 8);
     ctx.stroke();
   }
-  ctx.strokeStyle = theme[1];
+  ctx.strokeStyle = phoneMode ? "rgba(185,170,128,0.42)" : theme[1];
   ctx.lineWidth = 5;
   ctx.beginPath();
   ctx.moveTo(w * 0.08, h * 0.32);
   ctx.quadraticCurveTo(w * 0.5, h * 0.12, w * 0.92, h * 0.32);
   ctx.stroke();
-  for (let i = 0; i < 9; i += 1) {
+  const postCount = phoneMode ? 4 : 9;
+  for (let i = 0; i < postCount; i += 1) {
     const x = w * 0.12 + i * w * 0.095;
-    ctx.strokeStyle = "rgba(244,251,248,0.3)";
+    ctx.strokeStyle = phoneMode ? "rgba(244,251,248,0.12)" : "rgba(244,251,248,0.3)";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(x, h * 0.18);
@@ -14850,7 +14918,7 @@ function drawRaceGoalIntro(w, h, theme) {
   if (alpha <= 0) return;
   const route = routeWorldInfo(selectedRace && selectedRace.place ? selectedRace.place : "city");
   const panelW = Math.min(phoneMode ? 390 : 560, w - 28);
-  const panelH = phoneMode ? 92 : 108;
+  const panelH = phoneMode ? 108 : 126;
   const x = (w - panelW) / 2;
   const y = Math.max(phoneMode ? 48 : 72, h * (phoneMode ? 0.15 : 0.18));
   ctx.save();
@@ -14861,17 +14929,19 @@ function drawRaceGoalIntro(w, h, theme) {
   ctx.strokeStyle = `${theme[1]}aa`;
   ctx.lineWidth = 2;
   ctx.stroke();
+  drawCheckeredStrip(x + 12, y + 8, panelW - 24, phoneMode ? 9 : 11, phoneMode ? 20 : 24, 2);
+  drawCheckeredStrip(x + 12, y + panelH - (phoneMode ? 17 : 19), panelW - 24, phoneMode ? 9 : 11, phoneMode ? 20 : 24, 2);
   ctx.fillStyle = theme[1];
   ctx.font = `900 ${phoneMode ? 12 : 14}px system-ui`;
   ctx.textAlign = "center";
-  ctx.fillText("RACE GOAL", w / 2, y + (phoneMode ? 22 : 26));
+  ctx.fillText("START LINE GOAL", w / 2, y + (phoneMode ? 31 : 36));
   ctx.fillStyle = "#f4fbf8";
   ctx.font = `900 ${phoneMode ? 18 : 24}px system-ui`;
   const goal = selectedRace ? selectedRace.target : "Finish the race";
-  ctx.fillText(goal, w / 2, y + (phoneMode ? 48 : 58));
+  ctx.fillText(goal, w / 2, y + (phoneMode ? 58 : 70));
   ctx.fillStyle = "#a9bbb5";
   ctx.font = `800 ${phoneMode ? 11 : 13}px system-ui`;
-  ctx.fillText(`${route.country}: ${route.scene} | ${activeScenario().name} | Hideouts + shortcut branches`, w / 2, y + (phoneMode ? 72 : 84));
+  ctx.fillText(`${route.country}: ${route.scene} | ${activeScenario().name} | Hideouts + shortcut branches`, w / 2, y + (phoneMode ? 82 : 96));
   ctx.restore();
 }
 
