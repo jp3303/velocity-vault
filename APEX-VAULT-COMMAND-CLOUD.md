@@ -51,4 +51,6 @@ The local project still keeps the README, Apex notes, source PDF, and deployment
 
 Send the secure Apex link to testers. Each phone can install the game like an app, then play offline after the first full load.
 
+When the local files change, rebuild and reupload `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip` for Apex to show the new version. The hosted copy will not update by itself from this folder unless Apex is later connected to a GitHub/deploy hook.
+
 If Apex gives you a custom domain option, point the domain to this deployment and keep HTTPS enabled.
