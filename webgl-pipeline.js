@@ -488,7 +488,7 @@
       const accent = hexToRgba(theme[1], 1);
       const accent2 = hexToRgba(theme[2], 1);
       const offset = data.raceState.roadOffset;
-      for (let i = 0; i < 30; i += 1) {
+      for (let i = 0; i < 24; i += 1) {
         const z = wrapZ(i, 8.4, offset, 0.045);
         const side = i % 2 ? -1 : 1;
         const x = roadWorldX(data, side * (11 + (i % 5) * 3.4), z);
@@ -503,7 +503,7 @@
             box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
           }
           if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === "tokyo" ? accent2 : accent);
-          if (i % 6 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
+          if (i % 10 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
           if (i % 8 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
         } else if (place === "farm") {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
@@ -515,13 +515,13 @@
         } else if (place === "freight") {
           box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
           box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
-          if (i % 4 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
+          if (i % 8 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
           if (i % 7 === 0) box(side * 9.4, 0.9, z - 2.4, 3.6, 1.8, 1.9, [0.52, 0.08, 0.06, 1]);
           if (i % 8 === 0) streetLight(side * 7.7, z + 2.1, accent2);
         } else if (place === "desert" || place === "canyon") {
           lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === "canyon" ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
           if (i % 6 === 0) lowMound(side * 18.5, z + 2.7, 7.5, 2.6, 5.2, place === "canyon" ? [0.64, 0.25, 0.13, 1] : [0.78, 0.5, 0.22, 1]);
-          if (i % 10 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
+          if (i % 14 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
         } else if (place === "rainforest") {
           taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
           taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);

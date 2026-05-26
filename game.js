@@ -3742,6 +3742,10 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.fillRect(x - 2, baseY - 40, 4, 50);
     }
   }
+  if (phoneGraphicsActive()) {
+    ctx.restore();
+    return;
+  }
   const signSide = Math.sin((raceState.roadOffset || 0) * 0.002 + route.seed) > 0 ? 1 : -1;
   const signX = signSide > 0 ? w * 0.82 : w * 0.18;
   const signY = horizon + h * 0.08;
@@ -3849,12 +3853,12 @@ function drawGenAiRacingScenePass(w, h, theme) {
   drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed);
   drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, design, seed);
   ctx.save();
-  const count = phoneMode ? 20 : 30;
+  const count = phoneMode ? 10 : 18;
   const offset = (raceState.roadOffset || 0) * (phoneMode ? 1.08 : 0.84);
   for (let i = 0; i < count; i += 1) {
     const side = i % 2 ? -1 : 1;
     const loopSpan = h - horizon + 240;
-    const raw = ((i * 76 + offset * (0.52 + seededUnit(seed, i) * 0.34)) % loopSpan) - 92;
+    const raw = ((i * (phoneMode ? 148 : 126) + offset * (0.46 + seededUnit(seed, i) * 0.26)) % loopSpan) - 92;
     const y = horizon + raw;
     if (y < horizon - 18 || y > h + 70) continue;
     const t = Math.max(0.02, Math.min(1.05, (y - horizon) / Math.max(1, h - horizon)));
@@ -3862,7 +3866,7 @@ function drawGenAiRacingScenePass(w, h, theme) {
     const roadHalf = roadTop * 0.82 + (roadBottom * 0.58 - roadTop * 0.82) * t;
     const x = center + side * (roadHalf + w * (0.05 + seededUnit(seed, i + 4) * 0.11) * (0.42 + t));
     const scale = 0.36 + t * 1.06;
-    const prop = design.props[i % design.props.length];
+    const prop = worldSceneryProp(design.props[i % design.props.length], place, i, phoneMode);
     drawGenAiTrackProp(prop, x, y, scale, side, design, theme, route, seed + i * 13);
   }
   drawGenAiCrowdAndCameras(w, h, horizon, roadTop, roadBottom, design);
@@ -3908,10 +3912,10 @@ function drawRouteStageLandmarks(w, h, theme) {
   ctx.save();
   ctx.globalAlpha = phoneMode ? 0.72 : 0.82;
   drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed);
-  const loopSpan = h - horizon + 260;
-  const count = phoneMode ? 13 : 18;
+  const loopSpan = h - horizon + 360;
+  const count = phoneMode ? 7 : 11;
   for (let i = 0; i < count; i += 1) {
-    const raw = ((i * 132 + (raceState.roadOffset || 0) * (0.72 + seededUnit(seed, i) * 0.22) + stage.index * 43) % loopSpan) - 84;
+    const raw = ((i * (phoneMode ? 245 : 210) + (raceState.roadOffset || 0) * (0.58 + seededUnit(seed, i) * 0.16) + stage.index * 63) % loopSpan) - 104;
     const y = horizon + raw;
     if (y < horizon - 12 || y > h + 80) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
@@ -3920,10 +3924,10 @@ function drawRouteStageLandmarks(w, h, theme) {
     const sideOffset = w * (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07);
     const x = center + side * sideOffset;
     const scale = 0.38 + t * (phoneMode ? 0.92 : 1.22);
-    const prop = i % 5 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length];
+    const prop = worldSceneryProp(i % 6 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length], place, i + stage.index, phoneMode);
     drawRouteStageProp(prop, x, y, scale, side, design, theme, seed + i * 17);
   }
-  drawRouteStageSign(w, h, horizon, stage, design, theme);
+  if (!phoneMode) drawRouteStageSign(w, h, horizon, stage, design, theme);
   drawFinishGate(w, h, theme);
   ctx.restore();
 }
@@ -4554,7 +4558,7 @@ function groundLockedPlaceProps(place, stage) {
     harbor: ["container", "dockLight", "warehouse", "craneBase", "serviceTruck"],
     snow: ["pine", "snowFence", "lodge", "skiPost", "spectators"],
     airfield: ["runwayLight", "hangar", "serviceCart", "towerSign", "barrier"],
-    pursuit: ["trafficSignal", "roadblock", "policeHQ", "lightbarSign", "parkedCar"],
+    pursuit: ["policeHQ", "parkedCar", "streetLight", "crowd", "lowBarrier"],
     freight: ["container", "railSignal", "truckStop", "fence", "serviceTruck"],
     interstate: ["weighStation", "dieselSign", "truckStop", "serviceTruck", "overheadSign"],
     farm: ["fence", "barn", "tractorParked", "hayBales", "windmill"],
@@ -4578,9 +4582,9 @@ function routeDriveByProps(place, stage) {
     beacon: ["runwayLight", "controlTower", "hangar", "serviceCart", "billboard"],
     hangar: ["hangar", "serviceTruck", "controlTower", "runwayLight", "routeSign"],
     plane: ["serviceCart", "controlTower", "hangar", "runwayLight", "billboard"],
-    policeHQ: ["policeHQ", "roadblock", "lightbarSign", "trafficSignal", "billboard"],
-    roadblock: ["roadblock", "trafficSignal", "policeHQ", "routeSign", "parkedCar"],
-    lightbarSign: ["lightbarSign", "billboard", "trafficSignal", "roadblock", "routeSign"],
+    policeHQ: ["policeHQ", "parkedCar", "streetLight", "crowd", "lowBarrier"],
+    roadblock: ["roadblock", "parkedCar", "lowBarrier", "streetLight", "crowd"],
+    lightbarSign: ["lightbarSign", "parkedCar", "streetLight", "policeHQ", "lowBarrier"],
     barn: ["barn", "fence", "hayBales", "tractorParked", "windmill"],
     tractor: ["tractorParked", "hayBales", "fence", "barn", "routeSign"],
     field: ["fence", "barn", "windmill", "hayBales", "serviceStation"],
@@ -4612,7 +4616,7 @@ function routeDriveByProps(place, stage) {
     harbor: ["container", "craneBase", "warehouse", "marinaDock", "serviceTruck", "dockLight"],
     snow: ["pine", "lodge", "snowFence", "skiPost", "spectators", "routeSign"],
     airfield: ["runwayLight", "hangar", "controlTower", "serviceCart", "billboard", "barrier"],
-    pursuit: ["policeHQ", "roadblock", "lightbarSign", "trafficSignal", "billboard", "parkedCar"],
+    pursuit: ["policeHQ", "parkedCar", "streetLight", "crowd", "lowBarrier", "trafficSignal"],
     freight: ["truckStop", "container", "railSignal", "serviceTruck", "billboard", "trafficSignal"],
     interstate: ["weighStation", "overheadSign", "dieselSign", "truckStop", "serviceTruck", "billboard"],
     farm: ["fence", "barn", "tractorParked", "hayBales", "windmill", "serviceStation"],
@@ -4627,11 +4631,46 @@ function routeDriveByProps(place, stage) {
   return props[place] || props.city;
 }
 
+function isSignLikeWorldProp(kind = "") {
+  return /sign|billboard|marker|scoreboard|roadblock|lightbar|trafficSignal|overhead|diesel|weigh|checkpoint/i.test(kind);
+}
+
+function realWorldGroundFallback(place = "city", index = 0) {
+  const sets = {
+    coast: ["palm", "beachHouse", "seaWall", "spectators", "parkedCar"],
+    city: ["storefront", "streetLight", "parkedCar", "crowd", "busStop"],
+    canyon: ["rockFace", "desertScrub", "guardPost", "tourVan", "fence"],
+    alpine: ["pine", "stoneWall", "chalet", "snowPost", "spectators"],
+    harbor: ["warehouse", "container", "dockLight", "serviceTruck", "marinaDock"],
+    snow: ["pine", "snowFence", "lodge", "skiPost", "spectators"],
+    airfield: ["hangar", "runwayLight", "serviceCart", "controlTower", "barrier"],
+    pursuit: ["policeHQ", "parkedCar", "streetLight", "crowd", "lowBarrier"],
+    freight: ["truckStop", "container", "serviceTruck", "fence", "streetLight"],
+    interstate: ["truckStop", "serviceTruck", "streetLight", "fence", "parkedCar"],
+    farm: ["fence", "barn", "tractorParked", "hayBales", "windmill"],
+    monsterpark: ["grandstand", "dirtBerm", "crushCarStack", "stadiumRamp", "spectators"],
+    military: ["bunker", "watchTower", "blastWall", "serviceTruck", "barrier"],
+    skybase: ["controlTower", "runwayLight", "hangar", "serviceCart", "barrier"],
+    tokyo: ["neonShop", "streetLight", "parkedCar", "crowd", "pedestrianBridge"],
+    desert: ["dune", "desertScrub", "supportTent", "rockFace", "serviceTruck"],
+    rainforest: ["canopyTree", "marketStand", "woodRail", "crowd", "parkedCar"],
+    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"]
+  };
+  const set = sets[place] || sets.city;
+  return set[Math.abs(index) % set.length];
+}
+
+function worldSceneryProp(kind, place = "city", index = 0, phoneMode = phoneGraphicsActive()) {
+  if (!phoneMode) return kind;
+  if (!isSignLikeWorldProp(kind)) return kind;
+  return realWorldGroundFallback(place, index);
+}
+
 function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
   const length = Math.max(1, raceLength());
-  const spacing = phoneMode ? 210 : 205;
-  const lookBehind = phoneMode ? 180 : 240;
-  const lookAhead = phoneMode ? 2200 : 2600;
+  const spacing = phoneMode ? 430 : 340;
+  const lookBehind = phoneMode ? 160 : 220;
+  const lookAhead = phoneMode ? 1850 : 2400;
   const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
   const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
   const drawList = [];
@@ -4653,12 +4692,12 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
       scale: projected.scale,
       depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
       side,
-      kind: props[Math.abs(index) % props.length],
+      kind: worldSceneryProp(props[Math.abs(index) % props.length], place, index, phoneMode),
       stage,
       seed: seed + index * 131,
       distance: baseDistance
     });
-    if (index % 4 === 0) {
+    if (!phoneMode && index % 5 === 0) {
       const otherSide = -side;
       const companionLane = otherSide * (1.94 + seededUnit(seed, index + 44) * 0.42);
       const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
@@ -4673,7 +4712,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
           scale: companion.scale,
           depth: companion.depth || Math.max(0, Math.min(1, (companion.y - horizon) / Math.max(1, h - horizon))),
           side: otherSide,
-          kind: companionProps[(Math.abs(index) + 2) % companionProps.length],
+          kind: worldSceneryProp(companionProps[(Math.abs(index) + 2) % companionProps.length], place, index + 2, phoneMode),
           stage: companionStage,
           seed: seed + index * 151,
           distance: companionDistance
@@ -4684,7 +4723,15 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
   drawList.sort((a, b) => a.y - b.y);
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 10 : 14);
+  const laneBands = { "-1": -9999, "1": -9999 };
+  let recentSignY = -9999;
   drawList.forEach((item) => {
+    const sideKey = String(item.side < 0 ? -1 : 1);
+    const minGap = phoneMode ? (isSignLikeWorldProp(item.kind) ? 170 : 104) : (isSignLikeWorldProp(item.kind) ? 118 : 70);
+    if (item.y - laneBands[sideKey] < minGap) return;
+    if (isSignLikeWorldProp(item.kind) && item.y - recentSignY < (phoneMode ? 260 : 170)) return;
+    laneBands[sideKey] = item.y;
+    if (isSignLikeWorldProp(item.kind)) recentSignY = item.y;
     const near = Math.max(0, Math.min(1, item.depth || 0));
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, item.y, item.side, item.x, phoneMode, phoneMode ? 18 : 28);
     const scale = Math.max(0.32, Math.min(phoneMode ? 1.66 : 1.86, item.scale * (phoneMode ? 0.96 : 1.02) * (0.86 + near * 0.54)));
@@ -4717,12 +4764,13 @@ function drawGroundLockedDriveByShadow(x, y, scale, side, theme) {
 
 function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const props = groundLockedPlaceProps(place, stage);
-  const count = phoneMode ? 12 : 20;
-  const span = h - horizon + 320;
+  const count = phoneMode ? 7 : 14;
+  const span = h - horizon + 420;
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 6 : 10);
+  const lastYBySide = { "-1": -9999, "1": -9999 };
   for (let i = 0; i < count; i += 1) {
-    const y = horizon + (((i * 116 + motion * (0.82 + seededUnit(seed, i) * 0.2) + seed * 0.003) % span) - 76);
+    const y = horizon + (((i * (phoneMode ? 190 : 158) + motion * (0.62 + seededUnit(seed, i) * 0.16) + seed * 0.003) % span) - 96);
     if (y < horizon + 4 || y > h + 70) continue;
     const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
@@ -4731,7 +4779,11 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const projectedX = perspectiveRoadCenter(w, t) + side * shoulder;
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 10 : 18);
     const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
-    const kind = props[i % props.length];
+    const kind = worldSceneryProp(props[i % props.length], place, i, phoneMode);
+    const sideKey = String(side);
+    const rowGap = phoneMode ? (isSignLikeWorldProp(kind) ? 155 : 92) : (isSignLikeWorldProp(kind) ? 108 : 64);
+    if (y - lastYBySide[sideKey] < rowGap) continue;
+    lastYBySide[sideKey] = y;
     ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
     drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
   }
@@ -4913,30 +4965,56 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("POLICE HQ", 0, -83, 96);
+    } else if (kind === "roadblock") {
+      ctx.strokeStyle = "rgba(214,226,221,0.82)";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-72, 0);
+      ctx.lineTo(-72, -34);
+      ctx.moveTo(72, 0);
+      ctx.lineTo(72, -34);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(5,8,7,0.88)";
+      roundRect(-94, -42, 188, 18, 4);
+      ctx.fill();
+      for (let i = -3; i <= 3; i += 1) {
+        ctx.fillStyle = i % 2 ? "#f4fbf8" : "#ff3348";
+        ctx.fillRect(i * 28 - 10, -39, 20, 12);
+      }
+      ctx.fillStyle = "rgba(255,209,102,0.9)";
+      for (let i = -2; i <= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(i * 42 - 9, -2);
+        ctx.lineTo(i * 42 + 9, -2);
+        ctx.lineTo(i * 42 + 5, -24);
+        ctx.lineTo(i * 42 - 5, -24);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else {
       ctx.strokeStyle = "rgba(214,226,221,0.84)";
       ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.moveTo(-78, 0);
-      ctx.lineTo(-78, -58);
-      ctx.moveTo(78, 0);
-      ctx.lineTo(78, -58);
+      ctx.moveTo(-54, 0);
+      ctx.lineTo(-54, -44);
+      ctx.moveTo(54, 0);
+      ctx.lineTo(54, -44);
       ctx.stroke();
       ctx.fillStyle = "rgba(5,8,7,0.94)";
-      roundRect(-104, -82, 208, 36, 5);
+      roundRect(-72, -64, 144, 28, 5);
       ctx.fill();
       ctx.strokeStyle = kind === "lightbarSign" ? "#46d9ff" : "#ff3348";
       ctx.lineWidth = 3;
       ctx.stroke();
       ctx.fillStyle = "#ff3348";
-      ctx.fillRect(-84, -70, 72, 8);
+      ctx.fillRect(-58, -54, 48, 7);
       ctx.fillStyle = "#46d9ff";
-      ctx.fillRect(12, -70, 72, 8);
+      ctx.fillRect(10, -54, 48, 7);
       ctx.fillStyle = "#f4fbf8";
-      ctx.font = "900 11px system-ui";
+      ctx.font = "900 9px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(kind === "roadblock" ? "ROADBLOCK" : "INTERCEPTOR", 0, -58, 150);
+      ctx.fillText("INTERCEPTOR", 0, -43, 112);
     }
   } else if (kind === "trafficSignal") {
     ctx.strokeStyle = "rgba(214,226,221,0.84)";
@@ -5517,7 +5595,7 @@ function drawDepthOverRoadPiece(kind, w, y, index, route, design, theme, seed, p
     ctx.moveTo(w * 0.8, y - 6);
     ctx.lineTo(w * 0.8, y + 38);
     ctx.stroke();
-    if (!phoneMode || index < 2) {
+    if (!phoneMode) {
       ctx.fillStyle = "rgba(5,8,7,0.62)";
       roundRect(w * 0.39, y - 20, w * 0.22, 22, 4);
       ctx.fill();
@@ -5958,24 +6036,28 @@ function drawRouteSectorDistantSet(w, h, horizon, roadTop, roadBottom, stage, ro
   ctx.save();
   ctx.globalAlpha *= phoneMode ? 0.42 : 0.56;
   drawRouteSectorSetPiece(stage.prop, x, y, scale, place, design, theme, seed);
-  const signY = horizon + h * 0.145;
-  const signT = 0.21;
-  const signX = perspectiveRoadCenter(w, signT);
-  const signW = Math.min(w * (phoneMode ? 0.44 : 0.5), phoneMode ? 176 : 260);
-  ctx.fillStyle = "rgba(5,8,7,0.68)";
-  roundRect(signX - signW / 2, signY - 17, signW, 34, 5);
-  ctx.fill();
-  ctx.strokeStyle = `${design.accent || theme[1]}66`;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.fillStyle = "#f4fbf8";
-  ctx.font = `900 ${Math.max(8, Math.min(13, w * 0.012))}px system-ui`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(`${route.country}: ${stage.label}`.toUpperCase(), signX, signY - 3, signW - 14);
-  ctx.fillStyle = `${design.light || theme[2]}dd`;
-  ctx.font = `800 ${Math.max(7, Math.min(10, w * 0.01))}px system-ui`;
-  ctx.fillText(route.cue.toUpperCase(), signX, signY + 10, signW - 18);
+  if (!phoneMode) {
+    const signY = horizon + h * 0.145;
+    const signT = 0.21;
+    const signX = perspectiveRoadCenter(w, signT);
+    const signW = Math.min(w * (phoneMode ? 0.38 : 0.5), phoneMode ? 150 : 260);
+    ctx.fillStyle = "rgba(5,8,7,0.52)";
+    roundRect(signX - signW / 2, signY - 15, signW, 30, 5);
+    ctx.fill();
+    ctx.strokeStyle = `${design.accent || theme[1]}55`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#f4fbf8";
+    ctx.font = `900 ${Math.max(8, Math.min(phoneMode ? 10 : 13, w * 0.011))}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${route.country}: ${stage.label}`.toUpperCase(), signX, signY - 2, signW - 14);
+    if (!phoneMode) {
+      ctx.fillStyle = `${design.light || theme[2]}dd`;
+      ctx.font = `800 ${Math.max(7, Math.min(10, w * 0.01))}px system-ui`;
+      ctx.fillText(route.cue.toUpperCase(), signX, signY + 10, signW - 18);
+    }
+  }
   ctx.restore();
 }
 
@@ -6071,19 +6153,19 @@ function drawRouteSectorSetPiece(prop, x, y, scale, place, design, theme, seed) 
 }
 
 function drawRouteSectorRoadsideStory(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, seed, motion, phoneMode) {
-  const count = phoneMode ? 10 : 16;
+  const count = phoneMode ? 6 : 12;
   const set = routeSectorStorySet(place, stage);
   ctx.save();
   ctx.globalAlpha *= phoneMode ? 0.62 : 0.78;
   for (let i = 0; i < count; i += 1) {
     const side = i % 2 === 0 ? -1 : 1;
-    const y = horizon + (((i * 118 + motion * (0.82 + seededUnit(seed, i) * 0.18) + stage.index * 57) % (h - horizon + 210)) - 64);
+    const y = horizon + (((i * (phoneMode ? 198 : 150) + motion * (0.62 + seededUnit(seed, i) * 0.16) + stage.index * 71) % (h - horizon + 320)) - 88);
     if (y < horizon + 4 || y > h + 72) continue;
     const t = Math.max(0.06, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half * (0.86 + seededUnit(seed, i + 10) * 0.28) + w * 0.03);
     const scale = (0.34 + t * (phoneMode ? 0.78 : 1.02));
-    const kind = set[(i + stage.index) % set.length];
+    const kind = worldSceneryProp(set[(i + stage.index) % set.length], place, i + stage.index, phoneMode);
     drawRouteSectorStoryProp(kind, x, y, scale, side, route, place, design, theme, seed + i * 53);
   }
   ctx.restore();
@@ -6549,10 +6631,10 @@ function drawRealWorldPlaceIdentityPass(w, h, horizon, roadTop, roadBottom, plac
     drawPlaceIdentityObject(kind, x, y, scale, side, place, design, theme, seed + i * 89);
   }
 
-  const boardCount = phoneMode ? 3 : 5;
+  const boardCount = phoneMode ? 0 : 5;
   for (let i = 0; i < boardCount; i += 1) {
     const side = i % 2 === 0 ? -1 : 1;
-    const t = 0.28 + seededUnit(seed, i + 780) * 0.42;
+    const t = phoneMode ? 0.18 + seededUnit(seed, i + 780) * 0.16 : 0.28 + seededUnit(seed, i + 780) * 0.42;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.08 + seededUnit(seed, i + 790) * 0.08));
     const y = horizon + (h - horizon) * t + Math.sin(motion * 1.3 + i) * 8;
@@ -7223,18 +7305,18 @@ function realWorldPropSet(place) {
 function drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
   const phoneMode = phoneGraphicsActive();
   const props = realWorldPropSet(place);
-  const count = phoneMode ? 18 : 28;
+  const count = phoneMode ? 10 : 20;
   const motion = (raceState.roadOffset || 0) * (0.58 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
   ctx.save();
   for (let i = 0; i < count; i += 1) {
-    const y = horizon + (((i * 88 + motion * (0.72 + seededUnit(seed, i) * 0.28)) % (h - horizon + 220)) - 72);
+    const y = horizon + (((i * (phoneMode ? 154 : 122) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
     if (y < horizon - 8 || y > h + 72) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.045 + t * 0.16 + seededUnit(seed, i + 10) * 0.06));
     const scale = (0.32 + t * (phoneMode ? 0.8 : 1.08)) * (0.84 + seededUnit(seed, i + 22) * 0.36);
-    const kind = props[(i + Math.floor(seed % props.length)) % props.length];
+    const kind = worldSceneryProp(props[(i + Math.floor(seed % props.length)) % props.length], place, i, phoneMode);
     drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme, seed + i * 31);
   }
   drawRealWorldSidewalkBand(w, h, horizon, roadTop, roadBottom, place, design);
@@ -7778,12 +7860,12 @@ function drawRealWorldCurveCues(w, h, horizon, roadTop, roadBottom, place, desig
   if (Math.abs(turn) < 0.12) return;
   const phoneMode = phoneGraphicsActive();
   const side = turn > 0 ? 1 : -1;
-  const count = phoneMode ? 5 : 8;
+  const count = phoneMode ? 2 : 8;
   const motion = (raceState.roadOffset || 0) * 0.9;
   ctx.save();
-  ctx.globalAlpha = phoneMode ? 0.42 : 0.6;
+  ctx.globalAlpha = phoneMode ? 0.24 : 0.6;
   for (let i = 0; i < count; i += 1) {
-    const y = horizon + (((i * 98 + motion) % (h - horizon + 150)) - 38);
+    const y = horizon + (((i * (phoneMode ? 210 : 98) + motion) % (h - horizon + 230)) - 72);
     if (y < horizon || y > h + 30) continue;
     const t = Math.max(0.04, Math.min(1.04, (y - horizon) / Math.max(1, h - horizon)));
     const half = realWorldRoadHalf(roadTop, roadBottom, t);

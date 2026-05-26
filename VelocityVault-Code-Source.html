@@ -5,16 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Velocity Vault Code Source</title>
 <style>body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;color:#17202a;margin:0;padding:32px;line-height:1.35}
-h1{font-size:30px;margin:0 0 8px}
-h2{font-size:20px;margin:28px 0 10px;border-bottom:2px solid #1f7a8c;padding-bottom:6px}
-h3{font-size:16px;margin:18px 0 4px;color:#1f3c44}
-p{max-width:980px}.meta{color:#4a5b66;font-size:14px}.how{background:#fff;border:1px solid #d9e3e6;border-radius:8px;padding:14px 18px;max-width:980px}
-pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;border-radius:8px;padding:16px;font:12px/1.45 Consolas,"Courier New",monospace;box-shadow:0 2px 10px rgba(0,0,0,.12)}</style>
+h1{font-size:30px;margin:0 0 8px}h2{font-size:20px;margin:28px 0 10px;border-bottom:2px solid #1f7a8c;padding-bottom:6px}h3{font-size:16px;margin:18px 0 4px;color:#1f3c44}p{max-width:980px}.meta{color:#4a5b66;font-size:14px}.how{background:#fff;border:1px solid #d9e3e6;border-radius:8px;padding:14px 18px;max-width:980px}pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;border-radius:8px;padding:16px;font:12px/1.45 Consolas,"Courier New",monospace;box-shadow:0 2px 10px rgba(0,0,0,.12)}</style>
 </head>
 <body>
 <h1>Velocity Vault Code Source</h1>
-<p class="meta">Generated 2026-05-25 16:55:52 for the v85 all-vehicle upgrade build.</p>
-<p>This PDF/HTML companion contains the current standalone Velocity Vault source for the v85 all-vehicle upgrade build. The garage now supports saved per-vehicle builds, paint, plates, ownership, reputation unlocks, and upgrade levels across road cars, police cars, semis, tractors, monster trucks, tanks, boats, snowmobiles, helicopters, planes, jets, fighter jets, bombers, and drones. It also documents compatible race routes, phone controls, browser controls, Apex Vault Command Cloud upload notes, and hosting files.</p>
+<p class="meta">Generated 2026-05-25 17:13:26 for the v86 world-spacing build.</p>
+<p>This PDF/HTML companion contains the current standalone Velocity Vault source for the v86 world-spacing build. This update spreads roadside scenery farther down the route, reduces repeated sign-like props on phone screens, keeps a single route identity cue, and swaps excess labels for grounded real-world details such as buildings, parked vehicles, people, lights, fences, barriers, service vehicles, and physical police roadblocks. It also preserves the v85 all-vehicle garage, per-vehicle upgrades, race compatibility rules, phone controls, Apex Vault Command Cloud notes, and hosting files.</p>
 <h2>How To Play</h2>
 <div class="how">
 <h3>Create a driver</h3>
@@ -22,7 +18,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;
 <h3>Choose the right vehicle</h3>
 <p>Use the Vehicles tab to buy or select a vehicle. Race cards only enable when the active vehicle fits that route: boats run water races, aircraft run sky missions, police cars run pursuit routes, tanks run armored routes, and specialty trucks use their own events.</p>
 <h3>Upgrade each build</h3>
-<p>Use the Upgrades tab after selecting a vehicle. Engine, tires, shield, magnet, and boost levels are saved per vehicle so a drone, bomber, boat, police car, tank, and supercar can each have separate builds.</p>
+<p>Use the Upgrades tab after selecting a vehicle. Engine, tires, shield, magnet, and boost levels are saved per vehicle so each class can have its own build.</p>
 <h3>Start a race</h3>
 <p>Pick a race in the Races tab and launch it. Each race begins with a goal card, lasts longer than the early prototype routes, and keeps going after crashes with reset recovery instead of ending immediately.</p>
 <h3>Phone controls</h3>
@@ -30,7 +26,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;
 <h3>Computer controls</h3>
 <p>Use W or Arrow Up for gas, S or Arrow Down for brake/reverse, A/D or Arrow Left/Right for steering, Space for boost, P to pause, and R to reset the vehicle.</p>
 <h3>Bluetooth controller</h3>
-<p>Pair the controller with the phone/computer first. The game listens for a gamepad automatically: left stick or D-pad steers, RT/A accelerates, LT brakes/reverses, B boosts, Y resets, and Start pauses.</p>
+<p>Pair the controller with the phone/computer first. The game listens automatically: left stick or D-pad steers, RT/A accelerates, LT brakes/reverses, B boosts, Y resets, and Start pauses.</p>
 </div>
 <h2>index.html</h2>
 <pre>&lt;!doctype html&gt;
@@ -3402,7 +3398,7 @@ input:focus {
       const accent = hexToRgba(theme[1], 1);
       const accent2 = hexToRgba(theme[2], 1);
       const offset = data.raceState.roadOffset;
-      for (let i = 0; i &lt; 30; i += 1) {
+      for (let i = 0; i &lt; 24; i += 1) {
         const z = wrapZ(i, 8.4, offset, 0.045);
         const side = i % 2 ? -1 : 1;
         const x = roadWorldX(data, side * (11 + (i % 5) * 3.4), z);
@@ -3417,7 +3413,7 @@ input:focus {
             box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
           }
           if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === &quot;tokyo&quot; ? accent2 : accent);
-          if (i % 6 === 0) signPanel(x - side * 2.8, z + 1.5, place === &quot;tokyo&quot; ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
+          if (i % 10 === 0) signPanel(x - side * 2.8, z + 1.5, place === &quot;tokyo&quot; ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
           if (i % 8 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
         } else if (place === &quot;farm&quot;) {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
@@ -3429,13 +3425,13 @@ input:focus {
         } else if (place === &quot;freight&quot;) {
           box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
           box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
-          if (i % 4 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
+          if (i % 8 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
           if (i % 7 === 0) box(side * 9.4, 0.9, z - 2.4, 3.6, 1.8, 1.9, [0.52, 0.08, 0.06, 1]);
           if (i % 8 === 0) streetLight(side * 7.7, z + 2.1, accent2);
         } else if (place === &quot;desert&quot; || place === &quot;canyon&quot;) {
           lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === &quot;canyon&quot; ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
           if (i % 6 === 0) lowMound(side * 18.5, z + 2.7, 7.5, 2.6, 5.2, place === &quot;canyon&quot; ? [0.64, 0.25, 0.13, 1] : [0.78, 0.5, 0.22, 1]);
-          if (i % 10 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
+          if (i % 14 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
         } else if (place === &quot;rainforest&quot;) {
           taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
           taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
@@ -7430,6 +7426,10 @@ function drawPhoneConsoleLandmarks(w, h, horizon, place, theme) {
       ctx.fillRect(x - 2, baseY - 40, 4, 50);
     }
   }
+  if (phoneGraphicsActive()) {
+    ctx.restore();
+    return;
+  }
   const signSide = Math.sin((raceState.roadOffset || 0) * 0.002 + route.seed) &gt; 0 ? 1 : -1;
   const signX = signSide &gt; 0 ? w * 0.82 : w * 0.18;
   const signY = horizon + h * 0.08;
@@ -7537,12 +7537,12 @@ function drawGenAiRacingScenePass(w, h, theme) {
   drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed);
   drawGenAiSurfaceDetails(w, h, theme, horizon, roadTop, roadBottom, design, seed);
   ctx.save();
-  const count = phoneMode ? 20 : 30;
+  const count = phoneMode ? 10 : 18;
   const offset = (raceState.roadOffset || 0) * (phoneMode ? 1.08 : 0.84);
   for (let i = 0; i &lt; count; i += 1) {
     const side = i % 2 ? -1 : 1;
     const loopSpan = h - horizon + 240;
-    const raw = ((i * 76 + offset * (0.52 + seededUnit(seed, i) * 0.34)) % loopSpan) - 92;
+    const raw = ((i * (phoneMode ? 148 : 126) + offset * (0.46 + seededUnit(seed, i) * 0.26)) % loopSpan) - 92;
     const y = horizon + raw;
     if (y &lt; horizon - 18 || y &gt; h + 70) continue;
     const t = Math.max(0.02, Math.min(1.05, (y - horizon) / Math.max(1, h - horizon)));
@@ -7550,7 +7550,7 @@ function drawGenAiRacingScenePass(w, h, theme) {
     const roadHalf = roadTop * 0.82 + (roadBottom * 0.58 - roadTop * 0.82) * t;
     const x = center + side * (roadHalf + w * (0.05 + seededUnit(seed, i + 4) * 0.11) * (0.42 + t));
     const scale = 0.36 + t * 1.06;
-    const prop = design.props[i % design.props.length];
+    const prop = worldSceneryProp(design.props[i % design.props.length], place, i, phoneMode);
     drawGenAiTrackProp(prop, x, y, scale, side, design, theme, route, seed + i * 13);
   }
   drawGenAiCrowdAndCameras(w, h, horizon, roadTop, roadBottom, design);
@@ -7596,10 +7596,10 @@ function drawRouteStageLandmarks(w, h, theme) {
   ctx.save();
   ctx.globalAlpha = phoneMode ? 0.72 : 0.82;
   drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed);
-  const loopSpan = h - horizon + 260;
-  const count = phoneMode ? 13 : 18;
+  const loopSpan = h - horizon + 360;
+  const count = phoneMode ? 7 : 11;
   for (let i = 0; i &lt; count; i += 1) {
-    const raw = ((i * 132 + (raceState.roadOffset || 0) * (0.72 + seededUnit(seed, i) * 0.22) + stage.index * 43) % loopSpan) - 84;
+    const raw = ((i * (phoneMode ? 245 : 210) + (raceState.roadOffset || 0) * (0.58 + seededUnit(seed, i) * 0.16) + stage.index * 63) % loopSpan) - 104;
     const y = horizon + raw;
     if (y &lt; horizon - 12 || y &gt; h + 80) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
@@ -7608,10 +7608,10 @@ function drawRouteStageLandmarks(w, h, theme) {
     const sideOffset = w * (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07);
     const x = center + side * sideOffset;
     const scale = 0.38 + t * (phoneMode ? 0.92 : 1.22);
-    const prop = i % 5 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length];
+    const prop = worldSceneryProp(i % 6 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length], place, i + stage.index, phoneMode);
     drawRouteStageProp(prop, x, y, scale, side, design, theme, seed + i * 17);
   }
-  drawRouteStageSign(w, h, horizon, stage, design, theme);
+  if (!phoneMode) drawRouteStageSign(w, h, horizon, stage, design, theme);
   drawFinishGate(w, h, theme);
   ctx.restore();
 }
@@ -8242,7 +8242,7 @@ function groundLockedPlaceProps(place, stage) {
     harbor: [&quot;container&quot;, &quot;dockLight&quot;, &quot;warehouse&quot;, &quot;craneBase&quot;, &quot;serviceTruck&quot;],
     snow: [&quot;pine&quot;, &quot;snowFence&quot;, &quot;lodge&quot;, &quot;skiPost&quot;, &quot;spectators&quot;],
     airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;towerSign&quot;, &quot;barrier&quot;],
-    pursuit: [&quot;trafficSignal&quot;, &quot;roadblock&quot;, &quot;policeHQ&quot;, &quot;lightbarSign&quot;, &quot;parkedCar&quot;],
+    pursuit: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;crowd&quot;, &quot;lowBarrier&quot;],
     freight: [&quot;container&quot;, &quot;railSignal&quot;, &quot;truckStop&quot;, &quot;fence&quot;, &quot;serviceTruck&quot;],
     interstate: [&quot;weighStation&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;overheadSign&quot;],
     farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;],
@@ -8266,9 +8266,9 @@ function routeDriveByProps(place, stage) {
     beacon: [&quot;runwayLight&quot;, &quot;controlTower&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;billboard&quot;],
     hangar: [&quot;hangar&quot;, &quot;serviceTruck&quot;, &quot;controlTower&quot;, &quot;runwayLight&quot;, &quot;routeSign&quot;],
     plane: [&quot;serviceCart&quot;, &quot;controlTower&quot;, &quot;hangar&quot;, &quot;runwayLight&quot;, &quot;billboard&quot;],
-    policeHQ: [&quot;policeHQ&quot;, &quot;roadblock&quot;, &quot;lightbarSign&quot;, &quot;trafficSignal&quot;, &quot;billboard&quot;],
-    roadblock: [&quot;roadblock&quot;, &quot;trafficSignal&quot;, &quot;policeHQ&quot;, &quot;routeSign&quot;, &quot;parkedCar&quot;],
-    lightbarSign: [&quot;lightbarSign&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;, &quot;roadblock&quot;, &quot;routeSign&quot;],
+    policeHQ: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;crowd&quot;, &quot;lowBarrier&quot;],
+    roadblock: [&quot;roadblock&quot;, &quot;parkedCar&quot;, &quot;lowBarrier&quot;, &quot;streetLight&quot;, &quot;crowd&quot;],
+    lightbarSign: [&quot;lightbarSign&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;policeHQ&quot;, &quot;lowBarrier&quot;],
     barn: [&quot;barn&quot;, &quot;fence&quot;, &quot;hayBales&quot;, &quot;tractorParked&quot;, &quot;windmill&quot;],
     tractor: [&quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;fence&quot;, &quot;barn&quot;, &quot;routeSign&quot;],
     field: [&quot;fence&quot;, &quot;barn&quot;, &quot;windmill&quot;, &quot;hayBales&quot;, &quot;serviceStation&quot;],
@@ -8300,7 +8300,7 @@ function routeDriveByProps(place, stage) {
     harbor: [&quot;container&quot;, &quot;craneBase&quot;, &quot;warehouse&quot;, &quot;marinaDock&quot;, &quot;serviceTruck&quot;, &quot;dockLight&quot;],
     snow: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;skiPost&quot;, &quot;spectators&quot;, &quot;routeSign&quot;],
     airfield: [&quot;runwayLight&quot;, &quot;hangar&quot;, &quot;controlTower&quot;, &quot;serviceCart&quot;, &quot;billboard&quot;, &quot;barrier&quot;],
-    pursuit: [&quot;policeHQ&quot;, &quot;roadblock&quot;, &quot;lightbarSign&quot;, &quot;trafficSignal&quot;, &quot;billboard&quot;, &quot;parkedCar&quot;],
+    pursuit: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;crowd&quot;, &quot;lowBarrier&quot;, &quot;trafficSignal&quot;],
     freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;railSignal&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;, &quot;trafficSignal&quot;],
     interstate: [&quot;weighStation&quot;, &quot;overheadSign&quot;, &quot;dieselSign&quot;, &quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;billboard&quot;],
     farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;, &quot;serviceStation&quot;],
@@ -8315,11 +8315,46 @@ function routeDriveByProps(place, stage) {
   return props[place] || props.city;
 }
 
+function isSignLikeWorldProp(kind = &quot;&quot;) {
+  return /sign|billboard|marker|scoreboard|roadblock|lightbar|trafficSignal|overhead|diesel|weigh|checkpoint/i.test(kind);
+}
+
+function realWorldGroundFallback(place = &quot;city&quot;, index = 0) {
+  const sets = {
+    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;seaWall&quot;, &quot;spectators&quot;, &quot;parkedCar&quot;],
+    city: [&quot;storefront&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;, &quot;busStop&quot;],
+    canyon: [&quot;rockFace&quot;, &quot;desertScrub&quot;, &quot;guardPost&quot;, &quot;tourVan&quot;, &quot;fence&quot;],
+    alpine: [&quot;pine&quot;, &quot;stoneWall&quot;, &quot;chalet&quot;, &quot;snowPost&quot;, &quot;spectators&quot;],
+    harbor: [&quot;warehouse&quot;, &quot;container&quot;, &quot;dockLight&quot;, &quot;serviceTruck&quot;, &quot;marinaDock&quot;],
+    snow: [&quot;pine&quot;, &quot;snowFence&quot;, &quot;lodge&quot;, &quot;skiPost&quot;, &quot;spectators&quot;],
+    airfield: [&quot;hangar&quot;, &quot;runwayLight&quot;, &quot;serviceCart&quot;, &quot;controlTower&quot;, &quot;barrier&quot;],
+    pursuit: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;crowd&quot;, &quot;lowBarrier&quot;],
+    freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;serviceTruck&quot;, &quot;fence&quot;, &quot;streetLight&quot;],
+    interstate: [&quot;truckStop&quot;, &quot;serviceTruck&quot;, &quot;streetLight&quot;, &quot;fence&quot;, &quot;parkedCar&quot;],
+    farm: [&quot;fence&quot;, &quot;barn&quot;, &quot;tractorParked&quot;, &quot;hayBales&quot;, &quot;windmill&quot;],
+    monsterpark: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;stadiumRamp&quot;, &quot;spectators&quot;],
+    military: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;blastWall&quot;, &quot;serviceTruck&quot;, &quot;barrier&quot;],
+    skybase: [&quot;controlTower&quot;, &quot;runwayLight&quot;, &quot;hangar&quot;, &quot;serviceCart&quot;, &quot;barrier&quot;],
+    tokyo: [&quot;neonShop&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;crowd&quot;, &quot;pedestrianBridge&quot;],
+    desert: [&quot;dune&quot;, &quot;desertScrub&quot;, &quot;supportTent&quot;, &quot;rockFace&quot;, &quot;serviceTruck&quot;],
+    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;crowd&quot;, &quot;parkedCar&quot;],
+    europe: [&quot;stoneWall&quot;, &quot;cafe&quot;, &quot;tramPost&quot;, &quot;villageHouse&quot;, &quot;spectators&quot;]
+  };
+  const set = sets[place] || sets.city;
+  return set[Math.abs(index) % set.length];
+}
+
+function worldSceneryProp(kind, place = &quot;city&quot;, index = 0, phoneMode = phoneGraphicsActive()) {
+  if (!phoneMode) return kind;
+  if (!isSignLikeWorldProp(kind)) return kind;
+  return realWorldGroundFallback(place, index);
+}
+
 function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
   const length = Math.max(1, raceLength());
-  const spacing = phoneMode ? 210 : 205;
-  const lookBehind = phoneMode ? 180 : 240;
-  const lookAhead = phoneMode ? 2200 : 2600;
+  const spacing = phoneMode ? 430 : 340;
+  const lookBehind = phoneMode ? 160 : 220;
+  const lookAhead = phoneMode ? 1850 : 2400;
   const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
   const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
   const drawList = [];
@@ -8341,12 +8376,12 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
       scale: projected.scale,
       depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
       side,
-      kind: props[Math.abs(index) % props.length],
+      kind: worldSceneryProp(props[Math.abs(index) % props.length], place, index, phoneMode),
       stage,
       seed: seed + index * 131,
       distance: baseDistance
     });
-    if (index % 4 === 0) {
+    if (!phoneMode &amp;&amp; index % 5 === 0) {
       const otherSide = -side;
       const companionLane = otherSide * (1.94 + seededUnit(seed, index + 44) * 0.42);
       const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
@@ -8361,7 +8396,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
           scale: companion.scale,
           depth: companion.depth || Math.max(0, Math.min(1, (companion.y - horizon) / Math.max(1, h - horizon))),
           side: otherSide,
-          kind: companionProps[(Math.abs(index) + 2) % companionProps.length],
+          kind: worldSceneryProp(companionProps[(Math.abs(index) + 2) % companionProps.length], place, index + 2, phoneMode),
           stage: companionStage,
           seed: seed + index * 151,
           distance: companionDistance
@@ -8372,7 +8407,15 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
   drawList.sort((a, b) =&gt; a.y - b.y);
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 10 : 14);
+  const laneBands = { &quot;-1&quot;: -9999, &quot;1&quot;: -9999 };
+  let recentSignY = -9999;
   drawList.forEach((item) =&gt; {
+    const sideKey = String(item.side &lt; 0 ? -1 : 1);
+    const minGap = phoneMode ? (isSignLikeWorldProp(item.kind) ? 170 : 104) : (isSignLikeWorldProp(item.kind) ? 118 : 70);
+    if (item.y - laneBands[sideKey] &lt; minGap) return;
+    if (isSignLikeWorldProp(item.kind) &amp;&amp; item.y - recentSignY &lt; (phoneMode ? 260 : 170)) return;
+    laneBands[sideKey] = item.y;
+    if (isSignLikeWorldProp(item.kind)) recentSignY = item.y;
     const near = Math.max(0, Math.min(1, item.depth || 0));
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, item.y, item.side, item.x, phoneMode, phoneMode ? 18 : 28);
     const scale = Math.max(0.32, Math.min(phoneMode ? 1.66 : 1.86, item.scale * (phoneMode ? 0.96 : 1.02) * (0.86 + near * 0.54)));
@@ -8405,12 +8448,13 @@ function drawGroundLockedDriveByShadow(x, y, scale, side, theme) {
 
 function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const props = groundLockedPlaceProps(place, stage);
-  const count = phoneMode ? 12 : 20;
-  const span = h - horizon + 320;
+  const count = phoneMode ? 7 : 14;
+  const span = h - horizon + 420;
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 6 : 10);
+  const lastYBySide = { &quot;-1&quot;: -9999, &quot;1&quot;: -9999 };
   for (let i = 0; i &lt; count; i += 1) {
-    const y = horizon + (((i * 116 + motion * (0.82 + seededUnit(seed, i) * 0.2) + seed * 0.003) % span) - 76);
+    const y = horizon + (((i * (phoneMode ? 190 : 158) + motion * (0.62 + seededUnit(seed, i) * 0.16) + seed * 0.003) % span) - 96);
     if (y &lt; horizon + 4 || y &gt; h + 70) continue;
     const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
@@ -8419,7 +8463,11 @@ function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, plac
     const projectedX = perspectiveRoadCenter(w, t) + side * shoulder;
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 10 : 18);
     const scale = (0.38 + t * (phoneMode ? 1.02 : 1.18)) * (0.9 + seededUnit(seed, i + 80) * 0.24);
-    const kind = props[i % props.length];
+    const kind = worldSceneryProp(props[i % props.length], place, i, phoneMode);
+    const sideKey = String(side);
+    const rowGap = phoneMode ? (isSignLikeWorldProp(kind) ? 155 : 92) : (isSignLikeWorldProp(kind) ? 108 : 64);
+    if (y - lastYBySide[sideKey] &lt; rowGap) continue;
+    lastYBySide[sideKey] = y;
     ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
     drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
   }
@@ -8601,30 +8649,56 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       ctx.textAlign = &quot;center&quot;;
       ctx.textBaseline = &quot;middle&quot;;
       ctx.fillText(&quot;POLICE HQ&quot;, 0, -83, 96);
+    } else if (kind === &quot;roadblock&quot;) {
+      ctx.strokeStyle = &quot;rgba(214,226,221,0.82)&quot;;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-72, 0);
+      ctx.lineTo(-72, -34);
+      ctx.moveTo(72, 0);
+      ctx.lineTo(72, -34);
+      ctx.stroke();
+      ctx.fillStyle = &quot;rgba(5,8,7,0.88)&quot;;
+      roundRect(-94, -42, 188, 18, 4);
+      ctx.fill();
+      for (let i = -3; i &lt;= 3; i += 1) {
+        ctx.fillStyle = i % 2 ? &quot;#f4fbf8&quot; : &quot;#ff3348&quot;;
+        ctx.fillRect(i * 28 - 10, -39, 20, 12);
+      }
+      ctx.fillStyle = &quot;rgba(255,209,102,0.9)&quot;;
+      for (let i = -2; i &lt;= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(i * 42 - 9, -2);
+        ctx.lineTo(i * 42 + 9, -2);
+        ctx.lineTo(i * 42 + 5, -24);
+        ctx.lineTo(i * 42 - 5, -24);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else {
       ctx.strokeStyle = &quot;rgba(214,226,221,0.84)&quot;;
       ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.moveTo(-78, 0);
-      ctx.lineTo(-78, -58);
-      ctx.moveTo(78, 0);
-      ctx.lineTo(78, -58);
+      ctx.moveTo(-54, 0);
+      ctx.lineTo(-54, -44);
+      ctx.moveTo(54, 0);
+      ctx.lineTo(54, -44);
       ctx.stroke();
       ctx.fillStyle = &quot;rgba(5,8,7,0.94)&quot;;
-      roundRect(-104, -82, 208, 36, 5);
+      roundRect(-72, -64, 144, 28, 5);
       ctx.fill();
       ctx.strokeStyle = kind === &quot;lightbarSign&quot; ? &quot;#46d9ff&quot; : &quot;#ff3348&quot;;
       ctx.lineWidth = 3;
       ctx.stroke();
       ctx.fillStyle = &quot;#ff3348&quot;;
-      ctx.fillRect(-84, -70, 72, 8);
+      ctx.fillRect(-58, -54, 48, 7);
       ctx.fillStyle = &quot;#46d9ff&quot;;
-      ctx.fillRect(12, -70, 72, 8);
+      ctx.fillRect(10, -54, 48, 7);
       ctx.fillStyle = &quot;#f4fbf8&quot;;
-      ctx.font = &quot;900 11px system-ui&quot;;
+      ctx.font = &quot;900 9px system-ui&quot;;
       ctx.textAlign = &quot;center&quot;;
       ctx.textBaseline = &quot;middle&quot;;
-      ctx.fillText(kind === &quot;roadblock&quot; ? &quot;ROADBLOCK&quot; : &quot;INTERCEPTOR&quot;, 0, -58, 150);
+      ctx.fillText(&quot;INTERCEPTOR&quot;, 0, -43, 112);
     }
   } else if (kind === &quot;trafficSignal&quot;) {
     ctx.strokeStyle = &quot;rgba(214,226,221,0.84)&quot;;
@@ -9205,7 +9279,7 @@ function drawDepthOverRoadPiece(kind, w, y, index, route, design, theme, seed, p
     ctx.moveTo(w * 0.8, y - 6);
     ctx.lineTo(w * 0.8, y + 38);
     ctx.stroke();
-    if (!phoneMode || index &lt; 2) {
+    if (!phoneMode) {
       ctx.fillStyle = &quot;rgba(5,8,7,0.62)&quot;;
       roundRect(w * 0.39, y - 20, w * 0.22, 22, 4);
       ctx.fill();
@@ -9646,24 +9720,28 @@ function drawRouteSectorDistantSet(w, h, horizon, roadTop, roadBottom, stage, ro
   ctx.save();
   ctx.globalAlpha *= phoneMode ? 0.42 : 0.56;
   drawRouteSectorSetPiece(stage.prop, x, y, scale, place, design, theme, seed);
-  const signY = horizon + h * 0.145;
-  const signT = 0.21;
-  const signX = perspectiveRoadCenter(w, signT);
-  const signW = Math.min(w * (phoneMode ? 0.44 : 0.5), phoneMode ? 176 : 260);
-  ctx.fillStyle = &quot;rgba(5,8,7,0.68)&quot;;
-  roundRect(signX - signW / 2, signY - 17, signW, 34, 5);
-  ctx.fill();
-  ctx.strokeStyle = `${design.accent || theme[1]}66`;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.fillStyle = &quot;#f4fbf8&quot;;
-  ctx.font = `900 ${Math.max(8, Math.min(13, w * 0.012))}px system-ui`;
-  ctx.textAlign = &quot;center&quot;;
-  ctx.textBaseline = &quot;middle&quot;;
-  ctx.fillText(`${route.country}: ${stage.label}`.toUpperCase(), signX, signY - 3, signW - 14);
-  ctx.fillStyle = `${design.light || theme[2]}dd`;
-  ctx.font = `800 ${Math.max(7, Math.min(10, w * 0.01))}px system-ui`;
-  ctx.fillText(route.cue.toUpperCase(), signX, signY + 10, signW - 18);
+  if (!phoneMode) {
+    const signY = horizon + h * 0.145;
+    const signT = 0.21;
+    const signX = perspectiveRoadCenter(w, signT);
+    const signW = Math.min(w * (phoneMode ? 0.38 : 0.5), phoneMode ? 150 : 260);
+    ctx.fillStyle = &quot;rgba(5,8,7,0.52)&quot;;
+    roundRect(signX - signW / 2, signY - 15, signW, 30, 5);
+    ctx.fill();
+    ctx.strokeStyle = `${design.accent || theme[1]}55`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = &quot;#f4fbf8&quot;;
+    ctx.font = `900 ${Math.max(8, Math.min(phoneMode ? 10 : 13, w * 0.011))}px system-ui`;
+    ctx.textAlign = &quot;center&quot;;
+    ctx.textBaseline = &quot;middle&quot;;
+    ctx.fillText(`${route.country}: ${stage.label}`.toUpperCase(), signX, signY - 2, signW - 14);
+    if (!phoneMode) {
+      ctx.fillStyle = `${design.light || theme[2]}dd`;
+      ctx.font = `800 ${Math.max(7, Math.min(10, w * 0.01))}px system-ui`;
+      ctx.fillText(route.cue.toUpperCase(), signX, signY + 10, signW - 18);
+    }
+  }
   ctx.restore();
 }
 
@@ -9759,19 +9837,19 @@ function drawRouteSectorSetPiece(prop, x, y, scale, place, design, theme, seed) 
 }
 
 function drawRouteSectorRoadsideStory(w, h, horizon, roadTop, roadBottom, stage, route, place, design, theme, seed, motion, phoneMode) {
-  const count = phoneMode ? 10 : 16;
+  const count = phoneMode ? 6 : 12;
   const set = routeSectorStorySet(place, stage);
   ctx.save();
   ctx.globalAlpha *= phoneMode ? 0.62 : 0.78;
   for (let i = 0; i &lt; count; i += 1) {
     const side = i % 2 === 0 ? -1 : 1;
-    const y = horizon + (((i * 118 + motion * (0.82 + seededUnit(seed, i) * 0.18) + stage.index * 57) % (h - horizon + 210)) - 64);
+    const y = horizon + (((i * (phoneMode ? 198 : 150) + motion * (0.62 + seededUnit(seed, i) * 0.16) + stage.index * 71) % (h - horizon + 320)) - 88);
     if (y &lt; horizon + 4 || y &gt; h + 72) continue;
     const t = Math.max(0.06, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half * (0.86 + seededUnit(seed, i + 10) * 0.28) + w * 0.03);
     const scale = (0.34 + t * (phoneMode ? 0.78 : 1.02));
-    const kind = set[(i + stage.index) % set.length];
+    const kind = worldSceneryProp(set[(i + stage.index) % set.length], place, i + stage.index, phoneMode);
     drawRouteSectorStoryProp(kind, x, y, scale, side, route, place, design, theme, seed + i * 53);
   }
   ctx.restore();
@@ -10237,10 +10315,10 @@ function drawRealWorldPlaceIdentityPass(w, h, horizon, roadTop, roadBottom, plac
     drawPlaceIdentityObject(kind, x, y, scale, side, place, design, theme, seed + i * 89);
   }
 
-  const boardCount = phoneMode ? 3 : 5;
+  const boardCount = phoneMode ? 0 : 5;
   for (let i = 0; i &lt; boardCount; i += 1) {
     const side = i % 2 === 0 ? -1 : 1;
-    const t = 0.28 + seededUnit(seed, i + 780) * 0.42;
+    const t = phoneMode ? 0.18 + seededUnit(seed, i + 780) * 0.16 : 0.28 + seededUnit(seed, i + 780) * 0.42;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.08 + seededUnit(seed, i + 790) * 0.08));
     const y = horizon + (h - horizon) * t + Math.sin(motion * 1.3 + i) * 8;
@@ -10911,18 +10989,18 @@ function realWorldPropSet(place) {
 function drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
   const phoneMode = phoneGraphicsActive();
   const props = realWorldPropSet(place);
-  const count = phoneMode ? 18 : 28;
+  const count = phoneMode ? 10 : 20;
   const motion = (raceState.roadOffset || 0) * (0.58 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
   ctx.save();
   for (let i = 0; i &lt; count; i += 1) {
-    const y = horizon + (((i * 88 + motion * (0.72 + seededUnit(seed, i) * 0.28)) % (h - horizon + 220)) - 72);
+    const y = horizon + (((i * (phoneMode ? 154 : 122) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
     if (y &lt; horizon - 8 || y &gt; h + 72) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.045 + t * 0.16 + seededUnit(seed, i + 10) * 0.06));
     const scale = (0.32 + t * (phoneMode ? 0.8 : 1.08)) * (0.84 + seededUnit(seed, i + 22) * 0.36);
-    const kind = props[(i + Math.floor(seed % props.length)) % props.length];
+    const kind = worldSceneryProp(props[(i + Math.floor(seed % props.length)) % props.length], place, i, phoneMode);
     drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme, seed + i * 31);
   }
   drawRealWorldSidewalkBand(w, h, horizon, roadTop, roadBottom, place, design);
@@ -11466,12 +11544,12 @@ function drawRealWorldCurveCues(w, h, horizon, roadTop, roadBottom, place, desig
   if (Math.abs(turn) &lt; 0.12) return;
   const phoneMode = phoneGraphicsActive();
   const side = turn &gt; 0 ? 1 : -1;
-  const count = phoneMode ? 5 : 8;
+  const count = phoneMode ? 2 : 8;
   const motion = (raceState.roadOffset || 0) * 0.9;
   ctx.save();
-  ctx.globalAlpha = phoneMode ? 0.42 : 0.6;
+  ctx.globalAlpha = phoneMode ? 0.24 : 0.6;
   for (let i = 0; i &lt; count; i += 1) {
-    const y = horizon + (((i * 98 + motion) % (h - horizon + 150)) - 38);
+    const y = horizon + (((i * (phoneMode ? 210 : 98) + motion) % (h - horizon + 230)) - 72);
     if (y &lt; horizon || y &gt; h + 30) continue;
     const t = Math.max(0.04, Math.min(1.04, (y - horizon) / Math.max(1, h - horizon)));
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
@@ -16988,7 +17066,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v85-all-vehicle-upgrades&quot;;
+const cacheName = &quot;velocity-vault-v86-spread-world-detail&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -17141,6 +17219,7 @@ Real-world style visuals:
 - The v83 surface-view pass keeps scenery outside the drivable road, paints the road back over shoulder props so details no longer cut through the lane, and adds dedicated water and air views: boat races now get a water channel with shorelines, docks, buoys, and other boats, while airplane and helicopter races get clouds, flight gates, distant terrain, and aircraft silhouettes instead of road scenery.
 - The v84 specialty-world pass makes races declare appropriate vehicle types, adds dedicated semi, monster truck, and tank events, adds more upgradeable variants in those categories, and gives each specialty route its own scenery: convoy lanes, weigh stations, diesel stops, dirt arena berms, crush cars, grandstands, bunkers, range targets, watch towers, and concrete proving-ground details. Profiles also silently auto-save race state every few seconds and on app/page hide so local coins, owned vehicles, per-vehicle upgrades, paint, plates, reputation, and live race progress are remembered after reopening.
 - The v85 all-vehicle upgrade pass expands the garage and race rules so police cars, offshore boats, racing helicopters, fighter jets, bombers, drones, sport planes, tanks, semis, tractors, monster trucks, and standard road cars all use the same saved per-vehicle upgrades, colors, plates, ownership, reputation unlocks, and race compatibility system. It also adds dedicated police interceptor and sky-command routes with pursuit hideouts, runway/skybase traffic, air gates, lightbar visuals, and type-specific phone/WebGL sprites.
+- The v86 world-spacing pass spreads scenery farther down the route, removes most repeated sign-like props from phone mode, turns police roadblocks into lower physical barricades, limits stacked stage boards, and swaps excess labels for grounded buildings, parked cars, lights, fences, people, barriers, and service vehicles so races feel more like driving through a real place instead of a cluster of signs.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
