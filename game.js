@@ -4305,6 +4305,10 @@ function drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, r
     ctx.globalAlpha = Math.min(0.96, 0.72 + (pos.depth || 0.4) * 0.24);
     drawGroundLockedDriveByShadow(x, pos.y, scale * 0.9, side, theme);
     drawGroundLockedPlaceProp(shorelineProps[Math.abs(i) % shorelineProps.length], x, pos.y, scale, side, place, route, design, theme, seed + i * 61);
+    if (i % 3 === 0) {
+      const liveKind = i % 2 === 0 ? "pierPeople" : "dockWorkers";
+      drawLivingWorldActivityShape(liveKind, x + side * scale * 42, pos.y + scale * 6, scale * 0.72, side, place, route, design, theme, seed + i * 67);
+    }
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -4364,6 +4368,15 @@ function drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, rou
     const pos = roadObjectPos(side * (1.2 + seededUnit(seed, i + 160) * 0.28), distance);
     if (!pos || pos.y < horizon || pos.y > h + 80) continue;
     drawAirTrafficSilhouette(pos.x, pos.y - pos.scale * 30, Math.max(0.24, pos.scale * 0.78), side, theme, seed + i * 29);
+  }
+  for (let i = 0; i < (phoneMode ? 4 : 6); i += 1) {
+    const side = i % 2 === 0 ? -1 : 1;
+    const y = groundTop + h * (0.08 + seededUnit(seed, i + 210) * 0.26);
+    const x = side < 0 ? w * (0.12 + seededUnit(seed, i + 220) * 0.12) : w * (0.88 - seededUnit(seed, i + 230) * 0.12);
+    const s = phoneMode ? 0.42 + seededUnit(seed, i + 240) * 0.12 : 0.56 + seededUnit(seed, i + 240) * 0.18;
+    const kind = i % 3 === 0 ? "airportBeacon" : i % 3 === 1 ? "serviceCartMotion" : "planeSpotters";
+    ctx.globalAlpha = phoneMode ? 0.5 : 0.62;
+    drawLivingWorldActivityShape(kind, x, y, s, side, place, route, design, theme, seed + i * 71);
   }
   ctx.restore();
   ctx.globalAlpha = 1;
@@ -9021,6 +9034,8 @@ function drawRealWorldAmbientLifePass(w, h, horizon, roadTop, roadBottom, place,
     drawRealWorldPowerLines(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   }
 
+  drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode);
+
   const lifeCount = phoneMode ? 8 : 13;
   for (let i = 0; i < lifeCount; i += 1) {
     const y = horizon + h * (0.12 + seededUnit(seed, i + 240) * 0.38);
@@ -9036,21 +9051,452 @@ function drawRealWorldAmbientLifePass(w, h, horizon, roadTop, roadBottom, place,
   ctx.restore();
 }
 
+function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode) {
+  const route = routeWorldInfo(place);
+  const set = livingWorldActivitySet(place);
+  const length = Math.max(1, raceLength());
+  const spacing = phoneMode ? 560 : 430;
+  const lookBehind = phoneMode ? 180 : 260;
+  const lookAhead = phoneMode ? 1700 : 2300;
+  const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
+  const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
+  const items = [];
+  for (let index = first; index <= last; index += 1) {
+    const baseDistance = index * spacing + seededUnit(seed, index + 620) * spacing * 0.42;
+    if (baseDistance < 0 || baseDistance > length + lookAhead * 0.25) continue;
+    const gap = baseDistance - raceState.distance;
+    if (gap < -lookBehind || gap > lookAhead) continue;
+    const side = seededUnit(seed, index + 630) > 0.5 ? 1 : -1;
+    const lane = side * (2.42 + seededUnit(seed, index + 640) * (phoneMode ? 0.42 : 0.66));
+    const pos = roadObjectPos(lane, baseDistance);
+    if (!pos || pos.y < horizon - 38 || pos.y > h + 96) continue;
+    const depth = Math.max(0.04, Math.min(1, pos.depth || (pos.y - horizon) / Math.max(1, h - horizon)));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 18 : 30);
+    const scale = Math.max(0.28, Math.min(phoneMode ? 1.22 : 1.46, pos.scale * (0.78 + depth * 0.72)));
+    items.push({
+      x,
+      y: pos.y,
+      scale,
+      side,
+      depth,
+      index,
+      kind: set[Math.abs(index + Math.floor(seed % set.length)) % set.length]
+    });
+  }
+
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 12 : 18);
+  items.sort((a, b) => a.y - b.y).forEach((item) => {
+    ctx.globalAlpha = Math.min(0.94, phoneMode ? 0.48 + item.depth * 0.28 : 0.56 + item.depth * 0.34);
+    drawGroundLockedDriveByShadow(item.x, item.y, item.scale * 0.72, item.side, theme);
+    drawLivingWorldActivityShape(item.kind, item.x, item.y, item.scale, item.side, place, route, design, theme, seed + item.index * 47);
+  });
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function livingWorldActivitySet(place) {
+  const sets = {
+    coast: ["beachJoggers", "cyclistLane", "pierPeople", "shoreBirds", "boatWake", "patioCrowd"],
+    city: ["sidewalkQueue", "cyclistLane", "joggers", "busStopLife", "patioCrowd", "deliveryVan"],
+    canyon: ["hikerLookout", "wildlifeLookout", "tourPullout", "rallyCrew", "birdFlock"],
+    alpine: ["hikerLookout", "skiQueue", "wildlifeLookout", "cabinPorch", "snowPlowCrew"],
+    harbor: ["dockWorkers", "forkliftSweep", "pierPeople", "boatWake", "shoreBirds"],
+    snow: ["skiQueue", "snowPlowCrew", "cabinPorch", "wildlifeLookout", "snowMarkerCrew"],
+    airfield: ["runwayCrew", "airportBeacon", "serviceCartMotion", "planeSpotters", "birdFlock"],
+    pursuit: ["sidewalkQueue", "policeCheckpoint", "cameraCrew", "deliveryVan", "joggers"],
+    freight: ["loadingCrew", "forkliftSweep", "dieselStopLife", "yardWorkers", "serviceTruckMotion"],
+    interstate: ["restStopLife", "dieselStopLife", "serviceTruckMotion", "truckScaleCrew", "birdFlock"],
+    farm: ["pastureAnimals", "fieldWorkers", "tractorMotion", "farmStand", "roadsideFenceLife"],
+    monsterpark: ["stadiumCrowd", "pitCrew", "cameraCrew", "marshalBarrier", "serviceTruckMotion"],
+    military: ["rangeCrew", "militaryPatrol", "watchPostLife", "serviceTruckMotion", "cameraCrew"],
+    skybase: ["runwayCrew", "airportBeacon", "serviceCartMotion", "planeSpotters", "radarCrew"],
+    tokyo: ["sidewalkQueue", "cyclistLane", "tramStopLife", "neonCrowd", "deliveryVan"],
+    desert: ["rallyCrew", "wildlifeLookout", "supportTentLife", "birdFlock", "tourPullout"],
+    rainforest: ["marketLife", "woodBridgeWalkers", "canopyAnimals", "riverCrew", "hikerLookout"],
+    europe: ["patioCrowd", "tramStopLife", "cyclistLane", "pastureAnimals", "villageWalkers"]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawLivingWorldActivityShape(kind, x, y, scale, side, place, route, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  if (kind === "cyclistLane") {
+    drawLivingCyclists(side, accent, light, seed);
+  } else if (kind === "beachJoggers" || kind === "joggers" || kind === "villageWalkers" || kind === "woodBridgeWalkers") {
+    drawLivingJoggers(side, accent, light, seed);
+  } else if (kind === "sidewalkQueue" || kind === "patioCrowd" || kind === "neonCrowd" || kind === "stadiumCrowd" || kind === "farmStand" || kind === "marketLife" || kind === "fieldWorkers") {
+    drawLivingCrowdMoment(kind, side, accent, light, seed);
+  } else if (kind === "busStopLife" || kind === "tramStopLife" || kind === "skiQueue") {
+    drawLivingTransitStop(kind, side, accent, light, seed);
+  } else if (kind === "pierPeople" || kind === "dockWorkers" || kind === "shoreBirds" || kind === "boatWake" || kind === "riverCrew") {
+    drawLivingWaterEdgeMoment(kind, side, place, accent, light, seed);
+  } else if (kind === "pastureAnimals" || kind === "wildlifeLookout" || kind === "canopyAnimals" || kind === "roadsideFenceLife") {
+    drawLivingAnimalSetback(kind, side, place, accent, light, seed);
+  } else if (kind === "airportBeacon" || kind === "runwayCrew" || kind === "serviceCartMotion" || kind === "planeSpotters" || kind === "radarCrew") {
+    drawLivingAirfieldMoment(kind, side, route, place, design, theme, seed);
+  } else if (kind === "forkliftSweep" || kind === "loadingCrew" || kind === "yardWorkers" || kind === "dieselStopLife" || kind === "serviceTruckMotion" || kind === "restStopLife" || kind === "truckScaleCrew" || kind === "deliveryVan" || kind === "tractorMotion") {
+    drawLivingWorksiteMoment(kind, side, route, place, design, theme, seed);
+  } else if (kind === "hikerLookout" || kind === "tourPullout" || kind === "rallyCrew" || kind === "supportTentLife" || kind === "snowPlowCrew" || kind === "snowMarkerCrew" || kind === "cabinPorch") {
+    drawLivingRouteOutpost(kind, side, route, place, design, theme, seed);
+  } else if (kind === "policeCheckpoint" || kind === "cameraCrew" || kind === "pitCrew" || kind === "marshalBarrier" || kind === "rangeCrew" || kind === "militaryPatrol" || kind === "watchPostLife") {
+    drawLivingEventCrew(kind, side, route, place, design, theme, seed);
+  } else {
+    drawReferenceBystanderBarrier(side, accent, light, seed);
+  }
+  ctx.restore();
+}
+
+function drawLivingCyclists(side, accent, light, seed) {
+  ctx.save();
+  ctx.scale(side, 1);
+  ctx.strokeStyle = "rgba(244,251,248,0.56)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-76, 22);
+  ctx.lineTo(86, 16);
+  ctx.stroke();
+  for (let i = 0; i < 2; i += 1) {
+    const x = -36 + i * 58 + Math.sin(raceState.elapsed * 2 + seed + i) * 5;
+    ctx.strokeStyle = i % 2 ? light : accent;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x - 12, 8, 10, 0, Math.PI * 2);
+    ctx.arc(x + 14, 8, 10, 0, Math.PI * 2);
+    ctx.moveTo(x - 12, 8);
+    ctx.lineTo(x + 1, -8);
+    ctx.lineTo(x + 14, 8);
+    ctx.lineTo(x - 2, 8);
+    ctx.lineTo(x + 1, -8);
+    ctx.stroke();
+    ctx.fillStyle = i % 2 ? light : accent;
+    ctx.beginPath();
+    ctx.arc(x, -24, 5, 0, Math.PI * 2);
+    ctx.fill();
+    roundRect(x - 5, -18, 10, 16, 3);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLivingJoggers(side, accent, light, seed) {
+  ctx.save();
+  ctx.scale(side, 1);
+  ctx.strokeStyle = "rgba(244,251,248,0.36)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-82, 19);
+  ctx.lineTo(84, 12);
+  ctx.stroke();
+  const colors = [accent, light, "#f4fbf8", "#ff5b6b"];
+  for (let i = 0; i < 4; i += 1) {
+    const x = -46 + i * 28 + Math.sin(raceState.elapsed * 2.8 + seed + i) * 3;
+    const leg = Math.sin(raceState.elapsed * 5 + i) * 5;
+    ctx.strokeStyle = "rgba(5,8,7,0.52)";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(x, -1);
+    ctx.lineTo(x - 6 - leg, 16);
+    ctx.moveTo(x, -1);
+    ctx.lineTo(x + 6 + leg, 15);
+    ctx.stroke();
+    ctx.fillStyle = colors[(i + Math.floor(seed)) % colors.length];
+    roundRect(x - 5, -20, 10, 18, 4);
+    ctx.fill();
+    ctx.fillStyle = "rgba(238,196,150,0.9)";
+    ctx.beginPath();
+    ctx.arc(x, -27, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLivingCrowdMoment(kind, side, accent, light, seed) {
+  if (kind === "stadiumCrowd") {
+    ctx.fillStyle = "rgba(5,8,7,0.72)";
+    roundRect(-94, -58, 188, 52, 5);
+    ctx.fill();
+    for (let row = 0; row < 3; row += 1) {
+      drawLivingPeopleCluster(0, -36 + row * 13, 0.72, side, "stadium", { accent, light }, [accent, light], seed + row);
+    }
+    ctx.strokeStyle = `${light}88`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(-98, -64, 196, 62);
+    return;
+  }
+  if (kind === "farmStand") {
+    ctx.fillStyle = "rgba(84,46,24,0.82)";
+    roundRect(-58, -36, 116, 52, 5);
+    ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(-68, -36);
+    ctx.lineTo(0, -70);
+    ctx.lineTo(68, -36);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind === "patioCrowd") {
+    ctx.fillStyle = "rgba(5,8,7,0.58)";
+    roundRect(-70, -30, 140, 32, 4);
+    ctx.fill();
+    ctx.fillStyle = `${light}88`;
+    for (let i = -2; i <= 2; i += 1) ctx.fillRect(i * 22 - 5, -44, 10, 16);
+  } else if (kind === "neonCrowd") {
+    ctx.fillStyle = `${accent}66`;
+    roundRect(-76, -48, 152, 36, 5);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.84)";
+    roundRect(-66, -40, 132, 20, 4);
+    ctx.fill();
+  }
+  drawReferenceBystanderBarrier(side, accent, light, seed);
+}
+
+function drawLivingTransitStop(kind, side, accent, light, seed) {
+  ctx.save();
+  ctx.scale(side, 1);
+  ctx.fillStyle = "rgba(5,8,7,0.72)";
+  roundRect(-78, -52, 156, 60, 6);
+  ctx.fill();
+  ctx.fillStyle = kind === "tramStopLife" ? `${accent}88` : kind === "skiQueue" ? "rgba(244,251,248,0.74)" : `${light}88`;
+  roundRect(-88, -66, 176, 14, 4);
+  ctx.fill();
+  if (kind === "tramStopLife") {
+    ctx.strokeStyle = `${light}88`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-96, 15);
+    ctx.lineTo(96, 8);
+    ctx.moveTo(-96, 24);
+    ctx.lineTo(96, 17);
+    ctx.stroke();
+  }
+  drawLivingPeopleCluster(0, -8, 0.9, 1, "transit", { accent, light }, [accent, light], seed);
+  ctx.restore();
+}
+
+function drawLivingWaterEdgeMoment(kind, side, place, accent, light, seed) {
+  ctx.save();
+  ctx.scale(side, 1);
+  ctx.fillStyle = place === "rainforest" ? "rgba(54,217,138,0.2)" : "rgba(70,217,255,0.2)";
+  ctx.beginPath();
+  ctx.ellipse(0, 20, 118, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (kind === "boatWake" || kind === "riverCrew") {
+    ctx.strokeStyle = "rgba(244,251,248,0.38)";
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(-82 + i * 24, 18 + i * 5);
+      ctx.quadraticCurveTo(-20, 5 + i * 2, 62, 16 + i * 5);
+      ctx.stroke();
+    }
+    drawWaterSceneBoat(0, -2, 0.5, 1, [accent, light], seed);
+  } else if (kind === "shoreBirds") {
+    drawReferenceAnimalGroup("shoreBird", 1, accent, light, seed);
+    drawLivingBirdFlock(0, -58, 0.82, 1, light, seed);
+  } else {
+    ctx.fillStyle = "rgba(102,72,40,0.9)";
+    roundRect(-88, -8, 176, 16, 3);
+    ctx.fill();
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.fillRect(i * 28 - 3, -8, 6, 42);
+    }
+    drawReferencePeopleLine(1, accent, light, seed);
+  }
+  ctx.restore();
+}
+
+function drawLivingAnimalSetback(kind, side, place, accent, light, seed) {
+  ctx.save();
+  ctx.scale(side, 1);
+  drawReferenceGuardrail(1, place === "farm" || kind === "pastureAnimals" ? "rgba(156,112,66,0.72)" : "rgba(244,251,248,0.42)");
+  const species = kind === "canopyAnimals" ? "monkey" : kind === "pastureAnimals" || kind === "roadsideFenceLife" ? routeAnimalSpecies(place, seed) : routeAnimalSpecies(place, seed + 11);
+  ctx.translate(0, -5);
+  drawReferenceAnimalGroup(species, 1, accent, light, seed);
+  if (kind === "wildlifeLookout") {
+    ctx.translate(28, -26);
+    drawReferencePeopleLine(1, accent, light, seed + 2);
+  }
+  ctx.restore();
+}
+
+function drawLivingAirfieldMoment(kind, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  ctx.scale(side, 1);
+  if (kind === "airportBeacon" || kind === "radarCrew") {
+    ctx.strokeStyle = "rgba(205,218,214,0.7)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, 18);
+    ctx.lineTo(0, -82);
+    ctx.stroke();
+    ctx.fillStyle = kind === "radarCrew" ? `${accent}88` : `${light}aa`;
+    ctx.beginPath();
+    ctx.arc(0, -92, 13 + Math.sin(raceState.elapsed * 3 + seed) * 2, 0, Math.PI * 2);
+    ctx.fill();
+    drawReferencePeopleLine(1, accent, light, seed);
+  } else if (kind === "planeSpotters") {
+    drawReferenceBystanderBarrier(1, accent, light, seed);
+    drawAirTrafficSilhouette(38, -56, 0.34, 1, theme, seed);
+  } else {
+    drawLivingServiceVehicle("serviceCart", 0, 0, 0.82, 1, route, place, design, theme, seed);
+    ctx.translate(48, -16);
+    drawReferencePeopleLine(1, accent, light, seed);
+  }
+  ctx.restore();
+}
+
+function drawLivingWorksiteMoment(kind, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  ctx.scale(side, 1);
+  const vehicleKind = kind === "forkliftSweep" ? "cargoForklift" : kind.includes("Truck") || kind.includes("diesel") || kind.includes("rest") ? "serviceTruck" : "maintenanceCart";
+  drawLivingServiceVehicle(vehicleKind, 0, 0, 0.82, 1, route, place, design, theme, seed);
+  if (kind === "forkliftSweep") {
+    ctx.fillStyle = `${light}44`;
+    ctx.beginPath();
+    ctx.moveTo(32, -14);
+    ctx.lineTo(102, -38);
+    ctx.lineTo(102, 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.translate(54, -16);
+  drawReferencePeopleLine(1, accent, light, seed + 4);
+  ctx.strokeStyle = "rgba(244,251,248,0.34)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-102, 22);
+  ctx.lineTo(112, 12);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawLivingRouteOutpost(kind, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  ctx.scale(side, 1);
+  if (kind === "snowPlowCrew" || kind === "snowMarkerCrew") {
+    drawLivingServiceVehicle(kind === "snowPlowCrew" ? "snowPlow" : "marshalCart", 0, 0, 0.82, 1, route, place, design, theme, seed);
+  } else if (kind === "supportTentLife" || kind === "rallyCrew") {
+    ctx.fillStyle = `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(-56, 12);
+    ctx.lineTo(0, -62);
+    ctx.lineTo(58, 12);
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind === "tourPullout") {
+    drawLivingServiceVehicle("tourVan", 0, 0, 0.84, 1, route, place, design, theme, seed);
+  } else if (kind === "cabinPorch") {
+    ctx.fillStyle = "rgba(84,58,38,0.86)";
+    roundRect(-64, -58, 128, 66, 5);
+    ctx.fill();
+    ctx.fillStyle = `${light}77`;
+    roundRect(-38, -34, 22, 22, 3);
+    roundRect(18, -34, 22, 22, 3);
+    ctx.fill();
+  } else {
+    drawReferenceGuardrail(1, "rgba(244,251,248,0.5)");
+  }
+  ctx.translate(48, -18);
+  drawReferencePeopleLine(1, accent, light, seed);
+  if (kind === "hikerLookout") drawLivingBirdFlock(-34, -68, 0.74, 1, light, seed);
+  ctx.restore();
+}
+
+function drawLivingEventCrew(kind, side, route, place, design, theme, seed) {
+  const accent = design.accent || theme[1];
+  const light = design.light || theme[2];
+  ctx.save();
+  ctx.scale(side, 1);
+  if (kind === "militaryPatrol" || kind === "rangeCrew") {
+    drawLivingServiceVehicle("serviceTruck", 0, 0, 0.84, 1, route, place, design, theme, seed);
+    ctx.fillStyle = "rgba(48,68,42,0.82)";
+    roundRect(52, -42, 64, 52, 4);
+    ctx.fill();
+  } else if (kind === "watchPostLife") {
+    ctx.fillStyle = "rgba(58,62,54,0.9)";
+    roundRect(-42, -88, 84, 42, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(180,192,188,0.62)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-34, 12);
+    ctx.lineTo(-20, -46);
+    ctx.moveTo(34, 12);
+    ctx.lineTo(20, -46);
+    ctx.stroke();
+  } else if (kind === "pitCrew") {
+    drawLivingServiceVehicle("pitCart", 0, 0, 0.78, 1, route, place, design, theme, seed);
+    drawReferenceBystanderBarrier(1, accent, light, seed);
+  } else if (kind === "cameraCrew") {
+    drawLivingServiceVehicle("cameraCart", -32, 0, 0.72, 1, route, place, design, theme, seed);
+    ctx.fillStyle = "rgba(5,8,7,0.78)";
+    roundRect(32, -46, 38, 24, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.52)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(50, -20);
+    ctx.lineTo(34, 16);
+    ctx.moveTo(50, -20);
+    ctx.lineTo(66, 16);
+    ctx.stroke();
+  } else {
+    drawReferenceBystanderBarrier(1, accent, light, seed);
+  }
+  ctx.translate(58, -18);
+  drawReferencePeopleLine(1, accent, light, seed + 5);
+  ctx.restore();
+}
+
+function drawLivingBirdFlock(x, y, scale, side, color, seed) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * side, scale);
+  ctx.strokeStyle = color || "rgba(244,251,248,0.7)";
+  ctx.lineWidth = 2.4;
+  for (let i = 0; i < 5; i += 1) {
+    const bx = -44 + i * 22;
+    const by = Math.sin(seed + i) * 9;
+    ctx.beginPath();
+    ctx.moveTo(bx - 8, by);
+    ctx.quadraticCurveTo(bx, by - 8, bx + 8, by);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function realWorldAmbientKind(place, index, seed) {
   const sets = {
-    coast: ["kites", "cyclists", "surfers", "balconyLights"],
-    city: ["trafficLights", "storefronts", "busShelter", "crosswalkCrew"],
-    canyon: ["dustDevils", "lookout", "trailSigns", "tourVan"],
-    alpine: ["skiLift", "snowFence", "cabinLights", "switchbackPosts"],
-    harbor: ["dockLights", "cargoForklift", "mooredBoat", "harborWorkers"],
-    snow: ["skiLift", "snowMarkers", "cabinLights", "plowBanks"],
-    airfield: ["windsock", "runwayCrew", "serviceCart", "towerLights"],
-    freight: ["weighStation", "yardLights", "loadingCrew", "dieselPump"],
-    farm: ["windmill", "mailbox", "fieldWorkers", "hayBales"],
-    tokyo: ["trafficLights", "storefronts", "railLights", "crosswalkCrew"],
-    desert: ["rallyFlags", "dustDevils", "supportTent", "trailSigns"],
-    rainforest: ["hangingVines", "marketStall", "mistCloud", "woodBridge"],
-    europe: ["balconyLights", "stoneWall", "cafeAwning", "switchbackPosts"]
+    coast: ["kites", "cyclists", "surfers", "balconyLights", "joggers", "birdFlock", "boatWake"],
+    city: ["trafficLights", "storefronts", "busShelter", "crosswalkCrew", "cyclistLane", "sidewalkQueue", "tramStop"],
+    canyon: ["dustDevils", "lookout", "trailSigns", "tourVan", "wildlifeLookout", "hikers"],
+    alpine: ["skiLift", "snowFence", "cabinLights", "switchbackPosts", "wildlifeLookout", "joggers"],
+    harbor: ["dockLights", "cargoForklift", "mooredBoat", "harborWorkers", "boatWake", "birdFlock"],
+    snow: ["skiLift", "snowMarkers", "cabinLights", "plowBanks", "wildlifeLookout", "sidewalkQueue"],
+    airfield: ["windsock", "runwayCrew", "serviceCart", "towerLights", "airportBeacon", "forkliftSweep"],
+    pursuit: ["trafficLights", "storefronts", "crosswalkCrew", "policeQueue", "sidewalkQueue"],
+    freight: ["weighStation", "yardLights", "loadingCrew", "dieselPump", "forkliftSweep", "sidewalkQueue"],
+    interstate: ["weighStation", "dieselPump", "serviceCart", "birdFlock", "sidewalkQueue"],
+    farm: ["windmill", "mailbox", "fieldWorkers", "hayBales", "pastureLine", "birdFlock"],
+    monsterpark: ["rallyFlags", "sidewalkQueue", "cameraCrew", "pitCrew", "towerLights"],
+    military: ["towerLights", "serviceCart", "sidewalkQueue", "rangeCrew", "birdFlock"],
+    skybase: ["windsock", "airportBeacon", "runwayCrew", "serviceCart", "birdFlock"],
+    tokyo: ["trafficLights", "storefronts", "railLights", "crosswalkCrew", "cyclistLane", "sidewalkQueue", "tramStop"],
+    desert: ["rallyFlags", "dustDevils", "supportTent", "trailSigns", "wildlifeLookout", "birdFlock"],
+    rainforest: ["hangingVines", "marketStall", "mistCloud", "woodBridge", "canopyAnimals", "sidewalkQueue"],
+    europe: ["balconyLights", "stoneWall", "cafeAwning", "switchbackPosts", "cyclistLane", "pastureLine", "tramStop"]
   };
   const list = sets[place] || sets.city;
   return list[(index + Math.floor(seed % list.length)) % list.length];
@@ -9185,6 +9631,22 @@ function drawAmbientLifeShape(kind, x, y, scale, side, place, design, theme, see
       ctx.ellipse(side * i * 7, -i * 9, 22 - i * 2, 8 + i, i * 0.2, 0, Math.PI * 2);
       ctx.fill();
     }
+  } else if (kind === "cyclists" || kind === "cyclistLane") {
+    drawLivingCyclists(side, accent, light, seed);
+  } else if (kind === "joggers" || kind === "hikers") {
+    drawLivingJoggers(side, accent, light, seed);
+  } else if (kind === "sidewalkQueue" || kind === "policeQueue" || kind === "cameraCrew" || kind === "pitCrew" || kind === "rangeCrew" || kind === "tramStop") {
+    if (kind === "tramStop") drawLivingTransitStop("tramStopLife", side, accent, light, seed);
+    else drawReferenceBystanderBarrier(side, accent, light, seed);
+  } else if (kind === "birdFlock") {
+    drawLivingBirdFlock(0, -28, 1, side, light, seed);
+  } else if (kind === "boatWake") {
+    drawLivingWaterEdgeMoment("boatWake", side, place, accent, light, seed);
+  } else if (kind === "pastureLine" || kind === "wildlifeLookout" || kind === "canopyAnimals") {
+    drawLivingAnimalSetback(kind === "pastureLine" ? "pastureAnimals" : kind, side, place, accent, light, seed);
+  } else if (kind === "airportBeacon" || kind === "forkliftSweep") {
+    if (kind === "airportBeacon") drawLivingAirfieldMoment(kind, side, routeWorldInfo(place), place, design, theme, seed);
+    else drawLivingWorksiteMoment(kind, side, routeWorldInfo(place), place, design, theme, seed);
   } else {
     ctx.fillStyle = `${accent}22`;
     ctx.beginPath();
