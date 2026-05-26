@@ -4207,6 +4207,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldNearsideInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   ctx.restore();
 }
 
@@ -4235,6 +4236,92 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
   drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const route = routeWorldInfo(place);
+  const length = Math.max(1, raceLength());
+  const progress = Math.max(0, Math.min(1, raceState.distance / length));
+  const stage = routeStageInfo(place, progress);
+  const detailSet = highVisibilityDetailSet(place, stage);
+  const rows = phoneMode ? 7 : 10;
+  const motion = (raceState.roadOffset || 0) * (0.56 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 0 : 4);
+  for (let i = 0; i < rows; i += 1) {
+    const band = i / Math.max(1, rows - 1);
+    const t = Math.max(0.42, Math.min(1.08, 0.44 + band * 0.58));
+    const y = horizon + (h - horizon) * t + (((motion + i * 59 + seed * 0.003) % 62) - 31);
+    if (y < horizon + 10 || y > h + 70) continue;
+    const side = (i + Math.floor(seed % 3)) % 2 === 0 ? -1 : 1;
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half * (phoneMode ? 1.01 : 1.06) + w * (phoneMode ? 0.02 : 0.032));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 4 : 10);
+    const near = Math.max(0.12, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const scale = Math.max(phoneMode ? 0.82 : 0.76, Math.min(phoneMode ? 2.08 : 2.32, (0.76 + near * (phoneMode ? 1.08 : 1.22)) * (0.94 + seededUnit(seed, i + 712) * 0.16)));
+    const kind = detailSet[(i + Math.floor(seed % detailSet.length)) % detailSet.length];
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.84 + near * 0.16 : 0.78 + near * 0.18);
+    drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed + i * 43);
+    drawGroundLockedDriveByShadow(x, y, scale * 0.76, side, theme);
+    if (kind.startsWith("life:")) {
+      drawLivingWorldActivityShape(kind.slice(5), x, y - scale * 3, scale * 0.92, side, place, route, design, theme, seed + i * 59);
+    } else {
+      drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 59);
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function highVisibilityDetailSet(place, stage) {
+  if (stage && stage.prop === "bridge") return ["bridgeRail", "life:pierPeople", "lamp", "waterEdge", "parkedCar", "life:sidewalkQueue"];
+  if (stage && stage.prop === "tunnel") return ["tunnelPortal", "wallLamp", "lowBarrier", "life:cameraCrew", "routeSign"];
+  const sets = {
+    coast: ["palm", "beachHouse", "life:beachJoggers", "life:cyclistLane", "seaWall", "life:pierPeople", "lighthouse"],
+    city: ["storefront", "life:sidewalkQueue", "parkedCar", "streetLight", "busStop", "life:cyclistLane", "life:patioCrowd"],
+    canyon: ["rockFace", "guardPost", "life:wildlifeLookout", "tourVan", "curveBoard", "life:hikerLookout"],
+    alpine: ["pine", "stoneWall", "chalet", "life:wildlifeLookout", "snowPost", "life:hikerLookout"],
+    harbor: ["container", "warehouse", "life:dockWorkers", "craneBase", "dockLight", "life:boatWake", "marinaDock"],
+    snow: ["pine", "lodge", "snowFence", "life:skiQueue", "life:snowPlowCrew", "life:wildlifeLookout"],
+    airfield: ["hangar", "runwayLight", "controlTower", "life:airportBeacon", "life:serviceCartMotion", "life:planeSpotters"],
+    pursuit: ["policeHQ", "parkedCar", "streetLight", "life:policeCheckpoint", "lowBarrier", "life:cameraCrew"],
+    freight: ["truckStop", "container", "serviceTruck", "life:forkliftSweep", "life:loadingCrew", "dieselSign"],
+    interstate: ["truckStop", "weighStation", "serviceTruck", "life:dieselStopLife", "life:restStopLife", "streetLight"],
+    farm: ["barn", "fence", "tractorParked", "life:pastureAnimals", "hayBales", "life:fieldWorkers", "windmill"],
+    monsterpark: ["grandstand", "dirtBerm", "crushCarStack", "life:stadiumCrowd", "life:pitCrew", "stadiumRamp"],
+    military: ["bunker", "watchTower", "blastWall", "life:rangeCrew", "life:militaryPatrol", "rangeTarget"],
+    skybase: ["controlTower", "hangar", "runwayLight", "life:airportBeacon", "life:radarCrew", "life:serviceCartMotion"],
+    tokyo: ["neonShop", "life:neonCrowd", "streetLight", "parkedCar", "life:cyclistLane", "pedestrianBridge", "life:tramStopLife"],
+    desert: ["dune", "supportTent", "rockFace", "life:rallyCrew", "life:wildlifeLookout", "rallyMarker"],
+    rainforest: ["canopyTree", "marketStand", "woodRail", "life:marketLife", "life:canopyAnimals", "waterfallSign"],
+    europe: ["villageHouse", "cafe", "stoneWall", "life:patioCrowd", "life:cyclistLane", "life:pastureAnimals", "tramPost"]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const ground = place === "city" || place === "tokyo" || place === "europe" ? "rgba(205,214,208,0.32)"
+    : place === "harbor" || place === "coast" ? "rgba(70,217,255,0.26)"
+      : place === "farm" || place === "rainforest" ? "rgba(54,217,138,0.25)"
+        : place === "snow" || place === "alpine" ? "rgba(244,251,248,0.3)"
+          : place === "desert" || place === "canyon" ? "rgba(255,183,74,0.26)"
+            : "rgba(180,192,188,0.24)";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.ellipse(side * 6, 16, 120, 22, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `${accent}88`;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-90 * side, 5);
+  ctx.lineTo(96 * side, -2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -8049,18 +8136,21 @@ function realWorldPropSet(place) {
 function drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
   const phoneMode = phoneGraphicsActive();
   const props = realWorldPropSet(place);
-  const count = phoneMode ? 10 : 20;
+  const count = phoneMode ? 14 : 24;
   const motion = (raceState.roadOffset || 0) * (0.58 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 2 : 8);
   for (let i = 0; i < count; i += 1) {
-    const y = horizon + (((i * (phoneMode ? 154 : 122) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
+    const y = horizon + (((i * (phoneMode ? 132 : 112) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
     if (y < horizon - 8 || y > h + 72) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.045 + t * 0.16 + seededUnit(seed, i + 10) * 0.06));
-    const scale = (0.32 + t * (phoneMode ? 0.8 : 1.08)) * (0.84 + seededUnit(seed, i + 22) * 0.36);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half + w * (0.028 + t * 0.12 + seededUnit(seed, i + 10) * 0.045));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 6 : 14);
+    const scale = (0.42 + t * (phoneMode ? 1.0 : 1.2)) * (0.92 + seededUnit(seed, i + 22) * 0.34);
     const kind = worldSceneryProp(props[(i + Math.floor(seed % props.length)) % props.length], place, i, phoneMode);
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.72 + t * 0.28 : 0.68 + t * 0.28);
     drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme, seed + i * 31);
   }
   drawRealWorldSidewalkBand(w, h, horizon, roadTop, roadBottom, place, design);
@@ -8093,7 +8183,7 @@ function drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.globalAlpha *= Math.max(0.38, Math.min(0.92, 0.44 + scale * 0.18));
+  ctx.globalAlpha *= Math.max(0.58, Math.min(1, 0.64 + scale * 0.2));
   if (kind === "person") {
     drawRoadsidePeopleCluster(side, accent, light, seed);
   } else if (kind === "bystanders") {
@@ -9034,7 +9124,9 @@ function drawRealWorldAmbientLifePass(w, h, horizon, roadTop, roadBottom, place,
     drawRealWorldPowerLines(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   }
 
+  ctx.globalAlpha = 1;
   drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode);
+  ctx.globalAlpha = phoneMode ? 0.36 : 0.52;
 
   const lifeCount = phoneMode ? 8 : 13;
   for (let i = 0; i < lifeCount; i += 1) {
@@ -9055,7 +9147,7 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
   const route = routeWorldInfo(place);
   const set = livingWorldActivitySet(place);
   const length = Math.max(1, raceLength());
-  const spacing = phoneMode ? 560 : 430;
+  const spacing = phoneMode ? 500 : 390;
   const lookBehind = phoneMode ? 180 : 260;
   const lookAhead = phoneMode ? 1700 : 2300;
   const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
@@ -9067,12 +9159,12 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
     const gap = baseDistance - raceState.distance;
     if (gap < -lookBehind || gap > lookAhead) continue;
     const side = seededUnit(seed, index + 630) > 0.5 ? 1 : -1;
-    const lane = side * (2.42 + seededUnit(seed, index + 640) * (phoneMode ? 0.42 : 0.66));
+    const lane = side * (2.16 + seededUnit(seed, index + 640) * (phoneMode ? 0.34 : 0.54));
     const pos = roadObjectPos(lane, baseDistance);
     if (!pos || pos.y < horizon - 38 || pos.y > h + 96) continue;
     const depth = Math.max(0.04, Math.min(1, pos.depth || (pos.y - horizon) / Math.max(1, h - horizon)));
-    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 18 : 30);
-    const scale = Math.max(0.28, Math.min(phoneMode ? 1.22 : 1.46, pos.scale * (0.78 + depth * 0.72)));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 8 : 18);
+    const scale = Math.max(0.42, Math.min(phoneMode ? 1.62 : 1.82, pos.scale * (0.98 + depth * 0.86)));
     items.push({
       x,
       y: pos.y,
@@ -9085,9 +9177,10 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
   }
 
   ctx.save();
+  ctx.globalAlpha = 1;
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 12 : 18);
   items.sort((a, b) => a.y - b.y).forEach((item) => {
-    ctx.globalAlpha = Math.min(0.94, phoneMode ? 0.48 + item.depth * 0.28 : 0.56 + item.depth * 0.34);
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.78 + item.depth * 0.2 : 0.7 + item.depth * 0.24);
     drawGroundLockedDriveByShadow(item.x, item.y, item.scale * 0.72, item.side, theme);
     drawLivingWorldActivityShape(item.kind, item.x, item.y, item.scale, item.side, place, route, design, theme, seed + item.index * 47);
   });

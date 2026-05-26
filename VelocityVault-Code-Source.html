@@ -4,8 +4,8 @@
 <style>body{font-family:Arial,Helvetica,sans-serif;margin:28px;color:#111;background:#fff;}h1{font-size:28px;margin:0 0 6px;}h2{margin-top:28px;border-top:1px solid #ccc;padding-top:18px;}p,li{font-size:13px;line-height:1.45}.meta{color:#555}.summary{max-width:980px}.toc{columns:2}pre{font-family:Consolas,'Courier New',monospace;font-size:8px;line-height:1.25;white-space:pre-wrap;word-break:break-word;background:#f7f7f7;border:1px solid #ddd;padding:12px;border-radius:6px;}</style>
 </head><body>
 <h1>Velocity Vault Code Source</h1>
-<p class='meta'>Generated 2026-05-25 19:01:21 for the v89 ambient living-world build.</p>
-<p class='summary'>This PDF/HTML companion contains the current standalone Velocity Vault source for the v89 ambient living-world build. This update adds more visible drive-by life that stays set back from the road: cyclists, joggers, sidewalk queues, patio crowds, dock workers, pier people, pasture animals, wildlife lookouts, airfield crews, airport beacons, freight forklifts, diesel-stop activity, stadium crowds, military/range crews, shoreline motion, and airfield motion. The WebGL route now receives the same sparse living-world treatment so browser and phone views feel more like passing through occupied places instead of empty scenery.</p>
+<p class='meta'>Generated 2026-05-25 19:10:18 for the v90 visible real-world detail build.</p>
+<p class='summary'>This PDF/HTML companion contains the current standalone Velocity Vault source for the v90 visible real-world detail build. This update makes the real-world scenery easier to see on phones by adding a late foreground detail pass after the road, larger roadside landmarks, brighter people and animal groups, closer shoulder placement, stronger ground pads, and more readable buildings, fences, lights, signs, crews, cyclists, joggers, dock workers, pasture animals, and route activity. The WebGL route also keeps scenery active on shorter landscape frames with a lighter object count.</p>
 <h2>How To Play</h2><ul>
 <li>Choose or create an age-group driver profile, then press Play to start the compatible race for the selected vehicle.</li>
 <li>On phones, use the floating joystick: push up to accelerate, slide left/right to steer, and pull down deliberately for brake/reverse. Gas stays active while steering.</li>
@@ -17,11 +17,11 @@
 <li>index.html (11,201 bytes)</li>
 <li>styles.css (38,122 bytes)</li>
 <li>phone-asset-pipeline.js (30,567 bytes)</li>
-<li>webgl-pipeline.js (47,760 bytes)</li>
-<li>game.js (631,558 bytes)</li>
+<li>webgl-pipeline.js (47,889 bytes)</li>
+<li>game.js (637,710 bytes)</li>
 <li>manifest.json (723 bytes)</li>
-<li>sw.js (1,146 bytes)</li>
-<li>README.md (36,365 bytes)</li>
+<li>sw.js (1,151 bytes)</li>
+<li>README.md (36,818 bytes)</li>
 <li>APEX-VAULT-COMMAND-CLOUD.md (2,234 bytes)</li>
 <li>apex-vault-command-cloud.json (3,236 bytes)</li>
 </ul>
@@ -3476,10 +3476,12 @@ input:focus {
       const accent = hexToRgba(theme[1], 1);
       const accent2 = hexToRgba(theme[2], 1);
       const offset = data.raceState.roadOffset;
-      for (let i = 0; i &lt; 18; i += 1) {
+      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
+      const count = phoneFrame ? 12 : 18;
+      for (let i = 0; i &lt; count; i += 1) {
         const z = wrapZ(i, 12.6, offset, 0.038);
         const side = i % 2 ? -1 : 1;
-        const x = roadWorldX(data, side * (12.4 + (i % 5) * 4.2), z);
+        const x = roadWorldX(data, side * (phoneFrame ? 9.8 + (i % 4) * 2.2 : 11.2 + (i % 5) * 3.2), z);
         if (place === &quot;city&quot; || place === &quot;tokyo&quot;) {
           const height = 5 + (i % 7) * 2.2;
           taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === &quot;tokyo&quot; ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
@@ -3744,7 +3746,7 @@ input:focus {
       };
 
       addRoad(data);
-      if (!phoneFrame) addScenery(data);
+      addScenery(data);
 
       gl.useProgram(program);
       gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
@@ -7996,6 +7998,7 @@ function drawRealWorldDetailPass(w, h, theme) {
   drawRealWorldNearsideInfrastructurePass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
+  drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed);
   ctx.restore();
 }
 
@@ -8024,6 +8027,92 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
   drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedNearDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
+  ctx.restore();
+}
+
+function drawHighVisibilityRealWorldDetailPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
+  const route = routeWorldInfo(place);
+  const length = Math.max(1, raceLength());
+  const progress = Math.max(0, Math.min(1, raceState.distance / length));
+  const stage = routeStageInfo(place, progress);
+  const detailSet = highVisibilityDetailSet(place, stage);
+  const rows = phoneMode ? 7 : 10;
+  const motion = (raceState.roadOffset || 0) * (0.56 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 0 : 4);
+  for (let i = 0; i &lt; rows; i += 1) {
+    const band = i / Math.max(1, rows - 1);
+    const t = Math.max(0.42, Math.min(1.08, 0.44 + band * 0.58));
+    const y = horizon + (h - horizon) * t + (((motion + i * 59 + seed * 0.003) % 62) - 31);
+    if (y &lt; horizon + 10 || y &gt; h + 70) continue;
+    const side = (i + Math.floor(seed % 3)) % 2 === 0 ? -1 : 1;
+    const half = realWorldRoadHalf(roadTop, roadBottom, t);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half * (phoneMode ? 1.01 : 1.06) + w * (phoneMode ? 0.02 : 0.032));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 4 : 10);
+    const near = Math.max(0.12, Math.min(1, (y - horizon) / Math.max(1, h - horizon)));
+    const scale = Math.max(phoneMode ? 0.82 : 0.76, Math.min(phoneMode ? 2.08 : 2.32, (0.76 + near * (phoneMode ? 1.08 : 1.22)) * (0.94 + seededUnit(seed, i + 712) * 0.16)));
+    const kind = detailSet[(i + Math.floor(seed % detailSet.length)) % detailSet.length];
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.84 + near * 0.16 : 0.78 + near * 0.18);
+    drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed + i * 43);
+    drawGroundLockedDriveByShadow(x, y, scale * 0.76, side, theme);
+    if (kind.startsWith(&quot;life:&quot;)) {
+      drawLivingWorldActivityShape(kind.slice(5), x, y - scale * 3, scale * 0.92, side, place, route, design, theme, seed + i * 59);
+    } else {
+      drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 59);
+    }
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function highVisibilityDetailSet(place, stage) {
+  if (stage &amp;&amp; stage.prop === &quot;bridge&quot;) return [&quot;bridgeRail&quot;, &quot;life:pierPeople&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;parkedCar&quot;, &quot;life:sidewalkQueue&quot;];
+  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;tunnelPortal&quot;, &quot;wallLamp&quot;, &quot;lowBarrier&quot;, &quot;life:cameraCrew&quot;, &quot;routeSign&quot;];
+  const sets = {
+    coast: [&quot;palm&quot;, &quot;beachHouse&quot;, &quot;life:beachJoggers&quot;, &quot;life:cyclistLane&quot;, &quot;seaWall&quot;, &quot;life:pierPeople&quot;, &quot;lighthouse&quot;],
+    city: [&quot;storefront&quot;, &quot;life:sidewalkQueue&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;busStop&quot;, &quot;life:cyclistLane&quot;, &quot;life:patioCrowd&quot;],
+    canyon: [&quot;rockFace&quot;, &quot;guardPost&quot;, &quot;life:wildlifeLookout&quot;, &quot;tourVan&quot;, &quot;curveBoard&quot;, &quot;life:hikerLookout&quot;],
+    alpine: [&quot;pine&quot;, &quot;stoneWall&quot;, &quot;chalet&quot;, &quot;life:wildlifeLookout&quot;, &quot;snowPost&quot;, &quot;life:hikerLookout&quot;],
+    harbor: [&quot;container&quot;, &quot;warehouse&quot;, &quot;life:dockWorkers&quot;, &quot;craneBase&quot;, &quot;dockLight&quot;, &quot;life:boatWake&quot;, &quot;marinaDock&quot;],
+    snow: [&quot;pine&quot;, &quot;lodge&quot;, &quot;snowFence&quot;, &quot;life:skiQueue&quot;, &quot;life:snowPlowCrew&quot;, &quot;life:wildlifeLookout&quot;],
+    airfield: [&quot;hangar&quot;, &quot;runwayLight&quot;, &quot;controlTower&quot;, &quot;life:airportBeacon&quot;, &quot;life:serviceCartMotion&quot;, &quot;life:planeSpotters&quot;],
+    pursuit: [&quot;policeHQ&quot;, &quot;parkedCar&quot;, &quot;streetLight&quot;, &quot;life:policeCheckpoint&quot;, &quot;lowBarrier&quot;, &quot;life:cameraCrew&quot;],
+    freight: [&quot;truckStop&quot;, &quot;container&quot;, &quot;serviceTruck&quot;, &quot;life:forkliftSweep&quot;, &quot;life:loadingCrew&quot;, &quot;dieselSign&quot;],
+    interstate: [&quot;truckStop&quot;, &quot;weighStation&quot;, &quot;serviceTruck&quot;, &quot;life:dieselStopLife&quot;, &quot;life:restStopLife&quot;, &quot;streetLight&quot;],
+    farm: [&quot;barn&quot;, &quot;fence&quot;, &quot;tractorParked&quot;, &quot;life:pastureAnimals&quot;, &quot;hayBales&quot;, &quot;life:fieldWorkers&quot;, &quot;windmill&quot;],
+    monsterpark: [&quot;grandstand&quot;, &quot;dirtBerm&quot;, &quot;crushCarStack&quot;, &quot;life:stadiumCrowd&quot;, &quot;life:pitCrew&quot;, &quot;stadiumRamp&quot;],
+    military: [&quot;bunker&quot;, &quot;watchTower&quot;, &quot;blastWall&quot;, &quot;life:rangeCrew&quot;, &quot;life:militaryPatrol&quot;, &quot;rangeTarget&quot;],
+    skybase: [&quot;controlTower&quot;, &quot;hangar&quot;, &quot;runwayLight&quot;, &quot;life:airportBeacon&quot;, &quot;life:radarCrew&quot;, &quot;life:serviceCartMotion&quot;],
+    tokyo: [&quot;neonShop&quot;, &quot;life:neonCrowd&quot;, &quot;streetLight&quot;, &quot;parkedCar&quot;, &quot;life:cyclistLane&quot;, &quot;pedestrianBridge&quot;, &quot;life:tramStopLife&quot;],
+    desert: [&quot;dune&quot;, &quot;supportTent&quot;, &quot;rockFace&quot;, &quot;life:rallyCrew&quot;, &quot;life:wildlifeLookout&quot;, &quot;rallyMarker&quot;],
+    rainforest: [&quot;canopyTree&quot;, &quot;marketStand&quot;, &quot;woodRail&quot;, &quot;life:marketLife&quot;, &quot;life:canopyAnimals&quot;, &quot;waterfallSign&quot;],
+    europe: [&quot;villageHouse&quot;, &quot;cafe&quot;, &quot;stoneWall&quot;, &quot;life:patioCrowd&quot;, &quot;life:cyclistLane&quot;, &quot;life:pastureAnimals&quot;, &quot;tramPost&quot;]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawHighVisibilityGroundCue(x, y, scale, side, place, design, theme, seed) {
+  const accent = design.accent || theme[1] || &quot;#46d9ff&quot;;
+  const ground = place === &quot;city&quot; || place === &quot;tokyo&quot; || place === &quot;europe&quot; ? &quot;rgba(205,214,208,0.32)&quot;
+    : place === &quot;harbor&quot; || place === &quot;coast&quot; ? &quot;rgba(70,217,255,0.26)&quot;
+      : place === &quot;farm&quot; || place === &quot;rainforest&quot; ? &quot;rgba(54,217,138,0.25)&quot;
+        : place === &quot;snow&quot; || place === &quot;alpine&quot; ? &quot;rgba(244,251,248,0.3)&quot;
+          : place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(255,183,74,0.26)&quot;
+            : &quot;rgba(180,192,188,0.24)&quot;;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.ellipse(side * 6, 16, 120, 22, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = `${accent}88`;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-90 * side, 5);
+  ctx.lineTo(96 * side, -2);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -11838,18 +11927,21 @@ function realWorldPropSet(place) {
 function drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, design, theme, seed) {
   const phoneMode = phoneGraphicsActive();
   const props = realWorldPropSet(place);
-  const count = phoneMode ? 10 : 20;
+  const count = phoneMode ? 14 : 24;
   const motion = (raceState.roadOffset || 0) * (0.58 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 260));
   ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 2 : 8);
   for (let i = 0; i &lt; count; i += 1) {
-    const y = horizon + (((i * (phoneMode ? 154 : 122) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
+    const y = horizon + (((i * (phoneMode ? 132 : 112) + motion * (0.58 + seededUnit(seed, i) * 0.2)) % (h - horizon + 320)) - 88);
     if (y &lt; horizon - 8 || y &gt; h + 72) continue;
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const x = perspectiveRoadCenter(w, t) + side * (half + w * (0.045 + t * 0.16 + seededUnit(seed, i + 10) * 0.06));
-    const scale = (0.32 + t * (phoneMode ? 0.8 : 1.08)) * (0.84 + seededUnit(seed, i + 22) * 0.36);
+    const projectedX = perspectiveRoadCenter(w, t) + side * (half + w * (0.028 + t * 0.12 + seededUnit(seed, i + 10) * 0.045));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 6 : 14);
+    const scale = (0.42 + t * (phoneMode ? 1.0 : 1.2)) * (0.92 + seededUnit(seed, i + 22) * 0.34);
     const kind = worldSceneryProp(props[(i + Math.floor(seed % props.length)) % props.length], place, i, phoneMode);
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.72 + t * 0.28 : 0.68 + t * 0.28);
     drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme, seed + i * 31);
   }
   drawRealWorldSidewalkBand(w, h, horizon, roadTop, roadBottom, place, design);
@@ -11882,7 +11974,7 @@ function drawRealWorldRoadsideProp(kind, x, y, scale, side, place, design, theme
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.globalAlpha *= Math.max(0.38, Math.min(0.92, 0.44 + scale * 0.18));
+  ctx.globalAlpha *= Math.max(0.58, Math.min(1, 0.64 + scale * 0.2));
   if (kind === &quot;person&quot;) {
     drawRoadsidePeopleCluster(side, accent, light, seed);
   } else if (kind === &quot;bystanders&quot;) {
@@ -12823,7 +12915,9 @@ function drawRealWorldAmbientLifePass(w, h, horizon, roadTop, roadBottom, place,
     drawRealWorldPowerLines(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion);
   }
 
+  ctx.globalAlpha = 1;
   drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, phoneMode);
+  ctx.globalAlpha = phoneMode ? 0.36 : 0.52;
 
   const lifeCount = phoneMode ? 8 : 13;
   for (let i = 0; i &lt; lifeCount; i += 1) {
@@ -12844,7 +12938,7 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
   const route = routeWorldInfo(place);
   const set = livingWorldActivitySet(place);
   const length = Math.max(1, raceLength());
-  const spacing = phoneMode ? 560 : 430;
+  const spacing = phoneMode ? 500 : 390;
   const lookBehind = phoneMode ? 180 : 260;
   const lookAhead = phoneMode ? 1700 : 2300;
   const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
@@ -12856,12 +12950,12 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
     const gap = baseDistance - raceState.distance;
     if (gap &lt; -lookBehind || gap &gt; lookAhead) continue;
     const side = seededUnit(seed, index + 630) &gt; 0.5 ? 1 : -1;
-    const lane = side * (2.42 + seededUnit(seed, index + 640) * (phoneMode ? 0.42 : 0.66));
+    const lane = side * (2.16 + seededUnit(seed, index + 640) * (phoneMode ? 0.34 : 0.54));
     const pos = roadObjectPos(lane, baseDistance);
     if (!pos || pos.y &lt; horizon - 38 || pos.y &gt; h + 96) continue;
     const depth = Math.max(0.04, Math.min(1, pos.depth || (pos.y - horizon) / Math.max(1, h - horizon)));
-    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 18 : 30);
-    const scale = Math.max(0.28, Math.min(phoneMode ? 1.22 : 1.46, pos.scale * (0.78 + depth * 0.72)));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, pos.y, side, pos.x, phoneMode, phoneMode ? 8 : 18);
+    const scale = Math.max(0.42, Math.min(phoneMode ? 1.62 : 1.82, pos.scale * (0.98 + depth * 0.86)));
     items.push({
       x,
       y: pos.y,
@@ -12874,9 +12968,10 @@ function drawLivingWorldAmbientMotionPass(w, h, horizon, roadTop, roadBottom, pl
   }
 
   ctx.save();
+  ctx.globalAlpha = 1;
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 12 : 18);
   items.sort((a, b) =&gt; a.y - b.y).forEach((item) =&gt; {
-    ctx.globalAlpha = Math.min(0.94, phoneMode ? 0.48 + item.depth * 0.28 : 0.56 + item.depth * 0.34);
+    ctx.globalAlpha = Math.min(1, phoneMode ? 0.78 + item.depth * 0.2 : 0.7 + item.depth * 0.24);
     drawGroundLockedDriveByShadow(item.x, item.y, item.scale * 0.72, item.side, theme);
     drawLivingWorldActivityShape(item.kind, item.x, item.y, item.scale, item.side, place, route, design, theme, seed + item.index * 47);
   });
@@ -18417,7 +18512,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v89-ambient-living-world&quot;;
+const cacheName = &quot;velocity-vault-v90-visible-real-world-detail&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -18560,6 +18655,7 @@ Real-world style visuals:
 - The v87 reference-world scene pass uses real driving-photo/video cues such as long guardrails, shorelines, sidewalks, parked vehicles, storefront rows, utility poles, fields, cliffs, mountains, service yards, and set-back buildings. It spaces these as drive-by scene blocks by route distance, reduces repeated signs in both phone and browser views, and gives the WebGL route wider roadside spacing so the world reads more like passing through actual places.
 - The v88 living-world safety pass adds more bystanders and route-appropriate animals to the scenery: sidewalk spectators behind barriers, beach and dock crowds, farm pasture animals, mountain and desert wildlife, rainforest animals, and city dogs or birds. Some people or animals can become clear avoidable crossing hazards with on-screen warnings, reputation/coin penalties, and slowdown instead of unexplained damage.
 - The v89 ambient living-world pass adds more visible drive-by life that stays set back from the road: cyclists, joggers, sidewalk queues, patio crowds, dock workers, pier people, pasture animals, wildlife lookouts, airfield crews, airport beacons, freight forklifts, diesel-stop activity, stadium crowds, military/range crews, and shoreline/airfield motion. The same idea now feeds the WebGL route so browser and phone views feel more like passing through occupied places instead of empty scenery.
+- The v90 visible-detail pass makes the real-world build easier to see on phones: larger foreground landmarks, brighter roadside people/animals/crews, closer shoulder placement, stronger sidewalk/ground pads, more visible buildings/fences/lights/signs, and a late foreground pass drawn after the road so details are no longer washed into the background. The WebGL route also keeps scenery active on shorter landscape frames with a lighter object count.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.

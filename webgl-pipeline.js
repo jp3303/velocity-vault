@@ -569,10 +569,12 @@
       const accent = hexToRgba(theme[1], 1);
       const accent2 = hexToRgba(theme[2], 1);
       const offset = data.raceState.roadOffset;
-      for (let i = 0; i < 18; i += 1) {
+      const phoneFrame = data.width <= 940 || data.height <= 540;
+      const count = phoneFrame ? 12 : 18;
+      for (let i = 0; i < count; i += 1) {
         const z = wrapZ(i, 12.6, offset, 0.038);
         const side = i % 2 ? -1 : 1;
-        const x = roadWorldX(data, side * (12.4 + (i % 5) * 4.2), z);
+        const x = roadWorldX(data, side * (phoneFrame ? 9.8 + (i % 4) * 2.2 : 11.2 + (i % 5) * 3.2), z);
         if (place === "city" || place === "tokyo") {
           const height = 5 + (i % 7) * 2.2;
           taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
@@ -837,7 +839,7 @@
       };
 
       addRoad(data);
-      if (!phoneFrame) addScenery(data);
+      addScenery(data);
 
       gl.useProgram(program);
       gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
