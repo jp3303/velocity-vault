@@ -4,13 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Velocity Vault Code Source</title>
-<style>body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;color:#17202a;margin:0;padding:32px;line-height:1.35}
-h1{font-size:30px;margin:0 0 8px}h2{font-size:20px;margin:28px 0 10px;border-bottom:2px solid #1f7a8c;padding-bottom:6px}h3{font-size:16px;margin:18px 0 4px;color:#1f3c44}p{max-width:980px}.meta{color:#4a5b66;font-size:14px}.how{background:#fff;border:1px solid #d9e3e6;border-radius:8px;padding:14px 18px;max-width:980px}pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;border-radius:8px;padding:16px;font:12px/1.45 Consolas,"Courier New",monospace;box-shadow:0 2px 10px rgba(0,0,0,.12)}</style>
+<style>body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;color:#17202a;margin:0;padding:32px;line-height:1.35}h1{font-size:30px;margin:0 0 8px}h2{font-size:20px;margin:28px 0 10px;border-bottom:2px solid #1f7a8c;padding-bottom:6px}h3{font-size:16px;margin:18px 0 4px;color:#1f3c44}p{max-width:980px}.meta{color:#4a5b66;font-size:14px}.how{background:#fff;border:1px solid #d9e3e6;border-radius:8px;padding:14px 18px;max-width:980px}pre{white-space:pre-wrap;word-break:break-word;background:#101820;color:#f4fbf8;border-radius:8px;padding:16px;font:12px/1.45 Consolas,"Courier New",monospace;box-shadow:0 2px 10px rgba(0,0,0,.12)}</style>
 </head>
 <body>
 <h1>Velocity Vault Code Source</h1>
-<p class="meta">Generated 2026-05-25 17:13:26 for the v86 world-spacing build.</p>
-<p>This PDF/HTML companion contains the current standalone Velocity Vault source for the v86 world-spacing build. This update spreads roadside scenery farther down the route, reduces repeated sign-like props on phone screens, keeps a single route identity cue, and swaps excess labels for grounded real-world details such as buildings, parked vehicles, people, lights, fences, barriers, service vehicles, and physical police roadblocks. It also preserves the v85 all-vehicle garage, per-vehicle upgrades, race compatibility rules, phone controls, Apex Vault Command Cloud notes, and hosting files.</p>
+<p class="meta">Generated 2026-05-25 18:32:07 for the v87 reference-world scene build.</p>
+<p>This PDF/HTML companion contains the current standalone Velocity Vault source for the v87 reference-world scene build. This update uses real driving-photo/video cues such as long guardrails, shorelines, sidewalks, parked vehicles, storefront rows, utility poles, fields, cliffs, mountains, service yards, and set-back buildings. It spaces these as drive-by scene blocks by route distance, reduces repeated sign-like props in phone and browser views, widens WebGL roadside spacing, and preserves the v86 world-spacing, v85 all-vehicle garage, per-vehicle upgrades, race compatibility rules, phone controls, Apex Vault Command Cloud notes, and hosting files.</p>
 <h2>How To Play</h2>
 <div class="how">
 <h3>Create a driver</h3>
@@ -2080,1606 +2079,6 @@ input:focus {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px);
   }
 }
-</pre>
-<h2>phone-asset-pipeline.js</h2>
-<pre>&quot;use strict&quot;;
-
-(function () {
-  const spriteCache = new Map();
-  const textureCache = new Map();
-
-  function makeCanvas(width, height) {
-    const canvas = document.createElement(&quot;canvas&quot;);
-    canvas.width = width;
-    canvas.height = height;
-    return canvas;
-  }
-
-  function hexToRgb(hex) {
-    if (!hex || typeof hex !== &quot;string&quot;) return [70, 217, 255];
-    const clean = hex.replace(&quot;#&quot;, &quot;&quot;);
-    const full = clean.length === 3 ? clean.split(&quot;&quot;).map((c) =&gt; c + c).join(&quot;&quot;) : clean;
-    const value = parseInt(full, 16);
-    return [(value &gt;&gt; 16) &amp; 255, (value &gt;&gt; 8) &amp; 255, value &amp; 255];
-  }
-
-  function shade(hex, amount) {
-    const [r, g, b] = hexToRgb(hex);
-    return `rgb(${Math.max(0, Math.min(255, r + amount))}, ${Math.max(0, Math.min(255, g + amount))}, ${Math.max(0, Math.min(255, b + amount))})`;
-  }
-
-  function rgba(hex, alpha) {
-    const [r, g, b] = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-
-  function isAirType(type) {
-    return [&quot;airplane&quot;, &quot;helicopter&quot;, &quot;fighterjet&quot;, &quot;bomber&quot;, &quot;drone&quot;].includes(type);
-  }
-
-  function isWaterType(type) {
-    return type === &quot;boat&quot;;
-  }
-
-  function roundRect(ctx, x, y, width, height, radius) {
-    const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + width - r, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-    ctx.lineTo(x + width, y + height - r);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-    ctx.lineTo(x + r, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  }
-
-  function pathVehicleBody(ctx, w, h, type) {
-    const cx = w / 2;
-    const top = h * 0.16;
-    const bottom = h * 0.86;
-    const narrow = type === &quot;f1&quot; || type === &quot;prototype&quot;;
-    const wide = type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot; || type === &quot;semi&quot;;
-    const upper = narrow ? w * 0.21 : wide ? w * 0.31 : w * 0.24;
-    const shoulder = narrow ? w * 0.34 : wide ? w * 0.43 : w * 0.38;
-    const lower = narrow ? w * 0.27 : wide ? w * 0.4 : w * 0.34;
-    ctx.beginPath();
-    ctx.moveTo(cx - upper, top);
-    ctx.lineTo(cx + upper, top);
-    ctx.quadraticCurveTo(cx + shoulder, h * 0.22, cx + shoulder, h * 0.42);
-    ctx.lineTo(cx + lower, bottom);
-    ctx.quadraticCurveTo(cx + lower * 0.72, h * 0.93, cx, h * 0.94);
-    ctx.quadraticCurveTo(cx - lower * 0.72, h * 0.93, cx - lower, bottom);
-    ctx.lineTo(cx - shoulder, h * 0.42);
-    ctx.quadraticCurveTo(cx - shoulder, h * 0.22, cx - upper, top);
-    ctx.closePath();
-  }
-
-  function drawWheel(ctx, x, y, rx, ry, accent) {
-    ctx.save();
-    ctx.fillStyle = &quot;rgba(3,5,5,0.96)&quot;;
-    ctx.beginPath();
-    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
-    ctx.lineWidth = Math.max(2, rx * 0.14);
-    ctx.stroke();
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = Math.max(1, rx * 0.1);
-    ctx.beginPath();
-    ctx.moveTo(x - rx * 0.62, y);
-    ctx.lineTo(x + rx * 0.62, y);
-    ctx.moveTo(x, y - ry * 0.62);
-    ctx.lineTo(x, y + ry * 0.62);
-    ctx.moveTo(x - rx * 0.42, y - ry * 0.42);
-    ctx.lineTo(x + rx * 0.42, y + ry * 0.42);
-    ctx.moveTo(x + rx * 0.42, y - ry * 0.42);
-    ctx.lineTo(x - rx * 0.42, y + ry * 0.42);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawPaintGrain(ctx, w, h, color) {
-    ctx.save();
-    ctx.globalAlpha = 0.15;
-    for (let i = 0; i &lt; 95; i += 1) {
-      const x = (i * 37) % w;
-      const y = (i * 61) % h;
-      ctx.strokeStyle = i % 2 ? &quot;rgba(255,255,255,0.28)&quot; : rgba(color, 0.35);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + 18 + (i % 5) * 4, y + 3);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawDamage(ctx, w, h, damage) {
-    if (!damage || damage &lt; 12) return;
-    ctx.save();
-    const count = Math.min(9, Math.floor(damage / 12));
-    ctx.strokeStyle = &quot;rgba(3,5,5,0.72)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.012);
-    ctx.lineCap = &quot;round&quot;;
-    for (let i = 0; i &lt; count; i += 1) {
-      const side = i % 2 ? -1 : 1;
-      const x = w * 0.5 + side * w * (0.08 + (i % 3) * 0.055);
-      const y = h * (0.28 + (i % 5) * 0.1);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + side * w * 0.11, y + h * (0.02 + (i % 2) * 0.025));
-      ctx.stroke();
-    }
-    if (damage &gt; 58) {
-      ctx.fillStyle = &quot;rgba(255,91,107,0.46)&quot;;
-      roundRect(ctx, w * 0.38, h * 0.18, w * 0.2, h * 0.045, 5);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  function drawBodyRealismDetails(ctx, w, h, type, color, police) {
-    const paint = police ? &quot;#f2f5f2&quot; : color;
-    ctx.save();
-    pathVehicleBody(ctx, w, h, type === &quot;semi&quot; ? &quot;truck&quot; : type);
-    ctx.clip();
-
-    const sideShade = ctx.createLinearGradient(w * 0.12, 0, w * 0.88, 0);
-    sideShade.addColorStop(0, &quot;rgba(0,0,0,0.48)&quot;);
-    sideShade.addColorStop(0.22, &quot;rgba(255,255,255,0.08)&quot;);
-    sideShade.addColorStop(0.5, &quot;rgba(255,255,255,0.18)&quot;);
-    sideShade.addColorStop(0.78, &quot;rgba(255,255,255,0.06)&quot;);
-    sideShade.addColorStop(1, &quot;rgba(0,0,0,0.46)&quot;);
-    ctx.fillStyle = sideShade;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.globalAlpha = 0.42;
-    ctx.strokeStyle = &quot;rgba(255,255,255,0.7)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.012);
-    ctx.beginPath();
-    ctx.moveTo(w * 0.36, h * 0.18);
-    ctx.bezierCurveTo(w * 0.42, h * 0.34, w * 0.33, h * 0.56, w * 0.28, h * 0.82);
-    ctx.moveTo(w * 0.64, h * 0.18);
-    ctx.bezierCurveTo(w * 0.58, h * 0.34, w * 0.67, h * 0.56, w * 0.72, h * 0.82);
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = rgba(paint, 0.8);
-    ctx.lineWidth = Math.max(1, w * 0.006);
-    for (let i = 0; i &lt; 18; i += 1) {
-      const y = h * (0.18 + i * 0.038);
-      ctx.beginPath();
-      ctx.moveTo(w * 0.22, y);
-      ctx.lineTo(w * 0.78, y + h * 0.012);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = &quot;rgba(3,5,5,0.68)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.012);
-    ctx.beginPath();
-    ctx.moveTo(w * 0.26, h * 0.34);
-    ctx.lineTo(w * 0.2, h * 0.78);
-    ctx.moveTo(w * 0.74, h * 0.34);
-    ctx.lineTo(w * 0.8, h * 0.78);
-    ctx.moveTo(w * 0.37, h * 0.7);
-    ctx.lineTo(w * 0.63, h * 0.7);
-    ctx.stroke();
-    ctx.fillStyle = &quot;rgba(2,4,4,0.88)&quot;;
-    roundRect(ctx, w * 0.24, h * 0.17, w * 0.1, h * 0.04, 5);
-    ctx.fill();
-    roundRect(ctx, w * 0.66, h * 0.17, w * 0.1, h * 0.04, 5);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawAirWaterRealismDetails(ctx, w, h, type) {
-    ctx.save();
-    ctx.globalAlpha = 0.38;
-    ctx.strokeStyle = &quot;rgba(255,255,255,0.78)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.01);
-    if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5, h * 0.12);
-      ctx.lineTo(w * 0.5, h * 0.86);
-      ctx.moveTo(w * 0.18, h * 0.52);
-      ctx.lineTo(w * 0.82, h * 0.52);
-      ctx.stroke();
-    } else if (type === &quot;drone&quot;) {
-      ctx.beginPath();
-      ctx.moveTo(w * 0.24, h * 0.28);
-      ctx.lineTo(w * 0.76, h * 0.72);
-      ctx.moveTo(w * 0.76, h * 0.28);
-      ctx.lineTo(w * 0.24, h * 0.72);
-      ctx.moveTo(w * 0.5, h * 0.24);
-      ctx.lineTo(w * 0.5, h * 0.78);
-      ctx.stroke();
-    } else if (type === &quot;helicopter&quot;) {
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5, h * 0.18);
-      ctx.lineTo(w * 0.5, h * 0.84);
-      ctx.moveTo(w * 0.28, h * 0.38);
-      ctx.lineTo(w * 0.72, h * 0.38);
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5, h * 0.12);
-      ctx.bezierCurveTo(w * 0.38, h * 0.38, w * 0.34, h * 0.66, w * 0.42, h * 0.86);
-      ctx.moveTo(w * 0.5, h * 0.12);
-      ctx.bezierCurveTo(w * 0.62, h * 0.38, w * 0.66, h * 0.66, w * 0.58, h * 0.86);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawSpriteContact(ctx, w, h, type) {
-    const air = isAirType(type);
-    const water = isWaterType(type);
-    const snow = type === &quot;snowmobile&quot;;
-    ctx.save();
-    const baseY = h * (air ? 0.68 : water ? 0.78 : 0.84);
-    const contact = ctx.createRadialGradient(w * 0.5, baseY - h * 0.03, w * 0.06, w * 0.5, baseY, w * 0.48);
-    contact.addColorStop(0, air ? &quot;rgba(0,0,0,0.22)&quot; : &quot;rgba(0,0,0,0.62)&quot;);
-    contact.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
-    ctx.fillStyle = contact;
-    ctx.beginPath();
-    ctx.ellipse(w * 0.5, baseY, w * 0.42, h * (air ? 0.045 : 0.075), 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (!air &amp;&amp; !water) {
-      ctx.fillStyle = snow ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(3,5,5,0.82)&quot;;
-      ctx.beginPath();
-      ctx.ellipse(w * 0.29, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
-      ctx.ellipse(w * 0.71, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
-      ctx.ellipse(w * 0.29, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
-      ctx.ellipse(w * 0.71, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.strokeStyle = water ? &quot;rgba(70,217,255,0.48)&quot; : snow ? &quot;rgba(244,251,248,0.52)&quot; : &quot;rgba(3,5,5,0.5)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.012);
-    ctx.lineCap = &quot;round&quot;;
-    ctx.beginPath();
-    ctx.moveTo(w * 0.3, baseY - h * 0.035);
-    ctx.lineTo(w * 0.18, baseY + h * 0.075);
-    ctx.moveTo(w * 0.7, baseY - h * 0.035);
-    ctx.lineTo(w * 0.82, baseY + h * 0.075);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawCarLike(ctx, w, h, type, color, police, damage) {
-    const paint = police ? &quot;#f2f5f2&quot; : color;
-    const accent = police ? &quot;rgba(70,217,255,0.45)&quot; : rgba(color, 0.45);
-    const wide = type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot;;
-    const narrow = type === &quot;f1&quot; || type === &quot;prototype&quot;;
-    const semi = type === &quot;semi&quot;;
-    const tractor = type === &quot;tractor&quot;;
-
-    const wheelRX = w * (tractor ? 0.09 : narrow ? 0.075 : wide ? 0.095 : 0.078);
-    const wheelRY = h * (tractor ? 0.13 : narrow ? 0.08 : wide ? 0.115 : 0.105);
-    const wheelX = w * (wide ? 0.2 : 0.18);
-    drawWheel(ctx, w * 0.5 - wheelX, h * 0.38, wheelRX, wheelRY, accent);
-    drawWheel(ctx, w * 0.5 + wheelX, h * 0.38, wheelRX, wheelRY, accent);
-    drawWheel(ctx, w * 0.5 - wheelX, h * 0.76, wheelRX, wheelRY, &quot;rgba(255,209,102,0.34)&quot;);
-    drawWheel(ctx, w * 0.5 + wheelX, h * 0.76, wheelRX, wheelRY, &quot;rgba(255,209,102,0.34)&quot;);
-
-    if (semi) {
-      const trailer = ctx.createLinearGradient(w * 0.18, h * 0.36, w * 0.82, h * 0.88);
-      trailer.addColorStop(0, shade(paint, 32));
-      trailer.addColorStop(0.55, shade(paint, -12));
-      trailer.addColorStop(1, shade(paint, -42));
-      ctx.fillStyle = trailer;
-      roundRect(ctx, w * 0.18, h * 0.36, w * 0.64, h * 0.5, 14);
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(244,251,248,0.22)&quot;;
-      for (let i = 0; i &lt; 3; i += 1) {
-        roundRect(ctx, w * 0.24, h * (0.46 + i * 0.11), w * 0.52, h * 0.025, 4);
-        ctx.fill();
-      }
-    }
-
-    const body = ctx.createLinearGradient(w * 0.18, h * 0.14, w * 0.82, h * 0.9);
-    body.addColorStop(0, shade(paint, 52));
-    body.addColorStop(0.3, paint);
-    body.addColorStop(0.68, shade(paint, -26));
-    body.addColorStop(1, shade(paint, -58));
-    ctx.fillStyle = body;
-    pathVehicleBody(ctx, w, h, semi ? &quot;truck&quot; : type);
-    ctx.fill();
-    ctx.strokeStyle = &quot;rgba(255,255,255,0.28)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.01);
-    ctx.stroke();
-    drawBodyRealismDetails(ctx, w, h, semi ? &quot;semi&quot; : type, color, police);
-
-    if (type === &quot;tank&quot;) {
-      ctx.fillStyle = shade(paint, -30);
-      roundRect(ctx, w * 0.35, h * 0.42, w * 0.3, h * 0.2, 8);
-      ctx.fill();
-      roundRect(ctx, w * 0.47, h * 0.12, w * 0.06, h * 0.35, 4);
-      ctx.fill();
-    }
-
-    if (type === &quot;f1&quot; || type === &quot;prototype&quot;) {
-      ctx.fillStyle = shade(paint, -42);
-      roundRect(ctx, w * 0.18, h * 0.8, w * 0.64, h * 0.05, 5);
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(4,6,6,0.9)&quot;;
-      ctx.beginPath();
-      ctx.ellipse(w * 0.5, h * 0.42, w * 0.11, h * 0.085, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    if (tractor) {
-      ctx.fillStyle = shade(paint, -30);
-      roundRect(ctx, w * 0.28, h * 0.48, w * 0.44, h * 0.26, 12);
-      ctx.fill();
-      ctx.strokeStyle = &quot;rgba(255,209,102,0.55)&quot;;
-      ctx.lineWidth = Math.max(3, w * 0.018);
-      ctx.beginPath();
-      ctx.moveTo(w * 0.27, h * 0.79);
-      ctx.lineTo(w * 0.73, h * 0.79);
-      ctx.stroke();
-    }
-
-    const glass = ctx.createLinearGradient(0, h * 0.18, 0, h * 0.58);
-    glass.addColorStop(0, &quot;rgba(222,249,255,0.78)&quot;);
-    glass.addColorStop(0.38, &quot;rgba(53,83,90,0.78)&quot;);
-    glass.addColorStop(1, &quot;rgba(3,6,7,0.96)&quot;);
-    ctx.fillStyle = glass;
-    roundRect(ctx, w * 0.32, h * 0.22, w * 0.36, h * 0.15, 10);
-    ctx.fill();
-    if (!narrow) {
-      roundRect(ctx, w * 0.28, h * 0.46, w * 0.44, h * 0.2, 12);
-      ctx.fill();
-    }
-
-    ctx.strokeStyle = &quot;rgba(244,251,248,0.24)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.008);
-    ctx.beginPath();
-    ctx.moveTo(w * 0.5, h * 0.17);
-    ctx.lineTo(w * 0.5, h * 0.86);
-    ctx.moveTo(w * 0.31, h * 0.43);
-    ctx.lineTo(w * 0.69, h * 0.43);
-    ctx.stroke();
-
-    ctx.fillStyle = shade(paint, -48);
-    roundRect(ctx, w * 0.18, h * 0.38, w * 0.085, h * 0.035, 5);
-    ctx.fill();
-    roundRect(ctx, w * 0.735, h * 0.38, w * 0.085, h * 0.035, 5);
-    ctx.fill();
-
-    ctx.fillStyle = &quot;rgba(255,248,214,0.95)&quot;;
-    roundRect(ctx, w * 0.32, h * 0.18, w * 0.12, h * 0.035, 5);
-    ctx.fill();
-    roundRect(ctx, w * 0.56, h * 0.18, w * 0.12, h * 0.035, 5);
-    ctx.fill();
-    ctx.fillStyle = police ? &quot;#46d9ff&quot; : &quot;#ff3348&quot;;
-    roundRect(ctx, w * 0.31, h * 0.78, w * 0.15, h * 0.038, 5);
-    ctx.fill();
-    ctx.fillStyle = &quot;#ff3348&quot;;
-    roundRect(ctx, w * 0.54, h * 0.78, w * 0.15, h * 0.038, 5);
-    ctx.fill();
-
-    if (police) {
-      ctx.fillStyle = &quot;rgba(5,8,7,0.86)&quot;;
-      roundRect(ctx, w * 0.3, h * 0.42, w * 0.4, h * 0.045, 5);
-      ctx.fill();
-      ctx.fillStyle = &quot;#f4fbf8&quot;;
-      ctx.font = `900 ${Math.max(12, w * 0.055)}px system-ui`;
-      ctx.textAlign = &quot;center&quot;;
-      ctx.fillText(&quot;POLICE&quot;, w * 0.5, h * 0.62);
-      ctx.fillStyle = &quot;#ff3348&quot;;
-      roundRect(ctx, w * 0.4, h * 0.32, w * 0.08, h * 0.032, 4);
-      ctx.fill();
-      ctx.fillStyle = &quot;#46d9ff&quot;;
-      roundRect(ctx, w * 0.52, h * 0.32, w * 0.08, h * 0.032, 4);
-      ctx.fill();
-    }
-
-    ctx.fillStyle = &quot;rgba(244,251,248,0.7)&quot;;
-    roundRect(ctx, w * 0.42, h * 0.82, w * 0.16, h * 0.03, 5);
-    ctx.fill();
-    drawPaintGrain(ctx, w, h, paint);
-    drawDamage(ctx, w, h, damage);
-  }
-
-  function drawAirOrWater(ctx, w, h, type, color, damage) {
-    const paint = ctx.createLinearGradient(w * 0.26, h * 0.12, w * 0.74, h * 0.9);
-    paint.addColorStop(0, shade(color, 48));
-    paint.addColorStop(0.55, color);
-    paint.addColorStop(1, shade(color, -44));
-    ctx.fillStyle = paint;
-    ctx.beginPath();
-    if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
-      const bomber = type === &quot;bomber&quot;;
-      const fighter = type === &quot;fighterjet&quot;;
-      ctx.moveTo(w * 0.5, h * 0.08);
-      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.86);
-      ctx.lineTo(w * 0.5, h * 0.92);
-      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.86);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(w * (bomber ? 0.06 : fighter ? 0.1 : 0.12), h * (fighter ? 0.48 : 0.52));
-      ctx.lineTo(w * (bomber ? 0.94 : fighter ? 0.9 : 0.88), h * (fighter ? 0.48 : 0.52));
-      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.63);
-      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.63);
-      ctx.closePath();
-      ctx.fill();
-      if (fighter) {
-        ctx.fillStyle = shade(color, -34);
-        ctx.beginPath();
-        ctx.moveTo(w * 0.38, h * 0.78);
-        ctx.lineTo(w * 0.22, h * 0.94);
-        ctx.lineTo(w * 0.47, h * 0.86);
-        ctx.closePath();
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(w * 0.62, h * 0.78);
-        ctx.lineTo(w * 0.78, h * 0.94);
-        ctx.lineTo(w * 0.53, h * 0.86);
-        ctx.closePath();
-        ctx.fill();
-      }
-    } else if (type === &quot;drone&quot;) {
-      ctx.fillStyle = &quot;rgba(244,251,248,0.68)&quot;;
-      for (let x = 0.23; x &lt;= 0.77; x += 0.54) {
-        for (let y = 0.28; y &lt;= 0.72; y += 0.44) {
-          ctx.beginPath();
-          ctx.ellipse(w * x, h * y, w * 0.16, h * 0.04, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.strokeStyle = shade(color, -30);
-      ctx.lineWidth = Math.max(4, w * 0.035);
-      ctx.beginPath();
-      ctx.moveTo(w * 0.24, h * 0.28);
-      ctx.lineTo(w * 0.76, h * 0.72);
-      ctx.moveTo(w * 0.76, h * 0.28);
-      ctx.lineTo(w * 0.24, h * 0.72);
-      ctx.stroke();
-      ctx.fillStyle = paint;
-      roundRect(ctx, w * 0.34, h * 0.36, w * 0.32, h * 0.28, 18);
-      ctx.fill();
-    } else if (type === &quot;helicopter&quot;) {
-      roundRect(ctx, w * 0.3, h * 0.26, w * 0.4, h * 0.42, 24);
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(244,251,248,0.72)&quot;;
-      roundRect(ctx, w * 0.13, h * 0.13, w * 0.74, h * 0.035, 5);
-      ctx.fill();
-      ctx.fillStyle = shade(color, -34);
-      roundRect(ctx, w * 0.47, h * 0.64, w * 0.06, h * 0.25, 5);
-      ctx.fill();
-    } else {
-      ctx.moveTo(w * 0.5, h * 0.1);
-      ctx.quadraticCurveTo(w * 0.82, h * 0.5, w * 0.62, h * 0.88);
-      ctx.lineTo(w * 0.38, h * 0.88);
-      ctx.quadraticCurveTo(w * 0.18, h * 0.5, w * 0.5, h * 0.1);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.fillStyle = &quot;rgba(3,6,7,0.86)&quot;;
-    roundRect(ctx, w * 0.39, h * 0.35, w * 0.22, h * 0.18, 10);
-    ctx.fill();
-    ctx.fillStyle = &quot;rgba(255,248,214,0.86)&quot;;
-    roundRect(ctx, w * 0.43, h * 0.18, w * 0.14, h * 0.035, 5);
-    ctx.fill();
-    drawAirWaterRealismDetails(ctx, w, h, type);
-    drawPaintGrain(ctx, w, h, color);
-    drawDamage(ctx, w, h, damage);
-  }
-
-  function drawRearWheel(ctx, x, groundY, rx, ry, accent, heavy = false) {
-    ctx.save();
-    const cy = groundY - ry;
-    ctx.fillStyle = &quot;rgba(2,4,4,0.98)&quot;;
-    ctx.beginPath();
-    ctx.ellipse(x, cy, rx, ry, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = &quot;rgba(244,251,248,0.22)&quot;;
-    ctx.lineWidth = Math.max(2, rx * 0.13);
-    ctx.stroke();
-    ctx.globalAlpha = 0.42;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = Math.max(1, rx * 0.12);
-    for (let i = -1; i &lt;= 1; i += 1) {
-      ctx.beginPath();
-      ctx.moveTo(x - rx * 0.62, cy + i * ry * 0.26);
-      ctx.lineTo(x + rx * 0.62, cy + i * ry * 0.26);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = heavy ? 0.52 : 0.34;
-    ctx.fillStyle = &quot;rgba(0,0,0,0.92)&quot;;
-    ctx.beginPath();
-    ctx.ellipse(x, groundY + ry * 0.08, rx * 1.12, ry * 0.18, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
-    const pursuit = type === &quot;policecar&quot;;
-    const policeLivery = police || pursuit;
-    const paint = policeLivery ? color || &quot;#f2f5f2&quot; : color;
-    const accent = policeLivery ? &quot;rgba(70,217,255,0.56)&quot; : rgba(color, 0.58);
-    const semi = type === &quot;semi&quot;;
-    const tractor = type === &quot;tractor&quot;;
-    const tank = type === &quot;tank&quot;;
-    const monster = type === &quot;monster&quot;;
-    const truck = type === &quot;truck&quot;;
-    const f1 = type === &quot;f1&quot; || type === &quot;prototype&quot;;
-    const snow = type === &quot;snowmobile&quot;;
-    const wide = semi || tractor || tank || monster || truck || pursuit;
-    const groundY = h * (snow ? 0.94 : 0.955);
-
-    ctx.save();
-    const contact = ctx.createRadialGradient(w * 0.5, groundY - h * 0.025, w * 0.07, w * 0.5, groundY, w * 0.55);
-    contact.addColorStop(0, snow ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(0,0,0,0.72)&quot;);
-    contact.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
-    ctx.fillStyle = contact;
-    ctx.beginPath();
-    ctx.ellipse(w * 0.5, groundY, w * (wide ? 0.52 : 0.44), h * 0.06, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (snow) {
-      ctx.strokeStyle = &quot;rgba(244,251,248,0.82)&quot;;
-      ctx.lineWidth = Math.max(7, w * 0.036);
-      ctx.lineCap = &quot;round&quot;;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.26, groundY);
-      ctx.lineTo(w * 0.43, groundY - h * 0.02);
-      ctx.moveTo(w * 0.57, groundY - h * 0.02);
-      ctx.lineTo(w * 0.74, groundY);
-      ctx.stroke();
-    } else if (tank) {
-      ctx.fillStyle = &quot;rgba(1,2,2,0.98)&quot;;
-      roundRect(ctx, w * 0.11, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
-      ctx.fill();
-      roundRect(ctx, w * 0.67, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
-      ctx.fill();
-      ctx.strokeStyle = &quot;rgba(244,251,248,0.16)&quot;;
-      ctx.lineWidth = Math.max(2, w * 0.012);
-      for (let i = 0; i &lt; 7; i += 1) {
-        const y = h * 0.49 + i * h * 0.052;
-        ctx.beginPath();
-        ctx.moveTo(w * 0.14, y);
-        ctx.lineTo(w * 0.3, y);
-        ctx.moveTo(w * 0.7, y);
-        ctx.lineTo(w * 0.86, y);
-        ctx.stroke();
-      }
-    } else {
-      const rx = w * (monster ? 0.105 : semi || tractor ? 0.088 : f1 ? 0.074 : 0.082);
-      const ry = h * (monster ? 0.155 : semi || tractor ? 0.14 : f1 ? 0.09 : 0.125);
-      const left = w * (wide ? 0.2 : 0.24);
-      const right = w - left;
-      drawRearWheel(ctx, left, groundY, rx, ry, accent, wide);
-      drawRearWheel(ctx, right, groundY, rx, ry, accent, wide);
-      if (semi || tractor || truck) {
-        drawRearWheel(ctx, left + w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, &quot;rgba(255,209,102,0.28)&quot;, true);
-        drawRearWheel(ctx, right - w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, &quot;rgba(255,209,102,0.28)&quot;, true);
-      }
-    }
-
-    const body = ctx.createLinearGradient(w * 0.18, h * 0.14, w * 0.82, groundY);
-    body.addColorStop(0, shade(paint, 54));
-    body.addColorStop(0.34, paint);
-    body.addColorStop(0.7, shade(paint, -30));
-    body.addColorStop(1, shade(paint, -62));
-    ctx.fillStyle = body;
-
-    if (f1) {
-      ctx.fillStyle = shade(paint, -38);
-      roundRect(ctx, w * 0.12, h * 0.73, w * 0.76, h * 0.075, 9);
-      ctx.fill();
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5, h * 0.28);
-      ctx.lineTo(w * 0.68, h * 0.5);
-      ctx.lineTo(w * 0.61, h * 0.82);
-      ctx.lineTo(w * 0.39, h * 0.82);
-      ctx.lineTo(w * 0.32, h * 0.5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(4,6,6,0.92)&quot;;
-      ctx.beginPath();
-      ctx.ellipse(w * 0.5, h * 0.53, w * 0.12, h * 0.09, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (semi) {
-      roundRect(ctx, w * 0.19, h * 0.33, w * 0.62, h * 0.43, 18);
-      ctx.fill();
-      ctx.fillStyle = shade(paint, 18);
-      roundRect(ctx, w * 0.24, h * 0.17, w * 0.52, h * 0.26, 16);
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(4,7,8,0.9)&quot;;
-      roundRect(ctx, w * 0.31, h * 0.22, w * 0.38, h * 0.12, 8);
-      ctx.fill();
-      ctx.fillStyle = &quot;rgba(244,251,248,0.28)&quot;;
-      for (let i = 0; i &lt; 3; i += 1) {
-        roundRect(ctx, w * 0.27, h * (0.48 + i * 0.1), w * 0.46, h * 0.026, 4);
-        ctx.fill();
-      }
-    } else if (tractor) {
-      roundRect(ctx, w * 0.3, h * 0.25, w * 0.4, h * 0.24, 14);
-      ctx.fill();
-      ctx.fillStyle = shade(paint, -28);
-      roundRect(ctx, w * 0.23, h * 0.48, w * 0.54, h * 0.26, 12);
-      ctx.fill();
-      ctx.strokeStyle = &quot;rgba(255,209,102,0.58)&quot;;
-      ctx.lineWidth = Math.max(4, w * 0.022);
-      ctx.beginPath();
-      ctx.moveTo(w * 0.23, h * 0.77);
-      ctx.lineTo(w * 0.77, h * 0.77);
-      ctx.stroke();
-    } else if (tank) {
-      roundRect(ctx, w * 0.24, h * 0.32, w * 0.52, h * 0.46, 9);
-      ctx.fill();
-      ctx.fillStyle = shade(paint, -34);
-      roundRect(ctx, w * 0.34, h * 0.38, w * 0.32, h * 0.2, 8);
-      ctx.fill();
-      ctx.fillRect(w * 0.47, h * 0.18, w * 0.06, h * 0.26);
-    } else {
-      const topHalf = w * (truck || monster ? 0.24 : 0.2);
-      const shoulder = w * (truck || monster ? 0.38 : 0.34);
-      const lower = w * (truck || monster ? 0.43 : 0.37);
-      const top = h * (snow ? 0.3 : 0.18);
-      const belly = groundY - h * 0.055;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5 - topHalf, top);
-      ctx.lineTo(w * 0.5 + topHalf, top);
-      ctx.quadraticCurveTo(w * 0.5 + shoulder, h * 0.26, w * 0.5 + shoulder, h * 0.48);
-      ctx.lineTo(w * 0.5 + lower, belly);
-      ctx.quadraticCurveTo(w * 0.5 + lower * 0.7, groundY - h * 0.015, w * 0.5, groundY - h * 0.012);
-      ctx.quadraticCurveTo(w * 0.5 - lower * 0.7, groundY - h * 0.015, w * 0.5 - lower, belly);
-      ctx.lineTo(w * 0.5 - shoulder, h * 0.48);
-      ctx.quadraticCurveTo(w * 0.5 - shoulder, h * 0.26, w * 0.5 - topHalf, top);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.strokeStyle = &quot;rgba(255,255,255,0.28)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.012);
-    ctx.stroke();
-
-    if (snow) {
-      ctx.strokeStyle = &quot;rgba(244,251,248,0.92)&quot;;
-      ctx.lineWidth = Math.max(7, w * 0.034);
-      ctx.lineCap = &quot;round&quot;;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.24, groundY);
-      ctx.lineTo(w * 0.43, groundY - h * 0.01);
-      ctx.moveTo(w * 0.57, groundY - h * 0.01);
-      ctx.lineTo(w * 0.76, groundY);
-      ctx.stroke();
-    } else if (tank) {
-      ctx.fillStyle = &quot;rgba(1,2,2,1)&quot;;
-      roundRect(ctx, w * 0.11, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
-      ctx.fill();
-      roundRect(ctx, w * 0.66, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
-      ctx.fill();
-    } else {
-      const rx = w * (monster ? 0.108 : semi || tractor ? 0.092 : f1 ? 0.078 : 0.086);
-      const ry = h * (monster ? 0.16 : semi || tractor ? 0.14 : f1 ? 0.092 : 0.128);
-      const left = w * (wide ? 0.2 : 0.24);
-      const right = w - left;
-      drawRearWheel(ctx, left, groundY, rx, ry, accent, true);
-      drawRearWheel(ctx, right, groundY, rx, ry, accent, true);
-    }
-
-    ctx.fillStyle = &quot;rgba(5,8,7,0.9)&quot;;
-    roundRect(ctx, w * 0.31, h * (semi ? 0.46 : 0.32), w * 0.38, h * 0.13, 10);
-    ctx.fill();
-    if (!f1 &amp;&amp; !semi &amp;&amp; !tractor &amp;&amp; !tank) {
-      roundRect(ctx, w * 0.27, h * 0.55, w * 0.46, h * 0.19, 12);
-      ctx.fill();
-    }
-    ctx.fillStyle = &quot;rgba(222,249,255,0.24)&quot;;
-    roundRect(ctx, w * 0.34, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
-    ctx.fill();
-    roundRect(ctx, w * 0.52, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
-    ctx.fill();
-
-    if (policeLivery) {
-      ctx.fillStyle = &quot;rgba(5,8,7,0.88)&quot;;
-      roundRect(ctx, w * 0.29, h * 0.53, w * 0.42, h * 0.052, 5);
-      ctx.fill();
-      ctx.fillStyle = &quot;#f4fbf8&quot;;
-      ctx.font = `900 ${Math.max(16, w * 0.07)}px system-ui`;
-      ctx.textAlign = &quot;center&quot;;
-      ctx.fillText(&quot;POLICE&quot;, w * 0.5, h * 0.65);
-      ctx.fillStyle = &quot;#ff3348&quot;;
-      roundRect(ctx, w * 0.4, h * 0.27, w * 0.08, h * 0.034, 4);
-      ctx.fill();
-      ctx.fillStyle = &quot;#46d9ff&quot;;
-      roundRect(ctx, w * 0.52, h * 0.27, w * 0.08, h * 0.034, 4);
-      ctx.fill();
-    }
-
-    ctx.fillStyle = &quot;#ff3348&quot;;
-    roundRect(ctx, w * 0.28, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
-    ctx.fill();
-    roundRect(ctx, w * 0.55, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
-    ctx.fill();
-    ctx.fillStyle = &quot;rgba(244,251,248,0.68)&quot;;
-    roundRect(ctx, w * 0.43, groundY - h * 0.085, w * 0.14, h * 0.028, 4);
-    ctx.fill();
-
-    ctx.strokeStyle = &quot;rgba(5,8,7,0.46)&quot;;
-    ctx.lineWidth = Math.max(2, w * 0.016);
-    ctx.beginPath();
-    ctx.moveTo(w * 0.5, h * 0.2);
-    ctx.lineTo(w * 0.5, groundY - h * 0.08);
-    ctx.stroke();
-
-    drawPaintGrain(ctx, w, h, paint);
-    drawDamage(ctx, w, h, damage);
-    ctx.restore();
-  }
-
-  function getVehicleSprite(type = &quot;car&quot;, color = &quot;#46d9ff&quot;, options = {}) {
-    const police = Boolean(options.police);
-    const damage = Math.max(0, Math.min(100, Number(options.damage) || 0));
-    const damageBucket = Math.floor(damage / 14);
-    const key = `${type}|${color}|${police ? 1 : 0}|${damageBucket}`;
-    if (spriteCache.has(key)) return spriteCache.get(key);
-
-    const canvas = makeCanvas(384, 552);
-    const ctx = canvas.getContext(&quot;2d&quot;);
-    ctx.imageSmoothingEnabled = true;
-
-    if (isWaterType(type) || isAirType(type)) {
-      const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
-      shadow.addColorStop(0, &quot;rgba(0,0,0,0.52)&quot;);
-      shadow.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
-      ctx.fillStyle = shadow;
-      ctx.beginPath();
-      ctx.ellipse(192, 422, 168, 56, 0, 0, Math.PI * 2);
-      ctx.fill();
-      drawSpriteContact(ctx, 384, 552, type);
-      drawAirOrWater(ctx, 384, 552, type, police ? &quot;#f4fbf8&quot; : color, damage);
-    } else {
-      drawRearGroundVehicle(ctx, 384, 552, type, color, police, damage);
-    }
-
-    spriteCache.set(key, canvas);
-    return canvas;
-  }
-
-  function getRoadTexture(place = &quot;city&quot;, theme = [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;]) {
-    const key = `${place}|${theme.join(&quot;|&quot;)}`;
-    if (textureCache.has(key)) return textureCache.get(key);
-    const canvas = makeCanvas(512, 512);
-    const ctx = canvas.getContext(&quot;2d&quot;);
-    ctx.fillStyle = place === &quot;snow&quot; ? &quot;rgba(205,222,224,0.14)&quot; : place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(156,92,42,0.13)&quot; : &quot;rgba(244,251,248,0.08)&quot;;
-    ctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i &lt; 420; i += 1) {
-      const x = (i * 47) % 512;
-      const y = (i * 83) % 512;
-      const len = 8 + (i % 9) * 7;
-      ctx.globalAlpha = 0.08 + (i % 5) * 0.018;
-      ctx.strokeStyle = i % 3 ? &quot;rgba(255,255,255,0.55)&quot; : rgba(theme[1], 0.75);
-      ctx.lineWidth = 1 + (i % 3);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + len, y + (i % 2 ? 2 : -2));
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = place === &quot;snow&quot; ? &quot;rgba(244,251,248,0.9)&quot; : &quot;rgba(0,0,0,0.85)&quot;;
-    ctx.lineCap = &quot;round&quot;;
-    for (let i = 0; i &lt; 54; i += 1) {
-      const x = (i * 109) % 512;
-      const y = (i * 67) % 512;
-      ctx.lineWidth = 1 + (i % 3);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.bezierCurveTo(x + 24, y + 9, x - 18, y + 31, x + 38, y + 45);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = place === &quot;tokyo&quot; || place === &quot;city&quot; || place === &quot;harbor&quot; || place === &quot;rainforest&quot; ? 0.22 : 0.1;
-    for (let i = 0; i &lt; 18; i += 1) {
-      const x = (i * 131) % 512;
-      const y = (i * 191) % 512;
-      const glow = ctx.createRadialGradient(x, y, 4, x, y, 92);
-      glow.addColorStop(0, rgba(theme[1], 0.9));
-      glow.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
-      ctx.fillStyle = glow;
-      ctx.fillRect(x - 96, y - 96, 192, 192);
-    }
-    ctx.globalAlpha = 1;
-    textureCache.set(key, canvas);
-    return canvas;
-  }
-
-  function isPhoneViewport() {
-    return window.matchMedia &amp;&amp; (window.matchMedia(&quot;(pointer: coarse)&quot;).matches || Math.min(window.innerWidth, window.innerHeight) &lt; 720);
-  }
-
-  window.VelocityPhoneAssets = {
-    getVehicleSprite,
-    getRoadTexture,
-    isPhoneViewport,
-    ready: true
-  };
-})();
-</pre>
-<h2>webgl-pipeline.js</h2>
-<pre>&quot;use strict&quot;;
-
-(function () {
-  function hexToRgba(hex, alpha = 1) {
-    if (!hex || typeof hex !== &quot;string&quot;) return [1, 1, 1, alpha];
-    const clean = hex.replace(&quot;#&quot;, &quot;&quot;);
-    const value = parseInt(clean.length === 3 ? clean.split(&quot;&quot;).map((c) =&gt; c + c).join(&quot;&quot;) : clean, 16);
-    return [((value &gt;&gt; 16) &amp; 255) / 255, ((value &gt;&gt; 8) &amp; 255) / 255, (value &amp; 255) / 255, alpha];
-  }
-
-  function shade(color, factor) {
-    return [
-      Math.max(0, Math.min(1, color[0] * factor)),
-      Math.max(0, Math.min(1, color[1] * factor)),
-      Math.max(0, Math.min(1, color[2] * factor)),
-      color[3]
-    ];
-  }
-
-  function perspective(fovy, aspect, near, far) {
-    const f = 1 / Math.tan(fovy / 2);
-    const nf = 1 / (near - far);
-    return [
-      f / aspect, 0, 0, 0,
-      0, f, 0, 0,
-      0, 0, (far + near) * nf, -1,
-      0, 0, (2 * far * near) * nf, 0
-    ];
-  }
-
-  function normalize(v) {
-    const length = Math.hypot(v[0], v[1], v[2]) || 1;
-    return [v[0] / length, v[1] / length, v[2] / length];
-  }
-
-  function cross(a, b) {
-    return [
-      a[1] * b[2] - a[2] * b[1],
-      a[2] * b[0] - a[0] * b[2],
-      a[0] * b[1] - a[1] * b[0]
-    ];
-  }
-
-  function dot(a, b) {
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  }
-
-  function lookAt(eye, center, up) {
-    const z = normalize([eye[0] - center[0], eye[1] - center[1], eye[2] - center[2]]);
-    const x = normalize(cross(up, z));
-    const y = cross(z, x);
-    return [
-      x[0], y[0], z[0], 0,
-      x[1], y[1], z[1], 0,
-      x[2], y[2], z[2], 0,
-      -dot(x, eye), -dot(y, eye), -dot(z, eye), 1
-    ];
-  }
-
-  function multiply(a, b) {
-    const out = new Array(16).fill(0);
-    for (let col = 0; col &lt; 4; col += 1) {
-      for (let row = 0; row &lt; 4; row += 1) {
-        out[col * 4 + row] =
-          a[0 * 4 + row] * b[col * 4 + 0] +
-          a[1 * 4 + row] * b[col * 4 + 1] +
-          a[2 * 4 + row] * b[col * 4 + 2] +
-          a[3 * 4 + row] * b[col * 4 + 3];
-      }
-    }
-    return out;
-  }
-
-  function compile(gl, type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader) || &quot;WebGL shader compile failed&quot;);
-    }
-    return shader;
-  }
-
-  function linkProgram(gl) {
-    const vertex = compile(gl, gl.VERTEX_SHADER, `
-      attribute vec3 aPosition;
-      attribute vec4 aColor;
-      uniform mat4 uMvp;
-      varying vec4 vColor;
-      void main() {
-        gl_Position = uMvp * vec4(aPosition, 1.0);
-        vColor = aColor;
-      }
-    `);
-    const fragment = compile(gl, gl.FRAGMENT_SHADER, `
-      precision mediump float;
-      varying vec4 vColor;
-      void main() {
-        gl_FragColor = vColor;
-      }
-    `);
-    const program = gl.createProgram();
-    gl.attachShader(program, vertex);
-    gl.attachShader(program, fragment);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program) || &quot;WebGL program link failed&quot;);
-    }
-    return program;
-  }
-
-  function VelocityWebGLPipeline(canvas) {
-    const gl = canvas.getContext(&quot;webgl&quot;, {
-      alpha: false,
-      antialias: true,
-      depth: true,
-      powerPreference: &quot;high-performance&quot;
-    });
-    if (!gl) throw new Error(&quot;WebGL is not available in this browser&quot;);
-
-    const program = linkProgram(gl);
-    const buffer = gl.createBuffer();
-    const aPosition = gl.getAttribLocation(program, &quot;aPosition&quot;);
-    const aColor = gl.getAttribLocation(program, &quot;aColor&quot;);
-    const uMvp = gl.getUniformLocation(program, &quot;uMvp&quot;);
-    let vertices = [];
-    let lastProjection = null;
-
-    function visualLaneValue(data) {
-      const state = data &amp;&amp; data.raceState ? data.raceState : {};
-      const visualLane = Number(state.visualLane);
-      if (Number.isFinite(visualLane)) return visualLane;
-      return Number(state.lane) || 0;
-    }
-
-    function laneToWorldX(lane) {
-      return Number(lane) * 2.08;
-    }
-
-    function cameraProjection(data) {
-      const laneX = laneToWorldX(visualLaneValue(data));
-      const shake = data.raceState.cameraShake || 0;
-      const curve = roadCurveValue(data);
-      const jitter = shake &gt; 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
-      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
-      let eye = phoneFrame ? [laneX * 0.08 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.06 - curve * 0.9 + jitter, 2.1, -14.6];
-      let target = phoneFrame ? [laneX * 0.015 + curve * 3.45, 1.24, 62] : [laneX * 0.015 + curve * 3.4, 1.96, 50];
-      if (data.cameraMode === &quot;hood&quot;) {
-        eye = phoneFrame ? [laneX * 0.3 - curve * 0.56 + jitter, 1.18, -7.8] : [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
-        target = phoneFrame ? [laneX * 0.08 + curve * 3.65, 1.02, 64] : [laneX * 0.1 + curve * 3.6, 1.38, 52];
-      } else if (data.cameraMode === &quot;cockpit&quot;) {
-        eye = [laneX * 0.2 - curve * 0.5 + jitter, 1.58, -3.8];
-        target = [laneX * 0.05 + curve * 3.8, 1.52, 56];
-      }
-      const view = lookAt(eye, target, [0, 1, 0]);
-      const fov = phoneFrame &amp;&amp; data.cameraMode !== &quot;cockpit&quot; ? 2.28 : data.cameraMode === &quot;cockpit&quot; ? 2.25 : 2.55;
-      const proj = perspective(Math.PI / fov, data.width / Math.max(1, data.height), 0.1, 220);
-      return {
-        mvp: multiply(proj, view),
-        width: data.width,
-        height: data.height,
-        raceDistance: data.raceState.distance,
-        roadTurn: curve,
-        roadOffset: data.raceState.roadOffset || 0,
-        cameraMode: data.cameraMode
-      };
-    }
-
-    function projectPoint(projection, x, y, z) {
-      const m = projection.mvp;
-      const clipX = m[0] * x + m[4] * y + m[8] * z + m[12];
-      const clipY = m[1] * x + m[5] * y + m[9] * z + m[13];
-      const clipW = m[3] * x + m[7] * y + m[11] * z + m[15];
-      if (!Number.isFinite(clipW) || clipW &lt;= 0.02) return null;
-      const ndcX = clipX / clipW;
-      const ndcY = clipY / clipW;
-      if (!Number.isFinite(ndcX) || !Number.isFinite(ndcY)) return null;
-      const screenY = (0.5 - ndcY * 0.5) * projection.height;
-      const t = Math.max(0, Math.min(1.16, screenY / Math.max(1, projection.height)));
-      return {
-        x: (ndcX * 0.5 + 0.5) * projection.width,
-        y: screenY,
-        scale: Math.max(0.34, Math.min(1.24, 0.42 + t * 0.78)),
-        clipW,
-        z
-      };
-    }
-
-    function screenYFromRoadDistance(data, distance) {
-      return data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
-    }
-
-    function zFromRoadScreenY(data, y) {
-      const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
-      return 116 - t * 108;
-    }
-
-    function zFromRoadDistance(data, distance) {
-      return zFromRoadScreenY(data, screenYFromRoadDistance(data, distance));
-    }
-
-    function addVertex(point, color) {
-      vertices.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3]);
-    }
-
-    function tri(a, b, c, color) {
-      addVertex(a, color);
-      addVertex(b, color);
-      addVertex(c, color);
-    }
-
-    function quad(a, b, c, d, color) {
-      tri(a, b, c, color);
-      tri(a, c, d, color);
-    }
-
-    function box(x, y, z, w, h, d, color) {
-      const x0 = x - w / 2;
-      const x1 = x + w / 2;
-      const y0 = y - h / 2;
-      const y1 = y + h / 2;
-      const z0 = z - d / 2;
-      const z1 = z + d / 2;
-      quad([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], shade(color, 1.14));
-      quad([x0, y0, z1], [x1, y0, z1], [x1, y0, z0], [x0, y0, z0], shade(color, 0.55));
-      quad([x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1], shade(color, 0.76));
-      quad([x1, y0, z1], [x1, y1, z1], [x1, y1, z0], [x1, y0, z0], shade(color, 0.88));
-      quad([x0, y0, z1], [x0, y1, z1], [x1, y1, z1], [x1, y0, z1], shade(color, 1.02));
-      quad([x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z0], shade(color, 0.64));
-    }
-
-    function taperedBox(x, y, z, bottomW, topW, h, d, color) {
-      const y0 = y - h / 2;
-      const y1 = y + h / 2;
-      const z0 = z - d / 2;
-      const z1 = z + d / 2;
-      const b0 = x - bottomW / 2;
-      const b1 = x + bottomW / 2;
-      const t0 = x - topW / 2;
-      const t1 = x + topW / 2;
-      quad([t0, y1, z0], [t1, y1, z0], [t1, y1, z1], [t0, y1, z1], shade(color, 1.16));
-      quad([b0, y0, z1], [b1, y0, z1], [b1, y0, z0], [b0, y0, z0], shade(color, 0.55));
-      quad([b0, y0, z0], [t0, y1, z0], [t0, y1, z1], [b0, y0, z1], shade(color, 0.78));
-      quad([b1, y0, z1], [t1, y1, z1], [t1, y1, z0], [b1, y0, z0], shade(color, 0.9));
-      quad([b0, y0, z1], [t0, y1, z1], [t1, y1, z1], [b1, y0, z1], shade(color, 1.02));
-      quad([b1, y0, z0], [t1, y1, z0], [t0, y1, z0], [b0, y0, z0], shade(color, 0.66));
-    }
-
-    function lowMound(x, z, w, h, d, color) {
-      taperedBox(x, h * 0.3, z, w, w * 0.72, h * 0.6, d, shade(color, 0.82));
-      taperedBox(x, h * 0.78, z - d * 0.05, w * 0.72, w * 0.42, h * 0.44, d * 0.76, color);
-      taperedBox(x, h * 1.08, z - d * 0.1, w * 0.42, w * 0.18, h * 0.24, d * 0.48, shade(color, 1.18));
-    }
-
-    function signPanel(x, z, textColor, baseColor) {
-      box(x, 2.15, z, 3.2, 1.25, 0.14, baseColor);
-      box(x, 2.22, z - 0.08, 2.35, 0.14, 0.16, textColor);
-      box(x - 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
-      box(x + 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
-    }
-
-    function person(x, z, shirtColor, scale = 1) {
-      box(x, 0.18 * scale, z, 0.12 * scale, 0.36 * scale, 0.08 * scale, [0.04, 0.045, 0.04, 1]);
-      box(x, 0.62 * scale, z, 0.28 * scale, 0.52 * scale, 0.16 * scale, shirtColor);
-      box(x, 1.02 * scale, z, 0.22 * scale, 0.22 * scale, 0.18 * scale, [0.72, 0.52, 0.38, 1]);
-      box(x - 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
-      box(x + 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
-    }
-
-    function spectatorCluster(x, z, accent, accent2) {
-      for (let j = 0; j &lt; 5; j += 1) {
-        const row = Math.floor(j / 3);
-        const px = x + (j % 3 - 1) * 0.55;
-        const pz = z + row * 0.34;
-        person(px, pz, j % 2 ? accent : accent2, 0.74);
-      }
-      box(x, 0.28, z + 0.85, 2.4, 0.14, 0.14, [0.78, 0.82, 0.78, 1]);
-    }
-
-    function streetLight(x, z, accent) {
-      const side = x &lt; 0 ? 1 : -1;
-      box(x, 1.35, z, 0.1, 2.7, 0.1, [0.38, 0.42, 0.39, 1]);
-      box(x + side * 0.55, 2.62, z, 1.1, 0.08, 0.08, [0.38, 0.42, 0.39, 1]);
-      box(x + side * 1.05, 2.52, z, 0.34, 0.12, 0.32, accent);
-      box(x + side * 1.05, 2.43, z, 0.6, 0.03, 0.56, shade(accent, 1.35));
-    }
-
-    function roadsideTree(x, z, color, kind = &quot;tree&quot;) {
-      box(x, 0.74, z, 0.22, 1.45, 0.22, [0.34, 0.2, 0.1, 1]);
-      if (kind === &quot;palm&quot;) {
-        taperedBox(x - 0.45, 1.82, z, 1.6, 0.25, 0.22, 1.0, color);
-        taperedBox(x + 0.45, 1.86, z, 1.6, 0.25, 0.22, 1.0, color);
-        taperedBox(x, 2.02, z - 0.45, 1.4, 0.2, 0.2, 1.15, color);
-      } else {
-        taperedBox(x, 1.85, z, 1.8, 0.7, 1.3, 1.6, color);
-        taperedBox(x + 0.35, 2.45, z - 0.1, 1.3, 0.45, 1.0, 1.25, shade(color, 1.18));
-      }
-    }
-
-    function barrierRun(x, z, accent) {
-      box(x, 0.58, z, 0.14, 0.75, 0.16, [0.62, 0.66, 0.62, 1]);
-      box(x, 0.86, z, 0.16, 0.12, 3.2, [0.78, 0.82, 0.78, 1]);
-      box(x, 0.68, z, 0.18, 0.08, 3.0, shade(accent, 0.9));
-    }
-
-    function isAirType(type) {
-      return [&quot;airplane&quot;, &quot;helicopter&quot;, &quot;fighterjet&quot;, &quot;bomber&quot;, &quot;drone&quot;].includes(type);
-    }
-
-    function groundContactPad(type, x, z, scale, paint) {
-      const air = isAirType(type);
-      const water = type === &quot;boat&quot;;
-      const wide = type === &quot;semi&quot; || type === &quot;monster&quot; || type === &quot;tank&quot; || type === &quot;truck&quot;;
-      const shadow = water ? [0.02, 0.18, 0.22, 1] : [0.006, 0.008, 0.007, 1];
-      const dust = water ? [0.1, 0.5, 0.62, 1] : shade(paint, 0.24);
-      const padW = (air ? 1.65 : wide ? 2.45 : 1.95) * scale;
-      const padD = (air ? 2.1 : wide ? 3.2 : 2.75) * scale;
-      box(x, 0.012 * scale, z, padW, 0.024 * scale, padD, shadow);
-      box(x, 0.018 * scale, z + 0.42 * scale, padW * 0.72, 0.014 * scale, padD * 0.32, shade(shadow, 1.4));
-      if (air || water) {
-        box(x, 0.045 * scale, z + 0.88 * scale, padW * 0.58, 0.018 * scale, 0.36 * scale, dust);
-        return;
-      }
-      const tireX = wide ? 0.86 : 0.64;
-      const rearZ = wide ? 1.0 : 0.78;
-      const frontZ = wide ? -0.95 : -0.82;
-      box(x - tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
-      box(x + tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
-      box(x - tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
-      box(x + tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
-      box(x - tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
-      box(x + tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
-    }
-
-    function wrapZ(index, spacing, offset, speed = 0.07) {
-      const total = spacing * 22;
-      let z = index * spacing - ((offset * speed * 2.35) % total);
-      while (z &lt; 0) z += total;
-      return z + 8;
-    }
-
-    function roadCurveValue(data) {
-      const state = data &amp;&amp; data.raceState ? data.raceState : {};
-      return Math.max(-1.34, Math.min(1.34, Number(state.roadTurn || state.roadCurve || 0)));
-    }
-
-    function roadWorldXFor(turn, offset, x, z) {
-      const depth = Math.max(0, Math.min(1.12, Number(z) / 150));
-      const sweep = turn * depth * depth * 8.4;
-      const surfaceWave = Math.sin((Number(z) || 0) * 0.035 + (Number(offset) || 0) * 0.0028) * Math.abs(turn) * depth * 0.72;
-      return x + sweep + surfaceWave;
-    }
-
-    function roadWorldX(data, x, z) {
-      return roadWorldXFor(roadCurveValue(data), data.raceState.roadOffset || 0, x, z);
-    }
-
-    function addRoad(data) {
-      const place = data.selectedRace.place;
-      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
-      const accent = hexToRgba(theme[1], 1);
-      const accent2 = hexToRgba(theme[2], 1);
-      const turn = roadCurveValue(data);
-      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
-      const roadColors = {
-        snow: [0.34, 0.42, 0.41, 1],
-        harbor: [0.12, 0.25, 0.3, 1],
-        airfield: [0.24, 0.24, 0.22, 1],
-        farm: [0.31, 0.25, 0.16, 1],
-        desert: [0.42, 0.31, 0.18, 1],
-        tokyo: [0.12, 0.11, 0.18, 1],
-        rainforest: [0.12, 0.18, 0.14, 1],
-        europe: [0.18, 0.24, 0.25, 1]
-      };
-      const groundColors = {
-        coast: [0.05, 0.2, 0.2, 1],
-        city: [0.06, 0.07, 0.08, 1],
-        canyon: [0.28, 0.13, 0.08, 1],
-        alpine: [0.05, 0.14, 0.12, 1],
-        harbor: [0.03, 0.16, 0.2, 1],
-        snow: [0.6, 0.68, 0.66, 1],
-        airfield: [0.24, 0.18, 0.12, 1],
-        freight: [0.2, 0.22, 0.13, 1],
-        farm: [0.12, 0.28, 0.12, 1],
-        tokyo: [0.04, 0.03, 0.08, 1],
-        desert: [0.48, 0.32, 0.16, 1],
-        rainforest: [0.03, 0.18, 0.1, 1],
-        europe: [0.07, 0.18, 0.16, 1]
-      };
-      let roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
-      let groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
-      let roadMark = [0.78, 0.82, 0.78, 1];
-      let roadMarkDim = [0.48, 0.52, 0.5, 1];
-      if (phoneFrame) {
-        roadColor = shade(roadColor, place === &quot;snow&quot; ? 0.56 : 0.38);
-        groundColor = shade(groundColor, 0.34);
-        roadMark = [0.34, 0.37, 0.36, 1];
-        roadMarkDim = [0.18, 0.2, 0.2, 1];
-      }
-      quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColor);
-      quad([roadWorldX(data, -5.8, 0), 0, 0], [roadWorldX(data, 5.8, 0), 0, 0], [roadWorldX(data, 7.4, 170), 0, 170], [roadWorldX(data, -7.4, 170), 0, 170], roadColor);
-      for (let segment = 0; segment &lt; 12; segment += 1) {
-        const z0 = segment * 14.2;
-        const z1 = (segment + 1) * 14.2;
-        const t0 = z0 / 170;
-        const t1 = z1 / 170;
-        const half0 = 5.8 + t0 * 1.6;
-        const half1 = 5.8 + t1 * 1.6;
-        const tone = phoneFrame ? (segment % 2 ? 0.82 : 0.92) : (segment % 2 ? 0.98 : 1.06);
-        quad(
-          [roadWorldX(data, -half0, z0), 0.006, z0],
-          [roadWorldX(data, half0, z0), 0.006, z0],
-          [roadWorldX(data, half1, z1), 0.006, z1],
-          [roadWorldX(data, -half1, z1), 0.006, z1],
-          shade(roadColor, tone)
-        );
-      }
-      quad([roadWorldX(data, -8.7, 0), -0.02, 0], [roadWorldX(data, -5.9, 0), -0.02, 0], [roadWorldX(data, -7.7, 170), -0.02, 170], [roadWorldX(data, -10.2, 170), -0.02, 170], shade(groundColor, 0.72));
-      quad([roadWorldX(data, 5.9, 0), -0.02, 0], [roadWorldX(data, 8.7, 0), -0.02, 0], [roadWorldX(data, 10.2, 170), -0.02, 170], [roadWorldX(data, 7.7, 170), -0.02, 170], shade(groundColor, 0.72));
-      for (let i = 0; i &lt; 42; i += 1) {
-        const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
-        const x = ((i * 1.37) % 10.6) - 5.3;
-        const patch = phoneFrame ? (i % 3 ? shade(roadColor, 0.72) : shade(roadColor, 0.98)) : (i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18));
-        box(roadWorldX(data, x, z), 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
-      }
-      for (let i = 0; i &lt; 36; i += 1) {
-        const z = wrapZ(i, 5.1, data.raceState.roadOffset, 0.16);
-        const color = i % 2 ? roadMarkDim : shade(roadMarkDim, 0.72);
-        box(roadWorldX(data, -6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
-        box(roadWorldX(data, 6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
-      }
-      for (let i = 0; i &lt; 34; i += 1) {
-        const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
-        box(roadWorldX(data, -5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
-        box(roadWorldX(data, 5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
-      }
-      for (let lane = -1; lane &lt;= 1; lane += 1) {
-        for (let i = 0; i &lt; 24; i += 1) {
-          const z = wrapZ(i, 7.2, data.raceState.roadOffset, 0.1);
-          box(roadWorldX(data, lane * 2.08, z), 0.034, z, 0.1, 0.016, 1.55, [0.86, 0.9, 0.86, 1]);
-        }
-      }
-      for (let i = 0; i &lt; 28; i += 1) {
-        const z = wrapZ(i, 6.5, data.raceState.roadOffset, 0.13);
-        const side = i % 2 ? -1 : 1;
-        barrierRun(roadWorldX(data, side * 8.4, z), z, i % 3 ? roadMark : roadMarkDim);
-        box(roadWorldX(data, side * 6.55, z + 1.9), 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
-        box(roadWorldX(data, side * 6.55, z - 1.9), 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
-      }
-      if (Math.abs(turn) &gt; 0.22) {
-        const side = turn &gt; 0 ? 1 : -1;
-        for (let i = 0; i &lt; 12; i += 1) {
-          const z = wrapZ(i, 9.2, data.raceState.roadOffset, 0.14);
-          box(roadWorldX(data, side * 7.25, z), 0.75, z, 0.18, 1.0, 0.12, roadMarkDim);
-          box(roadWorldX(data, side * 7.05, z - 0.18), 1.32, z - 0.18, 1.2, 0.34, 0.12, i % 2 ? accent : accent2);
-          box(roadWorldX(data, side * 7.05, z - 0.34), 1.32, z - 0.34, 0.48, 0.08, 0.14, [0.9, 0.94, 0.88, 1]);
-        }
-      }
-      if (place === &quot;city&quot; || place === &quot;tokyo&quot;) {
-        for (let i = 0; i &lt; 10; i += 1) {
-          const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
-          for (let stripe = -2; stripe &lt;= 2; stripe += 1) {
-            box(roadWorldX(data, stripe * 1.15, z), 0.034, z, 0.72, 0.018, 1.2, [0.85, 0.86, 0.82, 1]);
-          }
-        }
-      }
-      if ([&quot;city&quot;, &quot;tokyo&quot;, &quot;coast&quot;, &quot;harbor&quot;, &quot;rainforest&quot;].includes(place)) {
-        for (let i = 0; i &lt; 22; i += 1) {
-          const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
-          box(roadWorldX(data, Math.sin(i * 1.7) * 1.6, z), 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
-        }
-      }
-      if ([&quot;city&quot;, &quot;tokyo&quot;, &quot;europe&quot;, &quot;freight&quot;].includes(place)) {
-        for (let i = 0; i &lt; 8; i += 1) {
-          const z = wrapZ(i, 22, data.raceState.roadOffset, 0.08);
-          box(-6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
-          box(6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
-          box(0, 6.12, z, 13.8, 0.22, 0.3, [0.34, 0.36, 0.34, 1]);
-          box(-2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? accent : [0.08, 0.1, 0.1, 1]);
-          box(2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? [0.08, 0.1, 0.1, 1] : accent);
-        }
-      }
-    }
-
-    function addScenery(data) {
-      const place = data.selectedRace.place;
-      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
-      const accent = hexToRgba(theme[1], 1);
-      const accent2 = hexToRgba(theme[2], 1);
-      const offset = data.raceState.roadOffset;
-      for (let i = 0; i &lt; 24; i += 1) {
-        const z = wrapZ(i, 8.4, offset, 0.045);
-        const side = i % 2 ? -1 : 1;
-        const x = roadWorldX(data, side * (11 + (i % 5) * 3.4), z);
-        if (place === &quot;city&quot; || place === &quot;tokyo&quot;) {
-          const height = 5 + (i % 7) * 2.2;
-          taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === &quot;tokyo&quot; ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
-          box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
-          box(x, height * 0.32, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent2 : accent);
-          box(x, height * 0.72, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent : accent2);
-          if (place === &quot;tokyo&quot; &amp;&amp; i % 5 === 0) {
-            box(side * 6.6, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent2);
-            box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
-          }
-          if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === &quot;tokyo&quot; ? accent2 : accent);
-          if (i % 10 === 0) signPanel(x - side * 2.8, z + 1.5, place === &quot;tokyo&quot; ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
-          if (i % 8 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
-        } else if (place === &quot;farm&quot;) {
-          box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
-          taperedBox(x, 1.95, z - 1.25, 2.45, 1.3, 0.6, 2.55, [0.44, 0.22, 0.12, 1]);
-          box(side * 8.5, 0.35, z + 3, 0.12, 0.7, 4, [0.72, 0.56, 0.32, 1]);
-          if (i % 4 === 0) roadsideTree(side * 10.8, z + 1.5, [0.12, 0.44, 0.14, 1]);
-          if (i % 5 === 0) box(x + side * 3.4, 0.65, z - 1, 2.2, 1.3, 1.8, [0.86, 0.72, 0.34, 1]);
-          if (i % 9 === 0) spectatorCluster(side * 9.4, z + 2, accent, accent2);
-        } else if (place === &quot;freight&quot;) {
-          box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
-          box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
-          if (i % 8 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
-          if (i % 7 === 0) box(side * 9.4, 0.9, z - 2.4, 3.6, 1.8, 1.9, [0.52, 0.08, 0.06, 1]);
-          if (i % 8 === 0) streetLight(side * 7.7, z + 2.1, accent2);
-        } else if (place === &quot;desert&quot; || place === &quot;canyon&quot;) {
-          lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === &quot;canyon&quot; ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
-          if (i % 6 === 0) lowMound(side * 18.5, z + 2.7, 7.5, 2.6, 5.2, place === &quot;canyon&quot; ? [0.64, 0.25, 0.13, 1] : [0.78, 0.5, 0.22, 1]);
-          if (i % 14 === 0) signPanel(side * 10.2, z + 1.2, accent, [0.12, 0.08, 0.04, 1]);
-        } else if (place === &quot;rainforest&quot;) {
-          taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
-          taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
-          if (i % 4 === 0) roadsideTree(side * 8.6, z + 1.8, [0.08, 0.38, 0.18, 1]);
-          if (i % 11 === 0) spectatorCluster(side * 8.7, z + 1.4, accent, accent2);
-        } else if (place === &quot;snow&quot; || place === &quot;alpine&quot; || place === &quot;europe&quot;) {
-          lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
-          if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
-          if (i % 5 === 0) roadsideTree(side * 9.2, z + 1.5, [0.08, 0.24, 0.18, 1]);
-          if (place === &quot;europe&quot; &amp;&amp; i % 8 === 0) spectatorCluster(side * 8.8, z + 2.2, accent, accent2);
-        } else if (place === &quot;harbor&quot; || place === &quot;coast&quot;) {
-          box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
-          box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
-          if (i % 6 === 0) {
-            box(side * 14.2, 2.1, z, 0.24, 4.2, 0.24, [0.72, 0.48, 0.2, 1]);
-            box(side * 12.4, 4.0, z - 0.6, 3.8, 0.22, 0.24, [0.72, 0.48, 0.2, 1]);
-            taperedBox(side * 15.4, 0.5, z + 1.8, 2.4, 1.5, 0.72, 3.2, accent2);
-          }
-          if (i % 4 === 0) roadsideTree(side * 10.4, z + 0.9, [0.18, 0.48, 0.2, 1], &quot;palm&quot;);
-          if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
-          if (i % 9 === 0) spectatorCluster(side * 9.1, z + 2.8, accent, accent2);
-        } else if (place === &quot;airfield&quot;) {
-          box(x, 1.1, z, 4.4, 2.2, 3.4, [0.18, 0.18, 0.16, 1]);
-          taperedBox(x, 2.35, z - 1.8, 4.8, 2.4, 0.6, 3.6, [0.24, 0.24, 0.22, 1]);
-          if (i % 6 === 0) box(side * 8.8, 0.35, z + 2, 1.8, 0.7, 2.6, accent);
-          if (i % 8 === 0) streetLight(side * 7.6, z + 1.7, accent2);
-        }
-      }
-    }
-
-    function addVehicle(type, x, z, colorHex, scale = 1, police = false, damage = 0) {
-      const paint = police ? [0.9, 0.92, 0.9, 1] : hexToRgba(colorHex, 1);
-      const dark = [0.01, 0.015, 0.014, 1];
-      const red = [1, 0.08, 0.12, 1];
-      const blue = [0.1, 0.55, 1, 1];
-      const glass = [0.52, 0.72, 0.78, 1];
-      const chrome = [0.76, 0.82, 0.78, 1];
-      groundContactPad(type, x, z, scale, paint);
-      if (type === &quot;semi&quot;) {
-        taperedBox(x, 0.8 * scale, z + 0.95 * scale, 1.75 * scale, 1.25 * scale, 1.2 * scale, 1.6 * scale, paint);
-        taperedBox(x, 0.95 * scale, z - 1.25 * scale, 2.05 * scale, 1.78 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
-        box(x, 1.14 * scale, z + 1.45 * scale, 0.95 * scale, 0.16 * scale, 0.08 * scale, [0.72, 0.86, 0.9, 1]);
-      } else if (type === &quot;tractor&quot;) {
-        taperedBox(x, 0.7 * scale, z, 1.45 * scale, 0.95 * scale, 0.8 * scale, 1.55 * scale, paint);
-        taperedBox(x, 1.25 * scale, z - 0.2 * scale, 1.0 * scale, 0.72 * scale, 0.9 * scale, 0.8 * scale, shade(paint, 0.9));
-        box(x - 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
-        box(x + 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
-      } else if (type === &quot;f1&quot; || type === &quot;prototype&quot;) {
-        taperedBox(x, 0.36 * scale, z, 0.9 * scale, 0.36 * scale, 0.34 * scale, 2.5 * scale, paint);
-        taperedBox(x, 0.54 * scale, z - 0.2 * scale, 0.58 * scale, 0.32 * scale, 0.32 * scale, 0.55 * scale, dark);
-        box(x, 0.28 * scale, z + 1.0 * scale, 1.5 * scale, 0.12 * scale, 0.25 * scale, shade(paint, 0.7));
-      } else if (type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot;) {
-        taperedBox(x, 0.75 * scale, z, 1.85 * scale, 1.35 * scale, type === &quot;tank&quot; ? 0.75 * scale : 1.0 * scale, 2.1 * scale, paint);
-        taperedBox(x, 1.25 * scale, z - 0.25 * scale, 1.1 * scale, 0.78 * scale, 0.65 * scale, 0.9 * scale, shade(paint, 0.82));
-        if (type === &quot;tank&quot;) box(x, 1.55 * scale, z - 1.15 * scale, 0.22 * scale, 0.18 * scale, 1.8 * scale, shade(paint, 0.7));
-      } else if (type === &quot;boat&quot; || type === &quot;snowmobile&quot;) {
-        taperedBox(x, 0.42 * scale, z, 1.45 * scale, 0.7 * scale, 0.36 * scale, 2.3 * scale, paint);
-        taperedBox(x, 0.68 * scale, z - 0.25 * scale, 0.62 * scale, 0.35 * scale, 0.42 * scale, 0.75 * scale, dark);
-      } else if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
-        const bomber = type === &quot;bomber&quot;;
-        const fighter = type === &quot;fighterjet&quot;;
-        taperedBox(x, 0.7 * scale, z, (bomber ? 0.92 : fighter ? 0.58 : 0.68) * scale, 0.38 * scale, 0.45 * scale, (bomber ? 3.3 : 2.9) * scale, paint);
-        box(x, 0.66 * scale, z, (bomber ? 3.2 : fighter ? 2.8 : 2.55) * scale, 0.13 * scale, 0.42 * scale, shade(paint, 0.88));
-        if (fighter) {
-          box(x - 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
-          box(x + 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
-        }
-      } else if (type === &quot;helicopter&quot;) {
-        taperedBox(x, 0.95 * scale, z, 1.2 * scale, 0.78 * scale, 0.65 * scale, 1.45 * scale, paint);
-        box(x, 1.45 * scale, z, 2.3 * scale, 0.08 * scale, 0.1 * scale, [0.9, 0.94, 0.94, 1]);
-      } else if (type === &quot;drone&quot;) {
-        taperedBox(x, 0.72 * scale, z, 0.74 * scale, 0.3 * scale, 0.48 * scale, 0.74 * scale, paint);
-        box(x - 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
-        box(x + 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
-        box(x - 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
-        box(x + 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
-      } else {
-        taperedBox(x, 0.55 * scale, z, 1.46 * scale, 0.9 * scale, 0.55 * scale, 2.1 * scale, paint);
-        taperedBox(x, 0.95 * scale, z - 0.25 * scale, 0.88 * scale, 0.55 * scale, 0.45 * scale, 0.82 * scale, dark);
-        box(x, 0.78 * scale, z + 0.8 * scale, 0.7 * scale, 0.08 * scale, 0.08 * scale, [0.86, 0.93, 1, 1]);
-      }
-      const groundVehicle = !isAirType(type);
-      if (groundVehicle) {
-        box(x - 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
-        box(x + 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
-        box(x, 0.46 * scale, z + 1.08 * scale, 0.58 * scale, 0.06 * scale, 0.08 * scale, shade(dark, 1.5));
-        box(x - 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.72));
-        box(x + 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.84));
-        box(x - 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.64));
-        box(x + 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.72));
-        box(x, 1.02 * scale, z + 0.38 * scale, 0.72 * scale, 0.08 * scale, 0.36 * scale, glass);
-        box(x, 0.94 * scale, z - 0.66 * scale, 0.86 * scale, 0.08 * scale, 0.28 * scale, shade(glass, 0.6));
-        box(x, 0.52 * scale, z - 1.22 * scale, 0.36 * scale, 0.055 * scale, 0.07 * scale, chrome);
-        box(x, 0.42 * scale, z + 1.12 * scale, 0.78 * scale, 0.055 * scale, 0.08 * scale, dark);
-        box(x - 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
-        box(x + 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
-        if (type === &quot;f1&quot; || type === &quot;prototype&quot; || type === &quot;car&quot;) {
-          box(x, 0.8 * scale, z - 1.16 * scale, 1.28 * scale, 0.1 * scale, 0.16 * scale, shade(paint, 0.65));
-        }
-        if (type === &quot;semi&quot; || type === &quot;truck&quot;) {
-          box(x, 1.25 * scale, z - 0.86 * scale, 1.55 * scale, 0.06 * scale, 0.12 * scale, chrome);
-          box(x, 0.72 * scale, z - 1.84 * scale, 1.45 * scale, 0.08 * scale, 0.1 * scale, shade(paint, 1.18));
-        }
-        if (type === &quot;policecar&quot;) {
-          box(x - 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, red);
-          box(x + 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, blue);
-          box(x, 0.73 * scale, z - 1.0 * scale, 0.72 * scale, 0.055 * scale, 0.08 * scale, [0.94, 0.96, 0.96, 1]);
-        }
-      } else {
-        box(x - 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
-        box(x + 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
-      }
-      if (damage &gt; 18) {
-        const dent = [0.02, 0.022, 0.02, 1];
-        box(x - 0.28 * scale, 1.04 * scale, z - 0.34 * scale, 0.48 * scale, 0.035 * scale, 0.16 * scale, dent);
-        box(x + 0.34 * scale, 0.86 * scale, z + 0.18 * scale, 0.42 * scale, 0.035 * scale, 0.14 * scale, dent);
-        if (damage &gt; 52) box(x - 0.1 * scale, 0.72 * scale, z + 0.9 * scale, 0.36 * scale, 0.06 * scale, 0.1 * scale, [1, 0.18, 0.16, 1]);
-        if (damage &gt; 76) box(x + 0.18 * scale, 1.2 * scale, z - 0.86 * scale, 0.28 * scale, 0.08 * scale, 0.18 * scale, [0.05, 0.05, 0.045, 1]);
-      }
-      box(x - 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
-      box(x + 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
-      box(x - 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
-      box(x + 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
-      box(x - 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
-      box(x + 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
-      box(x - 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
-      box(x + 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
-      box(x - 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? blue : red);
-      box(x + 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? red : red);
-    }
-
-    function addMovingObjects(data) {
-      const defs = data.vehicleDefs || [];
-      const getVehicle = (id) =&gt; defs.find((vehicle) =&gt; vehicle.id === id) || defs[0] || { type: &quot;car&quot;, color: &quot;#46d9ff&quot; };
-      const screenYFromRoadDistance = (distance) =&gt; data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
-      const distanceFromScreenY = (y) =&gt; {
-        const clampedY = Math.max(data.height * 0.34, Math.min(data.height * 0.98, Number(y) || data.height * 0.34));
-        return data.raceState.distance + (data.height * 0.68 - clampedY) / 0.11;
-      };
-      const zFromRoadDistance = (distance) =&gt; {
-        const y = screenYFromRoadDistance(distance);
-        const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
-        return 116 - t * 108;
-      };
-      const projectRoadObject = (object) =&gt; {
-        const distance = Number.isFinite(Number(object.distance)) ? Number(object.distance) : distanceFromScreenY(object.y);
-        const y = screenYFromRoadDistance(distance);
-        if (y &lt; data.height * 0.32 || y &gt; data.height * 1.08) return null;
-        return { distance, z: zFromRoadDistance(distance) };
-      };
-      data.raceState.opponents.forEach((opponent) =&gt; {
-        const projected = projectRoadObject(opponent);
-        if (!projected) return;
-        const z = projected.z;
-        if (z &lt; 4 || z &gt; 132) return;
-        const vehicle = getVehicle(opponent.vehicleId);
-        addVehicle(vehicle.type, roadWorldX(data, laneToWorldX(opponent.lane), z), z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
-      });
-      data.raceState.rivals.forEach((rival) =&gt; {
-        const projected = projectRoadObject(rival);
-        if (!projected) return;
-        const z = projected.z;
-        if (z &lt; 4 || z &gt; 132) return;
-        addVehicle(rival.type || &quot;car&quot;, roadWorldX(data, laneToWorldX(rival.lane), z), z, rival.color, rival.type === &quot;semi&quot; ? 1.08 : 0.9, false, rival.damage || 0);
-      });
-      data.raceState.police.forEach((unit) =&gt; {
-        const projected = projectRoadObject(unit);
-        if (!projected) return;
-        const z = projected.z;
-        if (z &lt; 4 || z &gt; 132) return;
-        addVehicle(&quot;car&quot;, roadWorldX(data, laneToWorldX(unit.lane), z), z, &quot;#f4fbf8&quot;, 0.98, true, unit.damage || 0);
-      });
-      data.raceState.coinsOnRoad.forEach((coin) =&gt; {
-        const projected = projectRoadObject(coin);
-        if (!projected) return;
-        const z = projected.z;
-        if (z &lt; 4 || z &gt; 132) return;
-        box(roadWorldX(data, laneToWorldX(coin.lane), z), 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
-      });
-      if (data.cameraMode === &quot;chase&quot;) {
-        addVehicle(data.selectedVehicle.type, roadWorldX(data, laneToWorldX(data.raceState.lane), 5.2), 5.2, data.selectedVehicle.color, data.selectedVehicle.type === &quot;semi&quot; ? 1.2 : 1.05, false, data.raceState.damage || 0);
-      } else if (data.cameraMode === &quot;hood&quot;) {
-        const hoodX = roadWorldX(data, laneToWorldX(data.raceState.lane), 1.2);
-        box(hoodX, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
-        if ((data.raceState.damage || 0) &gt; 25) box(hoodX - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
-      }
-    }
-
-    function render(data) {
-      vertices = [];
-      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
-      const clear = hexToRgba(theme[0], 1);
-      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
-      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-      gl.clearColor(clear[0] * 0.72, clear[1] * 0.72, clear[2] * 0.72, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
-      gl.disable(gl.CULL_FACE);
-
-      const projection = cameraProjection(data);
-      const mvp = projection.mvp;
-      lastProjection = {
-        ...projection,
-        data
-      };
-
-      addRoad(data);
-      if (!phoneFrame) addScenery(data);
-
-      gl.useProgram(program);
-      gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
-      gl.enableVertexAttribArray(aPosition);
-      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 28, 0);
-      gl.enableVertexAttribArray(aColor);
-      gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 28, 12);
-      gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 7);
-    }
-
-    function resize(width, height) {
-      if (canvas.width !== width) canvas.width = width;
-      if (canvas.height !== height) canvas.height = height;
-    }
-
-    function projectRoadPoint(lane, distance) {
-      if (!lastProjection || !lastProjection.data) return null;
-      const data = lastProjection.data;
-      const z = zFromRoadDistance(data, Number(distance));
-      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
-    }
-
-    function projectWorldRoadPoint(lane, z) {
-      if (!lastProjection) return null;
-      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
-    }
-
-    return {
-      ready: true,
-      render,
-      resize,
-      projectRoadPoint,
-      projectWorldRoadPoint
-    };
-  }
-
-  window.VelocityWebGLPipeline = VelocityWebGLPipeline;
-}());
 </pre>
 <h2>game.js</h2>
 <pre>&quot;use strict&quot;;
@@ -7857,6 +6256,7 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
     ctx.restore();
     return;
   }
+  drawReferenceInspiredDriveByScenePass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
@@ -8231,6 +6631,545 @@ function drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, pl
   ctx.globalAlpha = 1;
 }
 
+function referenceInspiredSceneSet(place, stage) {
+  if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;tunnelMouthScene&quot;, &quot;maintenanceBay&quot;, &quot;concreteShoulder&quot;, &quot;tunnelLightRun&quot;];
+  if (stage &amp;&amp; (stage.prop === &quot;bridge&quot; || stage.prop === &quot;pier&quot;)) return [&quot;bridgeGuardrailScene&quot;, &quot;waterSpanScene&quot;, &quot;inspectionTruckScene&quot;, &quot;pierDeckScene&quot;];
+  if (stage &amp;&amp; stage.prop === &quot;checkpoint&quot;) return [&quot;marshalPullout&quot;, &quot;cameraCrewSetback&quot;, &quot;crowdBehindBarrier&quot;, &quot;serviceVanPullout&quot;];
+  const sets = {
+    coast: [&quot;shorelineHomes&quot;, &quot;beachPullout&quot;, &quot;palmShoulder&quot;, &quot;marinaShore&quot;, &quot;seaCliffRail&quot;],
+    city: [&quot;storefrontBlock&quot;, &quot;parkedStreet&quot;, &quot;glassOfficeSetback&quot;, &quot;sidewalkCafe&quot;, &quot;crosswalkCorner&quot;],
+    canyon: [&quot;rockCutGuardrail&quot;, &quot;photoPullout&quot;, &quot;desertScrubBasin&quot;, &quot;mesaWall&quot;, &quot;tourVanPullout&quot;],
+    alpine: [&quot;pineSlope&quot;, &quot;stoneGuardwall&quot;, &quot;chaletCluster&quot;, &quot;snowbankCurve&quot;, &quot;mountainPullout&quot;],
+    harbor: [&quot;containerYardRow&quot;, &quot;dockWarehouse&quot;, &quot;craneSilhouette&quot;, &quot;marinaPier&quot;, &quot;serviceQuay&quot;],
+    snow: [&quot;pineSnowfield&quot;, &quot;snowFenceRun&quot;, &quot;skiLodgeCluster&quot;, &quot;plowPullout&quot;, &quot;stoneGuardwall&quot;],
+    airfield: [&quot;hangarApron&quot;, &quot;runwayServiceRow&quot;, &quot;controlTowerSet&quot;, &quot;beaconFence&quot;, &quot;fuelTruckPad&quot;],
+    pursuit: [&quot;cityPoliceBlock&quot;, &quot;parkedStreet&quot;, &quot;streetLightRun&quot;, &quot;crowdBehindBarrier&quot;, &quot;serviceVanPullout&quot;],
+    freight: [&quot;truckStopRow&quot;, &quot;semiLot&quot;, &quot;soundWallTraffic&quot;, &quot;dieselCanopy&quot;, &quot;containerYardRow&quot;],
+    interstate: [&quot;truckStopRow&quot;, &quot;soundWallTraffic&quot;, &quot;dieselCanopy&quot;, &quot;semiLot&quot;, &quot;restAreaPullout&quot;],
+    farm: [&quot;fieldFenceRows&quot;, &quot;barnYard&quot;, &quot;grainSiloSet&quot;, &quot;tractorField&quot;, &quot;countyRoadShoulder&quot;],
+    monsterpark: [&quot;grandstandBerm&quot;, &quot;dirtArenaEdge&quot;, &quot;crushCarYard&quot;, &quot;servicePitRow&quot;, &quot;crowdBehindBarrier&quot;],
+    military: [&quot;bunkerSetback&quot;, &quot;watchTowerRidge&quot;, &quot;blastWallRun&quot;, &quot;serviceConvoyPullout&quot;, &quot;rangeMound&quot;],
+    skybase: [&quot;hangarApron&quot;, &quot;controlTowerSet&quot;, &quot;beaconFence&quot;, &quot;serviceConvoyPullout&quot;, &quot;radarPad&quot;],
+    tokyo: [&quot;neonStreetRow&quot;, &quot;railOverpassScene&quot;, &quot;taxiCurb&quot;, &quot;towerAlley&quot;, &quot;wetSidewalkGlow&quot;],
+    desert: [&quot;openDesertHighway&quot;, &quot;telephonePoleLine&quot;, &quot;rallyCampSparse&quot;, &quot;distantButtes&quot;, &quot;desertScrubBasin&quot;],
+    rainforest: [&quot;canopyVillage&quot;, &quot;riverBridgeScene&quot;, &quot;marketRoadside&quot;, &quot;mistWaterfall&quot;, &quot;woodRailRun&quot;],
+    europe: [&quot;stoneVillageStreet&quot;, &quot;terraceVineyard&quot;, &quot;switchbackWall&quot;, &quot;tramStreet&quot;, &quot;cafeCurve&quot;]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawReferenceInspiredDriveByScenePass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const length = Math.max(1, raceLength());
+  const spacing = phoneMode ? 760 : 620;
+  const lookBehind = phoneMode ? 260 : 340;
+  const lookAhead = phoneMode ? 2300 : 3000;
+  const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
+  const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
+  const scenes = [];
+  for (let index = first; index &lt;= last; index += 1) {
+    const baseDistance = index * spacing + seededUnit(seed, index + 510) * spacing * 0.38;
+    if (baseDistance &lt; 0 || baseDistance &gt; length + lookAhead * 0.24) continue;
+    const gap = baseDistance - raceState.distance;
+    if (gap &lt; -lookBehind || gap &gt; lookAhead) continue;
+    const progress = Math.max(0, Math.min(1, baseDistance / length));
+    const stage = routeStageInfo(place, progress);
+    const set = referenceInspiredSceneSet(place, stage);
+    const side = seededUnit(seed, index + 520) &gt; 0.5 ? 1 : -1;
+    const lane = side * (2.56 + seededUnit(seed, index + 530) * (phoneMode ? 0.5 : 0.72));
+    const projected = roadObjectPos(lane, baseDistance);
+    if (!projected || projected.y &lt; horizon - 52 || projected.y &gt; h + 130) continue;
+    scenes.push({
+      x: projected.x,
+      y: projected.y,
+      scale: projected.scale,
+      depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
+      side,
+      kind: set[Math.abs(index + stage.index) % set.length],
+      seed: seed + index * 173,
+      distance: baseDistance
+    });
+    if (!phoneMode &amp;&amp; index % 3 === 0) {
+      const otherDistance = baseDistance + spacing * (0.42 + seededUnit(seed, index + 540) * 0.16);
+      const otherProgress = Math.max(0, Math.min(1, otherDistance / length));
+      const otherStage = routeStageInfo(place, otherProgress);
+      const otherSet = referenceInspiredSceneSet(place, otherStage);
+      const otherSide = -side;
+      const otherProjected = roadObjectPos(otherSide * (2.46 + seededUnit(seed, index + 550) * 0.58), otherDistance);
+      if (otherProjected &amp;&amp; otherProjected.y &gt;= horizon - 52 &amp;&amp; otherProjected.y &lt;= h + 130) {
+        scenes.push({
+          x: otherProjected.x,
+          y: otherProjected.y,
+          scale: otherProjected.scale,
+          depth: otherProjected.depth || Math.max(0, Math.min(1, (otherProjected.y - horizon) / Math.max(1, h - horizon))),
+          side: otherSide,
+          kind: otherSet[(Math.abs(index) + otherStage.index + 2) % otherSet.length],
+          seed: seed + index * 191,
+          distance: otherDistance
+        });
+      }
+    }
+  }
+  scenes.sort((a, b) =&gt; a.y - b.y);
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 18 : 24);
+  const lastBySide = { &quot;-1&quot;: -9999, &quot;1&quot;: -9999 };
+  scenes.forEach((scene) =&gt; {
+    const sideKey = String(scene.side &lt; 0 ? -1 : 1);
+    const minGap = phoneMode ? 220 : 150;
+    if (scene.y - lastBySide[sideKey] &lt; minGap) return;
+    lastBySide[sideKey] = scene.y;
+    const near = Math.max(0, Math.min(1, scene.depth || 0));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, scene.y, scene.side, scene.x, phoneMode, phoneMode ? 42 : 58);
+    const scale = Math.max(0.36, Math.min(phoneMode ? 1.74 : 2.02, scene.scale * (0.92 + near * 0.72)));
+    ctx.globalAlpha = Math.min(0.96, (phoneMode ? 0.58 : 0.56) + near * 0.34);
+    drawReferenceInspiredSceneCluster(scene.kind, x, scene.y, scale, scene.side, place, route, design, theme, scene.seed);
+  });
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawReferenceInspiredSceneCluster(kind, x, y, scale, side, place, route, design, theme, seed) {
+  const accent = design.accent || theme[1] || &quot;#46d9ff&quot;;
+  const light = design.light || theme[2] || &quot;#ffd166&quot;;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  drawReferenceSceneGroundPatch(kind, side, place, design, theme);
+  if (/storefront|parkedStreet|glassOffice|sidewalkCafe|crosswalk|neonStreet|taxiCurb|towerAlley|wetSidewalk|stoneVillage|tramStreet|cafeCurve|cityPolice/i.test(kind)) {
+    drawReferenceBuildingRow(side, kind, place, accent, light, seed);
+    if (!/glassOffice|towerAlley/i.test(kind)) drawReferenceParkedVehicleLine(side, accent, light, seed);
+    if (/sidewalk|cafe|crosswalk|taxi|stoneVillage|neon|police/i.test(kind)) drawReferencePeopleLine(side, accent, light, seed);
+    drawReferenceStreetFurniture(side, kind, accent, light);
+  } else if (/shoreline|beach|palm|marina|seaCliff|waterSpan|pierDeck/i.test(kind)) {
+    drawReferenceWaterEdge(side, kind, accent, light, seed);
+    drawReferenceTreeLine(&quot;palm&quot;, side, seed);
+    if (/Homes|beach|marina/i.test(kind)) drawReferenceSmallHouseRow(side, accent, light, seed);
+    if (/seaCliff|bridge|waterSpan/i.test(kind)) drawReferenceGuardrail(side, &quot;rgba(214,226,221,0.62)&quot;);
+  } else if (/rock|mesa|desert|telephone|rallyCamp|distantButtes|photoPullout|tourVan/i.test(kind)) {
+    drawReferenceRockAndDesertScene(side, kind, accent, light, seed);
+    drawReferenceGuardrail(side, &quot;rgba(210,190,156,0.42)&quot;);
+    if (/telephone/i.test(kind)) drawReferenceUtilityPoleLine(side, accent, light);
+    if (/rallyCamp|photoPullout|tourVan/i.test(kind)) drawReferenceParkedVehicleLine(side, accent, light, seed);
+  } else if (/pine|stoneGuard|chalet|snowbank|mountainPullout|skiLodge|snowFence|plow/i.test(kind)) {
+    drawReferenceTreeLine(&quot;pine&quot;, side, seed);
+    drawReferenceMountainVillage(side, kind, accent, light, seed);
+    drawReferenceGuardrail(side, /snow|pine/i.test(kind) ? &quot;rgba(244,251,248,0.58)&quot; : &quot;rgba(170,178,170,0.58)&quot;);
+  } else if (/container|dockWarehouse|crane|serviceQuay|truckStop|semiLot|soundWall|diesel|restArea/i.test(kind)) {
+    drawReferenceIndustrialScene(side, kind, accent, light, seed);
+    if (/truckStop|semiLot|diesel|restArea/i.test(kind)) drawReferenceParkedVehicleLine(side, light, accent, seed);
+  } else if (/field|barn|grainSilo|tractor|countyRoad/i.test(kind)) {
+    drawReferenceFarmScene(side, kind, accent, light, seed);
+  } else if (/hangar|runway|controlTower|beacon|fuelTruck|radar/i.test(kind)) {
+    drawReferenceAirfieldScene(side, kind, accent, light, seed);
+  } else if (/bunker|watchTower|blastWall|serviceConvoy|rangeMound|concreteShoulder/i.test(kind)) {
+    drawReferenceMilitaryScene(side, kind, accent, light, seed);
+  } else if (/grandstand|dirtArena|crushCar|servicePit|Berm/i.test(kind)) {
+    drawReferenceMonsterScene(side, kind, accent, light, seed);
+  } else if (/canopy|riverBridge|market|mistWaterfall|woodRail/i.test(kind)) {
+    drawReferenceRainforestScene(side, kind, accent, light, seed);
+  } else {
+    drawReferenceBuildingRow(side, kind, place, accent, light, seed);
+    drawReferenceParkedVehicleLine(side, accent, light, seed);
+  }
+  ctx.restore();
+}
+
+function drawReferenceSceneGroundPatch(kind, side, place, design, theme) {
+  const ground = place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(178,92,48,0.26)&quot;
+    : place === &quot;coast&quot; || place === &quot;harbor&quot; ? &quot;rgba(70,217,255,0.18)&quot;
+      : place === &quot;farm&quot; ? &quot;rgba(115,146,56,0.2)&quot;
+        : place === &quot;snow&quot; || place === &quot;alpine&quot; ? &quot;rgba(244,251,248,0.2)&quot;
+          : &quot;rgba(16,24,23,0.26)&quot;;
+  ctx.fillStyle = &quot;rgba(0,0,0,0.36)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(side * -10, 18, 126, 18, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.moveTo(-136 * side, 14);
+  ctx.lineTo(118 * side, 2);
+  ctx.lineTo(146 * side, 34);
+  ctx.lineTo(-118 * side, 40);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawReferenceBuildingRow(side, kind, place, accent, light, seed) {
+  const night = place === &quot;tokyo&quot; || /neon|wetSidewalk|towerAlley/i.test(kind);
+  const village = /stoneVillage|tramStreet|cafeCurve/i.test(kind);
+  const baseColor = night ? &quot;rgba(18,10,34,0.9)&quot; : village ? &quot;rgba(72,54,42,0.88)&quot; : &quot;rgba(12,22,24,0.88)&quot;;
+  for (let i = -1; i &lt;= 2; i += 1) {
+    const bx = side * (i * 42 + seededUnit(seed, i + 3) * 10);
+    const bw = village ? 44 + seededUnit(seed, i + 11) * 14 : 34 + seededUnit(seed, i + 11) * 26;
+    const bh = village ? 46 + seededUnit(seed, i + 22) * 24 : 64 + seededUnit(seed, i + 22) * 94;
+    ctx.fillStyle = baseColor;
+    roundRect(bx - bw / 2, 12 - bh, bw, bh, 4);
+    ctx.fill();
+    if (village) {
+      ctx.fillStyle = i % 2 ? &quot;rgba(156,72,48,0.9)&quot; : &quot;rgba(104,74,54,0.9)&quot;;
+      ctx.beginPath();
+      ctx.moveTo(bx - bw * 0.62, 12 - bh);
+      ctx.lineTo(bx, -bh - 10);
+      ctx.lineTo(bx + bw * 0.62, 12 - bh);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = night ? (i % 2 ? `${accent}92` : `${light}88`) : &quot;rgba(244,251,248,0.36)&quot;;
+    for (let row = 0; row &lt; Math.min(6, Math.floor(bh / 18)); row += 1) {
+      ctx.fillRect(bx - bw * 0.28, 23 - bh + row * 15, bw * 0.16, 4);
+      ctx.fillRect(bx + bw * 0.1, 24 - bh + row * 15, bw * 0.18, 4);
+    }
+  }
+}
+
+function drawReferenceSmallHouseRow(side, accent, light, seed) {
+  for (let i = -1; i &lt;= 1; i += 1) {
+    const bx = side * (i * 48 + 8);
+    ctx.fillStyle = i % 2 ? &quot;rgba(228,208,170,0.82)&quot; : &quot;rgba(28,46,48,0.82)&quot;;
+    roundRect(bx - 28, -42, 56, 52, 5);
+    ctx.fill();
+    ctx.fillStyle = i % 2 ? `${accent}99` : `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(bx - 34, -42);
+    ctx.lineTo(bx, -66);
+    ctx.lineTo(bx + 34, -42);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawReferenceWaterEdge(side, kind, accent, light, seed) {
+  ctx.fillStyle = &quot;rgba(70,217,255,0.22)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(side * -14, 18, 130, 22, -0.05 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+  ctx.lineWidth = 2;
+  for (let i = 0; i &lt; 3; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(-108 * side, i * 8 + 10);
+    ctx.quadraticCurveTo(-20 * side, i * 8 + 4 + Math.sin(seed + i) * 5, 104 * side, i * 8 + 12);
+    ctx.stroke();
+  }
+  if (/marina|pier|waterSpan/i.test(kind)) {
+    ctx.strokeStyle = &quot;rgba(138,102,62,0.78)&quot;;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-94 * side, -4);
+    ctx.lineTo(92 * side, -18);
+    ctx.moveTo(-94 * side, 12);
+    ctx.lineTo(92 * side, -2);
+    for (let p = -3; p &lt;= 3; p += 1) {
+      ctx.moveTo(p * 28 * side, -20);
+      ctx.lineTo(p * 28 * side, 20);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawReferenceRockAndDesertScene(side, kind, accent, light, seed) {
+  const main = /canyon|rock|mesa|Buttes/i.test(kind) ? &quot;rgba(172,82,42,0.72)&quot; : &quot;rgba(216,142,66,0.5)&quot;;
+  for (let i = -1; i &lt;= 1; i += 1) {
+    const bx = side * (i * 52 + seededUnit(seed, i + 4) * 16);
+    const peak = -42 - seededUnit(seed, i + 14) * 52;
+    ctx.fillStyle = main;
+    ctx.beginPath();
+    ctx.moveTo(bx - 58, 18);
+    ctx.lineTo(bx - 24, peak * 0.72);
+    ctx.lineTo(bx + 8, -18);
+    ctx.lineTo(bx + 44, peak);
+    ctx.lineTo(bx + 72, 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = &quot;rgba(96,118,52,0.72)&quot;;
+  for (let i = -3; i &lt;= 3; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(side * (i * 24 + 6), 4 + (i % 2) * 7, 14, 9, 0.2 * i, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMountainVillage(side, kind, accent, light, seed) {
+  if (/chalet|Lodge|mountainPullout/i.test(kind)) {
+    drawReferenceSmallHouseRow(side, accent, light, seed);
+  }
+  ctx.fillStyle = /snow|pine/i.test(kind) ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(150,168,160,0.34)&quot;;
+  ctx.beginPath();
+  ctx.moveTo(-128, 18);
+  ctx.lineTo(-58, -58);
+  ctx.lineTo(-16, -20);
+  ctx.lineTo(46, -86);
+  ctx.lineTo(128, 20);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawReferenceIndustrialScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = /dock|container|crane/i.test(kind) ? &quot;rgba(18,34,36,0.88)&quot; : &quot;rgba(28,30,28,0.88)&quot;;
+  roundRect(side &gt; 0 ? -86 : -70, -42, 156, 54, 5);
+  ctx.fill();
+  const colors = [&quot;#ff5b6b&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;, &quot;#dce8ef&quot;];
+  for (let i = -2; i &lt;= 2; i += 1) {
+    ctx.fillStyle = colors[(Math.abs(i) + Math.floor(seed)) % colors.length];
+    roundRect(side * (i * 30) - 14, -26 + (i % 2) * 12, 28, 18, 2);
+    ctx.fill();
+  }
+  if (/crane|container|dock/i.test(kind)) {
+    ctx.strokeStyle = `${light}99`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(52 * side, 12);
+    ctx.lineTo(34 * side, -86);
+    ctx.lineTo(-72 * side, -72);
+    ctx.moveTo(34 * side, -86);
+    ctx.lineTo(4 * side, -18);
+    ctx.stroke();
+  }
+}
+
+function drawReferenceFarmScene(side, kind, accent, light, seed) {
+  ctx.strokeStyle = &quot;rgba(187,242,74,0.35)&quot;;
+  ctx.lineWidth = 2;
+  for (let i = -4; i &lt;= 4; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(-126 * side, i * 8 + 16);
+    ctx.lineTo(126 * side, i * 2 + 2);
+    ctx.stroke();
+  }
+  if (/barn|county|field/i.test(kind)) {
+    ctx.fillStyle = &quot;rgba(148,42,34,0.88)&quot;;
+    roundRect(side &gt; 0 ? -44 : -32, -52, 76, 62, 5);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(96,28,24,0.9)&quot;;
+    ctx.beginPath();
+    ctx.moveTo(-52 * side, -52);
+    ctx.lineTo(-6 * side, -86);
+    ctx.lineTo(44 * side, -52);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (/silo|grain/i.test(kind)) {
+    ctx.fillStyle = &quot;rgba(220,224,210,0.72)&quot;;
+    roundRect(side &gt; 0 ? 48 : -80, -82, 32, 92, 8);
+    ctx.fill();
+  }
+  drawReferenceGuardrail(side, &quot;rgba(150,117,80,0.58)&quot;);
+}
+
+function drawReferenceAirfieldScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = &quot;rgba(22,26,26,0.88)&quot;;
+  roundRect(side &gt; 0 ? -104 : -76, -38, 180, 52, 8);
+  ctx.fill();
+  ctx.strokeStyle = &quot;rgba(216,224,213,0.58)&quot;;
+  ctx.lineWidth = 3;
+  for (let i = -3; i &lt;= 3; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 30 * side, 16);
+    ctx.lineTo(i * 34 * side, -28);
+    ctx.stroke();
+  }
+  if (/control|beacon|radar/i.test(kind)) {
+    ctx.fillStyle = &quot;rgba(214,226,221,0.72)&quot;;
+    roundRect(side &gt; 0 ? 62 : -96, -86, 34, 94, 5);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(78 * side, -96, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMilitaryScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = &quot;rgba(58,68,54,0.82)&quot;;
+  roundRect(side &gt; 0 ? -86 : -46, -30, 132, 42, 4);
+  ctx.fill();
+  ctx.fillStyle = &quot;rgba(26,32,28,0.9)&quot;;
+  roundRect(side &gt; 0 ? -46 : -26, -58, 72, 42, 5);
+  ctx.fill();
+  ctx.strokeStyle = &quot;rgba(187,242,74,0.44)&quot;;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-110 * side, -4);
+  ctx.lineTo(110 * side, -14);
+  ctx.stroke();
+  if (/watchTower/i.test(kind)) {
+    ctx.strokeStyle = &quot;rgba(170,182,160,0.72)&quot;;
+    ctx.beginPath();
+    ctx.moveTo(60 * side, 12);
+    ctx.lineTo(48 * side, -82);
+    ctx.moveTo(96 * side, 12);
+    ctx.lineTo(84 * side, -82);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(20,26,22,0.86)&quot;;
+    roundRect(side &gt; 0 ? 38 : -96, -102, 58, 26, 3);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMonsterScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = &quot;rgba(110,62,30,0.58)&quot;;
+  ctx.beginPath();
+  ctx.ellipse(0, 10, 122, 30, -0.08 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = &quot;rgba(8,12,12,0.82)&quot;;
+  roundRect(side &gt; 0 ? -94 : -48, -70, 142, 42, 5);
+  ctx.fill();
+  ctx.fillStyle = `${accent}88`;
+  for (let i = -2; i &lt;= 2; i += 1) {
+    const carX = i * 28 * side;
+    roundRect(carX - 17, -14 + (i % 2) * 5, 34, 14, 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceRainforestScene(side, kind, accent, light, seed) {
+  drawReferenceTreeLine(&quot;canopy&quot;, side, seed);
+  if (/market|Village/i.test(kind)) {
+    ctx.fillStyle = &quot;rgba(62,42,26,0.86)&quot;;
+    roundRect(side &gt; 0 ? -62 : -42, -42, 104, 52, 5);
+    ctx.fill();
+    ctx.fillStyle = `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(-70 * side, -42);
+    ctx.lineTo(-12 * side, -74);
+    ctx.lineTo(54 * side, -42);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (/river|Waterfall/i.test(kind)) {
+    ctx.fillStyle = &quot;rgba(70,217,255,0.24)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(0, 20, 116, 18, -0.05 * side, 0, Math.PI * 2);
+    ctx.fill();
+    if (/Waterfall/i.test(kind)) {
+      ctx.fillStyle = &quot;rgba(222,249,255,0.45)&quot;;
+      roundRect(side &gt; 0 ? 28 : -50, -86, 22, 94, 6);
+      ctx.fill();
+    }
+  }
+  drawReferenceGuardrail(side, &quot;rgba(124,86,48,0.6)&quot;);
+}
+
+function drawReferenceTreeLine(kind, side, seed) {
+  for (let i = -2; i &lt;= 2; i += 1) {
+    const x = side * (i * 34 + seededUnit(seed, i + 12) * 9);
+    const trunk = kind === &quot;palm&quot; ? &quot;rgba(136,88,46,0.86)&quot; : &quot;rgba(70,54,34,0.86)&quot;;
+    ctx.strokeStyle = trunk;
+    ctx.lineWidth = kind === &quot;canopy&quot; ? 5 : 4;
+    ctx.beginPath();
+    ctx.moveTo(x, 14);
+    ctx.lineTo(x + side * 4, -48 - seededUnit(seed, i + 18) * 26);
+    ctx.stroke();
+    ctx.fillStyle = kind === &quot;palm&quot; ? &quot;rgba(54,164,88,0.8)&quot; : kind === &quot;canopy&quot; ? &quot;rgba(32,118,58,0.82)&quot; : &quot;rgba(24,92,54,0.84)&quot;;
+    if (kind === &quot;pine&quot;) {
+      for (let tier = 0; tier &lt; 3; tier += 1) {
+        ctx.beginPath();
+        ctx.moveTo(x, -82 + tier * 22);
+        ctx.lineTo(x - 28, -38 + tier * 18);
+        ctx.lineTo(x + 30, -38 + tier * 18);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(x + side * 4, -64, kind === &quot;canopy&quot; ? 42 : 30, kind === &quot;palm&quot; ? 10 : 22, 0.15 * side, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x - side * 14, -52, kind === &quot;canopy&quot; ? 34 : 26, kind === &quot;palm&quot; ? 9 : 20, -0.35 * side, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawReferenceParkedVehicleLine(side, accent, light, seed) {
+  for (let i = -1; i &lt;= 1; i += 1) {
+    const x = side * (i * 42 + 8);
+    const paint = i % 2 ? accent : light;
+    ctx.fillStyle = &quot;rgba(0,0,0,0.42)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(x, 17, 34, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    roundRect(x - 30, -12, 60, 27, 6);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(5,8,7,0.8)&quot;;
+    roundRect(x - 12, -22, 24, 13, 4);
+    ctx.fill();
+    ctx.fillStyle = &quot;#050807&quot;;
+    ctx.beginPath();
+    ctx.arc(x - 20, 15, 6, 0, Math.PI * 2);
+    ctx.arc(x + 20, 15, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferencePeopleLine(side, accent, light, seed) {
+  const colors = [accent, light, &quot;#f4fbf8&quot;, &quot;#ff5b6b&quot;];
+  for (let i = -2; i &lt;= 2; i += 1) {
+    const x = side * (i * 13 + 2);
+    ctx.fillStyle = colors[(Math.abs(i) + Math.floor(seed)) % colors.length];
+    ctx.beginPath();
+    ctx.arc(x, -18 + (i % 2) * 3, 4, 0, Math.PI * 2);
+    ctx.fill();
+    roundRect(x - 4, -14 + (i % 2) * 3, 8, 18, 3);
+    ctx.fill();
+  }
+}
+
+function drawReferenceStreetFurniture(side, kind, accent, light) {
+  ctx.strokeStyle = &quot;rgba(205,218,214,0.64)&quot;;
+  ctx.lineWidth = 3;
+  for (let i = -1; i &lt;= 1; i += 2) {
+    const x = side * (80 + i * 12);
+    ctx.beginPath();
+    ctx.moveTo(x, 12);
+    ctx.lineTo(x, -74);
+    ctx.stroke();
+    ctx.globalCompositeOperation = &quot;screen&quot;;
+    ctx.fillStyle = /neon|wet/i.test(kind) ? accent : light;
+    ctx.beginPath();
+    ctx.arc(x, -80, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = &quot;source-over&quot;;
+  }
+}
+
+function drawReferenceUtilityPoleLine(side, accent, light) {
+  ctx.strokeStyle = &quot;rgba(120,86,54,0.72)&quot;;
+  ctx.lineWidth = 4;
+  for (let i = -2; i &lt;= 2; i += 1) {
+    const x = side * (i * 42);
+    ctx.beginPath();
+    ctx.moveTo(x, 16);
+    ctx.lineTo(x, -74);
+    ctx.moveTo(x - 20 * side, -54);
+    ctx.lineTo(x + 20 * side, -54);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = &quot;rgba(216,226,221,0.26)&quot;;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-106 * side, -58);
+  ctx.bezierCurveTo(-42 * side, -66, 30 * side, -42, 108 * side, -56);
+  ctx.stroke();
+}
+
+function drawReferenceGuardrail(side, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-112 * side, -10);
+  ctx.lineTo(112 * side, -20);
+  ctx.moveTo(-112 * side, 8);
+  ctx.lineTo(112 * side, -2);
+  for (let i = -4; i &lt;= 4; i += 1) {
+    ctx.moveTo(i * 28 * side, -26);
+    ctx.lineTo(i * 28 * side, 18);
+  }
+  ctx.stroke();
+}
+
 function groundLockedPlaceProps(place, stage) {
   if (stage &amp;&amp; stage.prop === &quot;tunnel&quot;) return [&quot;barrier&quot;, &quot;wallLamp&quot;, &quot;tunnelFan&quot;, &quot;routeSign&quot;];
   if (stage &amp;&amp; (stage.prop === &quot;bridge&quot; || stage.prop === &quot;pier&quot;)) return [&quot;bridgeRail&quot;, &quot;lamp&quot;, &quot;waterEdge&quot;, &quot;routeSign&quot;];
@@ -8345,9 +7284,9 @@ function realWorldGroundFallback(place = &quot;city&quot;, index = 0) {
 }
 
 function worldSceneryProp(kind, place = &quot;city&quot;, index = 0, phoneMode = phoneGraphicsActive()) {
-  if (!phoneMode) return kind;
   if (!isSignLikeWorldProp(kind)) return kind;
-  return realWorldGroundFallback(place, index);
+  if (phoneMode) return realWorldGroundFallback(place, index);
+  return Math.abs(index) % 3 === 0 ? kind : realWorldGroundFallback(place, index);
 }
 
 function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
@@ -10107,7 +9046,7 @@ function drawRouteMicroLandmarks(w, h, horizon, roadTop, roadBottom, place, desi
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half * (0.82 + seededUnit(seed, i + 830) * 0.3));
     const scale = (0.34 + t * 0.98) * (phoneMode ? 0.8 : 1);
-    const kind = routeMicroLandmarkKind(place, i, seed);
+    const kind = routeMicroLandmarkProp(routeMicroLandmarkKind(place, i, seed), place, i, phoneMode);
     drawRouteMicroLandmark(kind, x, y, scale, side, design, theme, seed + i * 43);
   }
   ctx.restore();
@@ -10131,6 +9070,28 @@ function routeMicroLandmarkKind(place, index, seed) {
   };
   const list = sets[place] || sets.city;
   return list[(index + Math.floor(seed % list.length)) % list.length];
+}
+
+function routeMicroLandmarkProp(kind, place, index, phoneMode) {
+  if (!/sign|marker|post|flag/i.test(kind)) return kind;
+  if (!phoneMode &amp;&amp; Math.abs(index) % 2 === 0) return kind;
+  const sets = {
+    coast: [&quot;surfboardRack&quot;, &quot;guardUmbrella&quot;, &quot;beachFence&quot;, &quot;cafeTable&quot;],
+    city: [&quot;taxiStand&quot;, &quot;newsKiosk&quot;, &quot;busShelter&quot;, &quot;cafeTable&quot;],
+    canyon: [&quot;photoPullout&quot;, &quot;rockStack&quot;, &quot;desertGuard&quot;, &quot;hayBale&quot;],
+    alpine: [&quot;cafeTable&quot;, &quot;hayBale&quot;, &quot;busShelter&quot;, &quot;snowPole&quot;],
+    harbor: [&quot;bollard&quot;, &quot;dockCart&quot;, &quot;lifeRing&quot;, &quot;containerCone&quot;],
+    snow: [&quot;cafeTable&quot;, &quot;hayBale&quot;, &quot;busShelter&quot;, &quot;snowPole&quot;],
+    airfield: [&quot;fuelCart&quot;, &quot;dockCart&quot;, &quot;busShelter&quot;, &quot;cafeTable&quot;],
+    freight: [&quot;palletStack&quot;, &quot;yardLight&quot;, &quot;fuelCart&quot;, &quot;dockCart&quot;],
+    farm: [&quot;mailbox&quot;, &quot;hayBale&quot;, &quot;farmGate&quot;, &quot;cafeTable&quot;],
+    tokyo: [&quot;neonKiosk&quot;, &quot;taxiStand&quot;, &quot;busShelter&quot;, &quot;cafeTable&quot;],
+    desert: [&quot;shadeTent&quot;, &quot;rockStack&quot;, &quot;desertGuard&quot;, &quot;hayBale&quot;],
+    rainforest: [&quot;marketLantern&quot;, &quot;woodPost&quot;, &quot;leafBarrier&quot;, &quot;cafeTable&quot;],
+    europe: [&quot;villageLamp&quot;, &quot;stoneMarker&quot;, &quot;cafeTable&quot;, &quot;busShelter&quot;]
+  };
+  const list = sets[place] || sets.city;
+  return list[Math.abs(index) % list.length];
 }
 
 function drawRouteMicroLandmark(kind, x, y, scale, side, design, theme, seed) {
@@ -17032,6 +15993,1606 @@ setRendererMode(rendererMode, true);
 registerOfflineApp();
 drawFrame();
 </pre>
+<h2>phone-asset-pipeline.js</h2>
+<pre>&quot;use strict&quot;;
+
+(function () {
+  const spriteCache = new Map();
+  const textureCache = new Map();
+
+  function makeCanvas(width, height) {
+    const canvas = document.createElement(&quot;canvas&quot;);
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+
+  function hexToRgb(hex) {
+    if (!hex || typeof hex !== &quot;string&quot;) return [70, 217, 255];
+    const clean = hex.replace(&quot;#&quot;, &quot;&quot;);
+    const full = clean.length === 3 ? clean.split(&quot;&quot;).map((c) =&gt; c + c).join(&quot;&quot;) : clean;
+    const value = parseInt(full, 16);
+    return [(value &gt;&gt; 16) &amp; 255, (value &gt;&gt; 8) &amp; 255, value &amp; 255];
+  }
+
+  function shade(hex, amount) {
+    const [r, g, b] = hexToRgb(hex);
+    return `rgb(${Math.max(0, Math.min(255, r + amount))}, ${Math.max(0, Math.min(255, g + amount))}, ${Math.max(0, Math.min(255, b + amount))})`;
+  }
+
+  function rgba(hex, alpha) {
+    const [r, g, b] = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function isAirType(type) {
+    return [&quot;airplane&quot;, &quot;helicopter&quot;, &quot;fighterjet&quot;, &quot;bomber&quot;, &quot;drone&quot;].includes(type);
+  }
+
+  function isWaterType(type) {
+    return type === &quot;boat&quot;;
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function pathVehicleBody(ctx, w, h, type) {
+    const cx = w / 2;
+    const top = h * 0.16;
+    const bottom = h * 0.86;
+    const narrow = type === &quot;f1&quot; || type === &quot;prototype&quot;;
+    const wide = type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot; || type === &quot;semi&quot;;
+    const upper = narrow ? w * 0.21 : wide ? w * 0.31 : w * 0.24;
+    const shoulder = narrow ? w * 0.34 : wide ? w * 0.43 : w * 0.38;
+    const lower = narrow ? w * 0.27 : wide ? w * 0.4 : w * 0.34;
+    ctx.beginPath();
+    ctx.moveTo(cx - upper, top);
+    ctx.lineTo(cx + upper, top);
+    ctx.quadraticCurveTo(cx + shoulder, h * 0.22, cx + shoulder, h * 0.42);
+    ctx.lineTo(cx + lower, bottom);
+    ctx.quadraticCurveTo(cx + lower * 0.72, h * 0.93, cx, h * 0.94);
+    ctx.quadraticCurveTo(cx - lower * 0.72, h * 0.93, cx - lower, bottom);
+    ctx.lineTo(cx - shoulder, h * 0.42);
+    ctx.quadraticCurveTo(cx - shoulder, h * 0.22, cx - upper, top);
+    ctx.closePath();
+  }
+
+  function drawWheel(ctx, x, y, rx, ry, accent) {
+    ctx.save();
+    ctx.fillStyle = &quot;rgba(3,5,5,0.96)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = &quot;rgba(244,251,248,0.28)&quot;;
+    ctx.lineWidth = Math.max(2, rx * 0.14);
+    ctx.stroke();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1, rx * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(x - rx * 0.62, y);
+    ctx.lineTo(x + rx * 0.62, y);
+    ctx.moveTo(x, y - ry * 0.62);
+    ctx.lineTo(x, y + ry * 0.62);
+    ctx.moveTo(x - rx * 0.42, y - ry * 0.42);
+    ctx.lineTo(x + rx * 0.42, y + ry * 0.42);
+    ctx.moveTo(x + rx * 0.42, y - ry * 0.42);
+    ctx.lineTo(x - rx * 0.42, y + ry * 0.42);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPaintGrain(ctx, w, h, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    for (let i = 0; i &lt; 95; i += 1) {
+      const x = (i * 37) % w;
+      const y = (i * 61) % h;
+      ctx.strokeStyle = i % 2 ? &quot;rgba(255,255,255,0.28)&quot; : rgba(color, 0.35);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 18 + (i % 5) * 4, y + 3);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawDamage(ctx, w, h, damage) {
+    if (!damage || damage &lt; 12) return;
+    ctx.save();
+    const count = Math.min(9, Math.floor(damage / 12));
+    ctx.strokeStyle = &quot;rgba(3,5,5,0.72)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.lineCap = &quot;round&quot;;
+    for (let i = 0; i &lt; count; i += 1) {
+      const side = i % 2 ? -1 : 1;
+      const x = w * 0.5 + side * w * (0.08 + (i % 3) * 0.055);
+      const y = h * (0.28 + (i % 5) * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + side * w * 0.11, y + h * (0.02 + (i % 2) * 0.025));
+      ctx.stroke();
+    }
+    if (damage &gt; 58) {
+      ctx.fillStyle = &quot;rgba(255,91,107,0.46)&quot;;
+      roundRect(ctx, w * 0.38, h * 0.18, w * 0.2, h * 0.045, 5);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBodyRealismDetails(ctx, w, h, type, color, police) {
+    const paint = police ? &quot;#f2f5f2&quot; : color;
+    ctx.save();
+    pathVehicleBody(ctx, w, h, type === &quot;semi&quot; ? &quot;truck&quot; : type);
+    ctx.clip();
+
+    const sideShade = ctx.createLinearGradient(w * 0.12, 0, w * 0.88, 0);
+    sideShade.addColorStop(0, &quot;rgba(0,0,0,0.48)&quot;);
+    sideShade.addColorStop(0.22, &quot;rgba(255,255,255,0.08)&quot;);
+    sideShade.addColorStop(0.5, &quot;rgba(255,255,255,0.18)&quot;);
+    sideShade.addColorStop(0.78, &quot;rgba(255,255,255,0.06)&quot;);
+    sideShade.addColorStop(1, &quot;rgba(0,0,0,0.46)&quot;);
+    ctx.fillStyle = sideShade;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = &quot;rgba(255,255,255,0.7)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.36, h * 0.18);
+    ctx.bezierCurveTo(w * 0.42, h * 0.34, w * 0.33, h * 0.56, w * 0.28, h * 0.82);
+    ctx.moveTo(w * 0.64, h * 0.18);
+    ctx.bezierCurveTo(w * 0.58, h * 0.34, w * 0.67, h * 0.56, w * 0.72, h * 0.82);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = rgba(paint, 0.8);
+    ctx.lineWidth = Math.max(1, w * 0.006);
+    for (let i = 0; i &lt; 18; i += 1) {
+      const y = h * (0.18 + i * 0.038);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.22, y);
+      ctx.lineTo(w * 0.78, y + h * 0.012);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = &quot;rgba(3,5,5,0.68)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.26, h * 0.34);
+    ctx.lineTo(w * 0.2, h * 0.78);
+    ctx.moveTo(w * 0.74, h * 0.34);
+    ctx.lineTo(w * 0.8, h * 0.78);
+    ctx.moveTo(w * 0.37, h * 0.7);
+    ctx.lineTo(w * 0.63, h * 0.7);
+    ctx.stroke();
+    ctx.fillStyle = &quot;rgba(2,4,4,0.88)&quot;;
+    roundRect(ctx, w * 0.24, h * 0.17, w * 0.1, h * 0.04, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.66, h * 0.17, w * 0.1, h * 0.04, 5);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawAirWaterRealismDetails(ctx, w, h, type) {
+    ctx.save();
+    ctx.globalAlpha = 0.38;
+    ctx.strokeStyle = &quot;rgba(255,255,255,0.78)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.01);
+    if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.lineTo(w * 0.5, h * 0.86);
+      ctx.moveTo(w * 0.18, h * 0.52);
+      ctx.lineTo(w * 0.82, h * 0.52);
+      ctx.stroke();
+    } else if (type === &quot;drone&quot;) {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.28);
+      ctx.lineTo(w * 0.76, h * 0.72);
+      ctx.moveTo(w * 0.76, h * 0.28);
+      ctx.lineTo(w * 0.24, h * 0.72);
+      ctx.moveTo(w * 0.5, h * 0.24);
+      ctx.lineTo(w * 0.5, h * 0.78);
+      ctx.stroke();
+    } else if (type === &quot;helicopter&quot;) {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.18);
+      ctx.lineTo(w * 0.5, h * 0.84);
+      ctx.moveTo(w * 0.28, h * 0.38);
+      ctx.lineTo(w * 0.72, h * 0.38);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.bezierCurveTo(w * 0.38, h * 0.38, w * 0.34, h * 0.66, w * 0.42, h * 0.86);
+      ctx.moveTo(w * 0.5, h * 0.12);
+      ctx.bezierCurveTo(w * 0.62, h * 0.38, w * 0.66, h * 0.66, w * 0.58, h * 0.86);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawSpriteContact(ctx, w, h, type) {
+    const air = isAirType(type);
+    const water = isWaterType(type);
+    const snow = type === &quot;snowmobile&quot;;
+    ctx.save();
+    const baseY = h * (air ? 0.68 : water ? 0.78 : 0.84);
+    const contact = ctx.createRadialGradient(w * 0.5, baseY - h * 0.03, w * 0.06, w * 0.5, baseY, w * 0.48);
+    contact.addColorStop(0, air ? &quot;rgba(0,0,0,0.22)&quot; : &quot;rgba(0,0,0,0.62)&quot;);
+    contact.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+    ctx.fillStyle = contact;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, baseY, w * 0.42, h * (air ? 0.045 : 0.075), 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (!air &amp;&amp; !water) {
+      ctx.fillStyle = snow ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(3,5,5,0.82)&quot;;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.29, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.71, h * 0.4, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.29, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
+      ctx.ellipse(w * 0.71, h * 0.8, w * 0.11, h * 0.034, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = water ? &quot;rgba(70,217,255,0.48)&quot; : snow ? &quot;rgba(244,251,248,0.52)&quot; : &quot;rgba(3,5,5,0.5)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.lineCap = &quot;round&quot;;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.3, baseY - h * 0.035);
+    ctx.lineTo(w * 0.18, baseY + h * 0.075);
+    ctx.moveTo(w * 0.7, baseY - h * 0.035);
+    ctx.lineTo(w * 0.82, baseY + h * 0.075);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCarLike(ctx, w, h, type, color, police, damage) {
+    const paint = police ? &quot;#f2f5f2&quot; : color;
+    const accent = police ? &quot;rgba(70,217,255,0.45)&quot; : rgba(color, 0.45);
+    const wide = type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot;;
+    const narrow = type === &quot;f1&quot; || type === &quot;prototype&quot;;
+    const semi = type === &quot;semi&quot;;
+    const tractor = type === &quot;tractor&quot;;
+
+    const wheelRX = w * (tractor ? 0.09 : narrow ? 0.075 : wide ? 0.095 : 0.078);
+    const wheelRY = h * (tractor ? 0.13 : narrow ? 0.08 : wide ? 0.115 : 0.105);
+    const wheelX = w * (wide ? 0.2 : 0.18);
+    drawWheel(ctx, w * 0.5 - wheelX, h * 0.38, wheelRX, wheelRY, accent);
+    drawWheel(ctx, w * 0.5 + wheelX, h * 0.38, wheelRX, wheelRY, accent);
+    drawWheel(ctx, w * 0.5 - wheelX, h * 0.76, wheelRX, wheelRY, &quot;rgba(255,209,102,0.34)&quot;);
+    drawWheel(ctx, w * 0.5 + wheelX, h * 0.76, wheelRX, wheelRY, &quot;rgba(255,209,102,0.34)&quot;);
+
+    if (semi) {
+      const trailer = ctx.createLinearGradient(w * 0.18, h * 0.36, w * 0.82, h * 0.88);
+      trailer.addColorStop(0, shade(paint, 32));
+      trailer.addColorStop(0.55, shade(paint, -12));
+      trailer.addColorStop(1, shade(paint, -42));
+      ctx.fillStyle = trailer;
+      roundRect(ctx, w * 0.18, h * 0.36, w * 0.64, h * 0.5, 14);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.22)&quot;;
+      for (let i = 0; i &lt; 3; i += 1) {
+        roundRect(ctx, w * 0.24, h * (0.46 + i * 0.11), w * 0.52, h * 0.025, 4);
+        ctx.fill();
+      }
+    }
+
+    const body = ctx.createLinearGradient(w * 0.18, h * 0.14, w * 0.82, h * 0.9);
+    body.addColorStop(0, shade(paint, 52));
+    body.addColorStop(0.3, paint);
+    body.addColorStop(0.68, shade(paint, -26));
+    body.addColorStop(1, shade(paint, -58));
+    ctx.fillStyle = body;
+    pathVehicleBody(ctx, w, h, semi ? &quot;truck&quot; : type);
+    ctx.fill();
+    ctx.strokeStyle = &quot;rgba(255,255,255,0.28)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.01);
+    ctx.stroke();
+    drawBodyRealismDetails(ctx, w, h, semi ? &quot;semi&quot; : type, color, police);
+
+    if (type === &quot;tank&quot;) {
+      ctx.fillStyle = shade(paint, -30);
+      roundRect(ctx, w * 0.35, h * 0.42, w * 0.3, h * 0.2, 8);
+      ctx.fill();
+      roundRect(ctx, w * 0.47, h * 0.12, w * 0.06, h * 0.35, 4);
+      ctx.fill();
+    }
+
+    if (type === &quot;f1&quot; || type === &quot;prototype&quot;) {
+      ctx.fillStyle = shade(paint, -42);
+      roundRect(ctx, w * 0.18, h * 0.8, w * 0.64, h * 0.05, 5);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(4,6,6,0.9)&quot;;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.42, w * 0.11, h * 0.085, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (tractor) {
+      ctx.fillStyle = shade(paint, -30);
+      roundRect(ctx, w * 0.28, h * 0.48, w * 0.44, h * 0.26, 12);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(255,209,102,0.55)&quot;;
+      ctx.lineWidth = Math.max(3, w * 0.018);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.27, h * 0.79);
+      ctx.lineTo(w * 0.73, h * 0.79);
+      ctx.stroke();
+    }
+
+    const glass = ctx.createLinearGradient(0, h * 0.18, 0, h * 0.58);
+    glass.addColorStop(0, &quot;rgba(222,249,255,0.78)&quot;);
+    glass.addColorStop(0.38, &quot;rgba(53,83,90,0.78)&quot;);
+    glass.addColorStop(1, &quot;rgba(3,6,7,0.96)&quot;);
+    ctx.fillStyle = glass;
+    roundRect(ctx, w * 0.32, h * 0.22, w * 0.36, h * 0.15, 10);
+    ctx.fill();
+    if (!narrow) {
+      roundRect(ctx, w * 0.28, h * 0.46, w * 0.44, h * 0.2, 12);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = &quot;rgba(244,251,248,0.24)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.008);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.17);
+    ctx.lineTo(w * 0.5, h * 0.86);
+    ctx.moveTo(w * 0.31, h * 0.43);
+    ctx.lineTo(w * 0.69, h * 0.43);
+    ctx.stroke();
+
+    ctx.fillStyle = shade(paint, -48);
+    roundRect(ctx, w * 0.18, h * 0.38, w * 0.085, h * 0.035, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.735, h * 0.38, w * 0.085, h * 0.035, 5);
+    ctx.fill();
+
+    ctx.fillStyle = &quot;rgba(255,248,214,0.95)&quot;;
+    roundRect(ctx, w * 0.32, h * 0.18, w * 0.12, h * 0.035, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.56, h * 0.18, w * 0.12, h * 0.035, 5);
+    ctx.fill();
+    ctx.fillStyle = police ? &quot;#46d9ff&quot; : &quot;#ff3348&quot;;
+    roundRect(ctx, w * 0.31, h * 0.78, w * 0.15, h * 0.038, 5);
+    ctx.fill();
+    ctx.fillStyle = &quot;#ff3348&quot;;
+    roundRect(ctx, w * 0.54, h * 0.78, w * 0.15, h * 0.038, 5);
+    ctx.fill();
+
+    if (police) {
+      ctx.fillStyle = &quot;rgba(5,8,7,0.86)&quot;;
+      roundRect(ctx, w * 0.3, h * 0.42, w * 0.4, h * 0.045, 5);
+      ctx.fill();
+      ctx.fillStyle = &quot;#f4fbf8&quot;;
+      ctx.font = `900 ${Math.max(12, w * 0.055)}px system-ui`;
+      ctx.textAlign = &quot;center&quot;;
+      ctx.fillText(&quot;POLICE&quot;, w * 0.5, h * 0.62);
+      ctx.fillStyle = &quot;#ff3348&quot;;
+      roundRect(ctx, w * 0.4, h * 0.32, w * 0.08, h * 0.032, 4);
+      ctx.fill();
+      ctx.fillStyle = &quot;#46d9ff&quot;;
+      roundRect(ctx, w * 0.52, h * 0.32, w * 0.08, h * 0.032, 4);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = &quot;rgba(244,251,248,0.7)&quot;;
+    roundRect(ctx, w * 0.42, h * 0.82, w * 0.16, h * 0.03, 5);
+    ctx.fill();
+    drawPaintGrain(ctx, w, h, paint);
+    drawDamage(ctx, w, h, damage);
+  }
+
+  function drawAirOrWater(ctx, w, h, type, color, damage) {
+    const paint = ctx.createLinearGradient(w * 0.26, h * 0.12, w * 0.74, h * 0.9);
+    paint.addColorStop(0, shade(color, 48));
+    paint.addColorStop(0.55, color);
+    paint.addColorStop(1, shade(color, -44));
+    ctx.fillStyle = paint;
+    ctx.beginPath();
+    if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
+      const bomber = type === &quot;bomber&quot;;
+      const fighter = type === &quot;fighterjet&quot;;
+      ctx.moveTo(w * 0.5, h * 0.08);
+      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.86);
+      ctx.lineTo(w * 0.5, h * 0.92);
+      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.86);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(w * (bomber ? 0.06 : fighter ? 0.1 : 0.12), h * (fighter ? 0.48 : 0.52));
+      ctx.lineTo(w * (bomber ? 0.94 : fighter ? 0.9 : 0.88), h * (fighter ? 0.48 : 0.52));
+      ctx.lineTo(w * (bomber ? 0.68 : 0.62), h * 0.63);
+      ctx.lineTo(w * (bomber ? 0.32 : 0.38), h * 0.63);
+      ctx.closePath();
+      ctx.fill();
+      if (fighter) {
+        ctx.fillStyle = shade(color, -34);
+        ctx.beginPath();
+        ctx.moveTo(w * 0.38, h * 0.78);
+        ctx.lineTo(w * 0.22, h * 0.94);
+        ctx.lineTo(w * 0.47, h * 0.86);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(w * 0.62, h * 0.78);
+        ctx.lineTo(w * 0.78, h * 0.94);
+        ctx.lineTo(w * 0.53, h * 0.86);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (type === &quot;drone&quot;) {
+      ctx.fillStyle = &quot;rgba(244,251,248,0.68)&quot;;
+      for (let x = 0.23; x &lt;= 0.77; x += 0.54) {
+        for (let y = 0.28; y &lt;= 0.72; y += 0.44) {
+          ctx.beginPath();
+          ctx.ellipse(w * x, h * y, w * 0.16, h * 0.04, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.strokeStyle = shade(color, -30);
+      ctx.lineWidth = Math.max(4, w * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, h * 0.28);
+      ctx.lineTo(w * 0.76, h * 0.72);
+      ctx.moveTo(w * 0.76, h * 0.28);
+      ctx.lineTo(w * 0.24, h * 0.72);
+      ctx.stroke();
+      ctx.fillStyle = paint;
+      roundRect(ctx, w * 0.34, h * 0.36, w * 0.32, h * 0.28, 18);
+      ctx.fill();
+    } else if (type === &quot;helicopter&quot;) {
+      roundRect(ctx, w * 0.3, h * 0.26, w * 0.4, h * 0.42, 24);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.72)&quot;;
+      roundRect(ctx, w * 0.13, h * 0.13, w * 0.74, h * 0.035, 5);
+      ctx.fill();
+      ctx.fillStyle = shade(color, -34);
+      roundRect(ctx, w * 0.47, h * 0.64, w * 0.06, h * 0.25, 5);
+      ctx.fill();
+    } else {
+      ctx.moveTo(w * 0.5, h * 0.1);
+      ctx.quadraticCurveTo(w * 0.82, h * 0.5, w * 0.62, h * 0.88);
+      ctx.lineTo(w * 0.38, h * 0.88);
+      ctx.quadraticCurveTo(w * 0.18, h * 0.5, w * 0.5, h * 0.1);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = &quot;rgba(3,6,7,0.86)&quot;;
+    roundRect(ctx, w * 0.39, h * 0.35, w * 0.22, h * 0.18, 10);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(255,248,214,0.86)&quot;;
+    roundRect(ctx, w * 0.43, h * 0.18, w * 0.14, h * 0.035, 5);
+    ctx.fill();
+    drawAirWaterRealismDetails(ctx, w, h, type);
+    drawPaintGrain(ctx, w, h, color);
+    drawDamage(ctx, w, h, damage);
+  }
+
+  function drawRearWheel(ctx, x, groundY, rx, ry, accent, heavy = false) {
+    ctx.save();
+    const cy = groundY - ry;
+    ctx.fillStyle = &quot;rgba(2,4,4,0.98)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(x, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = &quot;rgba(244,251,248,0.22)&quot;;
+    ctx.lineWidth = Math.max(2, rx * 0.13);
+    ctx.stroke();
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1, rx * 0.12);
+    for (let i = -1; i &lt;= 1; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(x - rx * 0.62, cy + i * ry * 0.26);
+      ctx.lineTo(x + rx * 0.62, cy + i * ry * 0.26);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = heavy ? 0.52 : 0.34;
+    ctx.fillStyle = &quot;rgba(0,0,0,0.92)&quot;;
+    ctx.beginPath();
+    ctx.ellipse(x, groundY + ry * 0.08, rx * 1.12, ry * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRearGroundVehicle(ctx, w, h, type, color, police, damage) {
+    const pursuit = type === &quot;policecar&quot;;
+    const policeLivery = police || pursuit;
+    const paint = policeLivery ? color || &quot;#f2f5f2&quot; : color;
+    const accent = policeLivery ? &quot;rgba(70,217,255,0.56)&quot; : rgba(color, 0.58);
+    const semi = type === &quot;semi&quot;;
+    const tractor = type === &quot;tractor&quot;;
+    const tank = type === &quot;tank&quot;;
+    const monster = type === &quot;monster&quot;;
+    const truck = type === &quot;truck&quot;;
+    const f1 = type === &quot;f1&quot; || type === &quot;prototype&quot;;
+    const snow = type === &quot;snowmobile&quot;;
+    const wide = semi || tractor || tank || monster || truck || pursuit;
+    const groundY = h * (snow ? 0.94 : 0.955);
+
+    ctx.save();
+    const contact = ctx.createRadialGradient(w * 0.5, groundY - h * 0.025, w * 0.07, w * 0.5, groundY, w * 0.55);
+    contact.addColorStop(0, snow ? &quot;rgba(244,251,248,0.42)&quot; : &quot;rgba(0,0,0,0.72)&quot;);
+    contact.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+    ctx.fillStyle = contact;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, groundY, w * (wide ? 0.52 : 0.44), h * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (snow) {
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.82)&quot;;
+      ctx.lineWidth = Math.max(7, w * 0.036);
+      ctx.lineCap = &quot;round&quot;;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.26, groundY);
+      ctx.lineTo(w * 0.43, groundY - h * 0.02);
+      ctx.moveTo(w * 0.57, groundY - h * 0.02);
+      ctx.lineTo(w * 0.74, groundY);
+      ctx.stroke();
+    } else if (tank) {
+      ctx.fillStyle = &quot;rgba(1,2,2,0.98)&quot;;
+      roundRect(ctx, w * 0.11, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
+      ctx.fill();
+      roundRect(ctx, w * 0.67, h * 0.44, w * 0.22, groundY - h * 0.44, 14);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.16)&quot;;
+      ctx.lineWidth = Math.max(2, w * 0.012);
+      for (let i = 0; i &lt; 7; i += 1) {
+        const y = h * 0.49 + i * h * 0.052;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.14, y);
+        ctx.lineTo(w * 0.3, y);
+        ctx.moveTo(w * 0.7, y);
+        ctx.lineTo(w * 0.86, y);
+        ctx.stroke();
+      }
+    } else {
+      const rx = w * (monster ? 0.105 : semi || tractor ? 0.088 : f1 ? 0.074 : 0.082);
+      const ry = h * (monster ? 0.155 : semi || tractor ? 0.14 : f1 ? 0.09 : 0.125);
+      const left = w * (wide ? 0.2 : 0.24);
+      const right = w - left;
+      drawRearWheel(ctx, left, groundY, rx, ry, accent, wide);
+      drawRearWheel(ctx, right, groundY, rx, ry, accent, wide);
+      if (semi || tractor || truck) {
+        drawRearWheel(ctx, left + w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, &quot;rgba(255,209,102,0.28)&quot;, true);
+        drawRearWheel(ctx, right - w * 0.08, groundY - h * 0.01, rx * 0.78, ry * 0.8, &quot;rgba(255,209,102,0.28)&quot;, true);
+      }
+    }
+
+    const body = ctx.createLinearGradient(w * 0.18, h * 0.14, w * 0.82, groundY);
+    body.addColorStop(0, shade(paint, 54));
+    body.addColorStop(0.34, paint);
+    body.addColorStop(0.7, shade(paint, -30));
+    body.addColorStop(1, shade(paint, -62));
+    ctx.fillStyle = body;
+
+    if (f1) {
+      ctx.fillStyle = shade(paint, -38);
+      roundRect(ctx, w * 0.12, h * 0.73, w * 0.76, h * 0.075, 9);
+      ctx.fill();
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.28);
+      ctx.lineTo(w * 0.68, h * 0.5);
+      ctx.lineTo(w * 0.61, h * 0.82);
+      ctx.lineTo(w * 0.39, h * 0.82);
+      ctx.lineTo(w * 0.32, h * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(4,6,6,0.92)&quot;;
+      ctx.beginPath();
+      ctx.ellipse(w * 0.5, h * 0.53, w * 0.12, h * 0.09, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (semi) {
+      roundRect(ctx, w * 0.19, h * 0.33, w * 0.62, h * 0.43, 18);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, 18);
+      roundRect(ctx, w * 0.24, h * 0.17, w * 0.52, h * 0.26, 16);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(4,7,8,0.9)&quot;;
+      roundRect(ctx, w * 0.31, h * 0.22, w * 0.38, h * 0.12, 8);
+      ctx.fill();
+      ctx.fillStyle = &quot;rgba(244,251,248,0.28)&quot;;
+      for (let i = 0; i &lt; 3; i += 1) {
+        roundRect(ctx, w * 0.27, h * (0.48 + i * 0.1), w * 0.46, h * 0.026, 4);
+        ctx.fill();
+      }
+    } else if (tractor) {
+      roundRect(ctx, w * 0.3, h * 0.25, w * 0.4, h * 0.24, 14);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, -28);
+      roundRect(ctx, w * 0.23, h * 0.48, w * 0.54, h * 0.26, 12);
+      ctx.fill();
+      ctx.strokeStyle = &quot;rgba(255,209,102,0.58)&quot;;
+      ctx.lineWidth = Math.max(4, w * 0.022);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.23, h * 0.77);
+      ctx.lineTo(w * 0.77, h * 0.77);
+      ctx.stroke();
+    } else if (tank) {
+      roundRect(ctx, w * 0.24, h * 0.32, w * 0.52, h * 0.46, 9);
+      ctx.fill();
+      ctx.fillStyle = shade(paint, -34);
+      roundRect(ctx, w * 0.34, h * 0.38, w * 0.32, h * 0.2, 8);
+      ctx.fill();
+      ctx.fillRect(w * 0.47, h * 0.18, w * 0.06, h * 0.26);
+    } else {
+      const topHalf = w * (truck || monster ? 0.24 : 0.2);
+      const shoulder = w * (truck || monster ? 0.38 : 0.34);
+      const lower = w * (truck || monster ? 0.43 : 0.37);
+      const top = h * (snow ? 0.3 : 0.18);
+      const belly = groundY - h * 0.055;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5 - topHalf, top);
+      ctx.lineTo(w * 0.5 + topHalf, top);
+      ctx.quadraticCurveTo(w * 0.5 + shoulder, h * 0.26, w * 0.5 + shoulder, h * 0.48);
+      ctx.lineTo(w * 0.5 + lower, belly);
+      ctx.quadraticCurveTo(w * 0.5 + lower * 0.7, groundY - h * 0.015, w * 0.5, groundY - h * 0.012);
+      ctx.quadraticCurveTo(w * 0.5 - lower * 0.7, groundY - h * 0.015, w * 0.5 - lower, belly);
+      ctx.lineTo(w * 0.5 - shoulder, h * 0.48);
+      ctx.quadraticCurveTo(w * 0.5 - shoulder, h * 0.26, w * 0.5 - topHalf, top);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = &quot;rgba(255,255,255,0.28)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.012);
+    ctx.stroke();
+
+    if (snow) {
+      ctx.strokeStyle = &quot;rgba(244,251,248,0.92)&quot;;
+      ctx.lineWidth = Math.max(7, w * 0.034);
+      ctx.lineCap = &quot;round&quot;;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.24, groundY);
+      ctx.lineTo(w * 0.43, groundY - h * 0.01);
+      ctx.moveTo(w * 0.57, groundY - h * 0.01);
+      ctx.lineTo(w * 0.76, groundY);
+      ctx.stroke();
+    } else if (tank) {
+      ctx.fillStyle = &quot;rgba(1,2,2,1)&quot;;
+      roundRect(ctx, w * 0.11, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
+      ctx.fill();
+      roundRect(ctx, w * 0.66, groundY - h * 0.12, w * 0.23, h * 0.13, 10);
+      ctx.fill();
+    } else {
+      const rx = w * (monster ? 0.108 : semi || tractor ? 0.092 : f1 ? 0.078 : 0.086);
+      const ry = h * (monster ? 0.16 : semi || tractor ? 0.14 : f1 ? 0.092 : 0.128);
+      const left = w * (wide ? 0.2 : 0.24);
+      const right = w - left;
+      drawRearWheel(ctx, left, groundY, rx, ry, accent, true);
+      drawRearWheel(ctx, right, groundY, rx, ry, accent, true);
+    }
+
+    ctx.fillStyle = &quot;rgba(5,8,7,0.9)&quot;;
+    roundRect(ctx, w * 0.31, h * (semi ? 0.46 : 0.32), w * 0.38, h * 0.13, 10);
+    ctx.fill();
+    if (!f1 &amp;&amp; !semi &amp;&amp; !tractor &amp;&amp; !tank) {
+      roundRect(ctx, w * 0.27, h * 0.55, w * 0.46, h * 0.19, 12);
+      ctx.fill();
+    }
+    ctx.fillStyle = &quot;rgba(222,249,255,0.24)&quot;;
+    roundRect(ctx, w * 0.34, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
+    ctx.fill();
+    roundRect(ctx, w * 0.52, h * (semi ? 0.49 : 0.35), w * 0.14, h * 0.026, 4);
+    ctx.fill();
+
+    if (policeLivery) {
+      ctx.fillStyle = &quot;rgba(5,8,7,0.88)&quot;;
+      roundRect(ctx, w * 0.29, h * 0.53, w * 0.42, h * 0.052, 5);
+      ctx.fill();
+      ctx.fillStyle = &quot;#f4fbf8&quot;;
+      ctx.font = `900 ${Math.max(16, w * 0.07)}px system-ui`;
+      ctx.textAlign = &quot;center&quot;;
+      ctx.fillText(&quot;POLICE&quot;, w * 0.5, h * 0.65);
+      ctx.fillStyle = &quot;#ff3348&quot;;
+      roundRect(ctx, w * 0.4, h * 0.27, w * 0.08, h * 0.034, 4);
+      ctx.fill();
+      ctx.fillStyle = &quot;#46d9ff&quot;;
+      roundRect(ctx, w * 0.52, h * 0.27, w * 0.08, h * 0.034, 4);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = &quot;#ff3348&quot;;
+    roundRect(ctx, w * 0.28, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
+    ctx.fill();
+    roundRect(ctx, w * 0.55, groundY - h * 0.12, w * 0.17, h * 0.048, 5);
+    ctx.fill();
+    ctx.fillStyle = &quot;rgba(244,251,248,0.68)&quot;;
+    roundRect(ctx, w * 0.43, groundY - h * 0.085, w * 0.14, h * 0.028, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = &quot;rgba(5,8,7,0.46)&quot;;
+    ctx.lineWidth = Math.max(2, w * 0.016);
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.2);
+    ctx.lineTo(w * 0.5, groundY - h * 0.08);
+    ctx.stroke();
+
+    drawPaintGrain(ctx, w, h, paint);
+    drawDamage(ctx, w, h, damage);
+    ctx.restore();
+  }
+
+  function getVehicleSprite(type = &quot;car&quot;, color = &quot;#46d9ff&quot;, options = {}) {
+    const police = Boolean(options.police);
+    const damage = Math.max(0, Math.min(100, Number(options.damage) || 0));
+    const damageBucket = Math.floor(damage / 14);
+    const key = `${type}|${color}|${police ? 1 : 0}|${damageBucket}`;
+    if (spriteCache.has(key)) return spriteCache.get(key);
+
+    const canvas = makeCanvas(384, 552);
+    const ctx = canvas.getContext(&quot;2d&quot;);
+    ctx.imageSmoothingEnabled = true;
+
+    if (isWaterType(type) || isAirType(type)) {
+      const shadow = ctx.createRadialGradient(192, 422, 26, 192, 422, 176);
+      shadow.addColorStop(0, &quot;rgba(0,0,0,0.52)&quot;);
+      shadow.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+      ctx.fillStyle = shadow;
+      ctx.beginPath();
+      ctx.ellipse(192, 422, 168, 56, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawSpriteContact(ctx, 384, 552, type);
+      drawAirOrWater(ctx, 384, 552, type, police ? &quot;#f4fbf8&quot; : color, damage);
+    } else {
+      drawRearGroundVehicle(ctx, 384, 552, type, color, police, damage);
+    }
+
+    spriteCache.set(key, canvas);
+    return canvas;
+  }
+
+  function getRoadTexture(place = &quot;city&quot;, theme = [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;]) {
+    const key = `${place}|${theme.join(&quot;|&quot;)}`;
+    if (textureCache.has(key)) return textureCache.get(key);
+    const canvas = makeCanvas(512, 512);
+    const ctx = canvas.getContext(&quot;2d&quot;);
+    ctx.fillStyle = place === &quot;snow&quot; ? &quot;rgba(205,222,224,0.14)&quot; : place === &quot;desert&quot; || place === &quot;canyon&quot; ? &quot;rgba(156,92,42,0.13)&quot; : &quot;rgba(244,251,248,0.08)&quot;;
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i &lt; 420; i += 1) {
+      const x = (i * 47) % 512;
+      const y = (i * 83) % 512;
+      const len = 8 + (i % 9) * 7;
+      ctx.globalAlpha = 0.08 + (i % 5) * 0.018;
+      ctx.strokeStyle = i % 3 ? &quot;rgba(255,255,255,0.55)&quot; : rgba(theme[1], 0.75);
+      ctx.lineWidth = 1 + (i % 3);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + len, y + (i % 2 ? 2 : -2));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = place === &quot;snow&quot; ? &quot;rgba(244,251,248,0.9)&quot; : &quot;rgba(0,0,0,0.85)&quot;;
+    ctx.lineCap = &quot;round&quot;;
+    for (let i = 0; i &lt; 54; i += 1) {
+      const x = (i * 109) % 512;
+      const y = (i * 67) % 512;
+      ctx.lineWidth = 1 + (i % 3);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.bezierCurveTo(x + 24, y + 9, x - 18, y + 31, x + 38, y + 45);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = place === &quot;tokyo&quot; || place === &quot;city&quot; || place === &quot;harbor&quot; || place === &quot;rainforest&quot; ? 0.22 : 0.1;
+    for (let i = 0; i &lt; 18; i += 1) {
+      const x = (i * 131) % 512;
+      const y = (i * 191) % 512;
+      const glow = ctx.createRadialGradient(x, y, 4, x, y, 92);
+      glow.addColorStop(0, rgba(theme[1], 0.9));
+      glow.addColorStop(1, &quot;rgba(0,0,0,0)&quot;);
+      ctx.fillStyle = glow;
+      ctx.fillRect(x - 96, y - 96, 192, 192);
+    }
+    ctx.globalAlpha = 1;
+    textureCache.set(key, canvas);
+    return canvas;
+  }
+
+  function isPhoneViewport() {
+    return window.matchMedia &amp;&amp; (window.matchMedia(&quot;(pointer: coarse)&quot;).matches || Math.min(window.innerWidth, window.innerHeight) &lt; 720);
+  }
+
+  window.VelocityPhoneAssets = {
+    getVehicleSprite,
+    getRoadTexture,
+    isPhoneViewport,
+    ready: true
+  };
+})();
+</pre>
+<h2>webgl-pipeline.js</h2>
+<pre>&quot;use strict&quot;;
+
+(function () {
+  function hexToRgba(hex, alpha = 1) {
+    if (!hex || typeof hex !== &quot;string&quot;) return [1, 1, 1, alpha];
+    const clean = hex.replace(&quot;#&quot;, &quot;&quot;);
+    const value = parseInt(clean.length === 3 ? clean.split(&quot;&quot;).map((c) =&gt; c + c).join(&quot;&quot;) : clean, 16);
+    return [((value &gt;&gt; 16) &amp; 255) / 255, ((value &gt;&gt; 8) &amp; 255) / 255, (value &amp; 255) / 255, alpha];
+  }
+
+  function shade(color, factor) {
+    return [
+      Math.max(0, Math.min(1, color[0] * factor)),
+      Math.max(0, Math.min(1, color[1] * factor)),
+      Math.max(0, Math.min(1, color[2] * factor)),
+      color[3]
+    ];
+  }
+
+  function perspective(fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2);
+    const nf = 1 / (near - far);
+    return [
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, (2 * far * near) * nf, 0
+    ];
+  }
+
+  function normalize(v) {
+    const length = Math.hypot(v[0], v[1], v[2]) || 1;
+    return [v[0] / length, v[1] / length, v[2] / length];
+  }
+
+  function cross(a, b) {
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0]
+    ];
+  }
+
+  function dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  }
+
+  function lookAt(eye, center, up) {
+    const z = normalize([eye[0] - center[0], eye[1] - center[1], eye[2] - center[2]]);
+    const x = normalize(cross(up, z));
+    const y = cross(z, x);
+    return [
+      x[0], y[0], z[0], 0,
+      x[1], y[1], z[1], 0,
+      x[2], y[2], z[2], 0,
+      -dot(x, eye), -dot(y, eye), -dot(z, eye), 1
+    ];
+  }
+
+  function multiply(a, b) {
+    const out = new Array(16).fill(0);
+    for (let col = 0; col &lt; 4; col += 1) {
+      for (let row = 0; row &lt; 4; row += 1) {
+        out[col * 4 + row] =
+          a[0 * 4 + row] * b[col * 4 + 0] +
+          a[1 * 4 + row] * b[col * 4 + 1] +
+          a[2 * 4 + row] * b[col * 4 + 2] +
+          a[3 * 4 + row] * b[col * 4 + 3];
+      }
+    }
+    return out;
+  }
+
+  function compile(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      throw new Error(gl.getShaderInfoLog(shader) || &quot;WebGL shader compile failed&quot;);
+    }
+    return shader;
+  }
+
+  function linkProgram(gl) {
+    const vertex = compile(gl, gl.VERTEX_SHADER, `
+      attribute vec3 aPosition;
+      attribute vec4 aColor;
+      uniform mat4 uMvp;
+      varying vec4 vColor;
+      void main() {
+        gl_Position = uMvp * vec4(aPosition, 1.0);
+        vColor = aColor;
+      }
+    `);
+    const fragment = compile(gl, gl.FRAGMENT_SHADER, `
+      precision mediump float;
+      varying vec4 vColor;
+      void main() {
+        gl_FragColor = vColor;
+      }
+    `);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error(gl.getProgramInfoLog(program) || &quot;WebGL program link failed&quot;);
+    }
+    return program;
+  }
+
+  function VelocityWebGLPipeline(canvas) {
+    const gl = canvas.getContext(&quot;webgl&quot;, {
+      alpha: false,
+      antialias: true,
+      depth: true,
+      powerPreference: &quot;high-performance&quot;
+    });
+    if (!gl) throw new Error(&quot;WebGL is not available in this browser&quot;);
+
+    const program = linkProgram(gl);
+    const buffer = gl.createBuffer();
+    const aPosition = gl.getAttribLocation(program, &quot;aPosition&quot;);
+    const aColor = gl.getAttribLocation(program, &quot;aColor&quot;);
+    const uMvp = gl.getUniformLocation(program, &quot;uMvp&quot;);
+    let vertices = [];
+    let lastProjection = null;
+
+    function visualLaneValue(data) {
+      const state = data &amp;&amp; data.raceState ? data.raceState : {};
+      const visualLane = Number(state.visualLane);
+      if (Number.isFinite(visualLane)) return visualLane;
+      return Number(state.lane) || 0;
+    }
+
+    function laneToWorldX(lane) {
+      return Number(lane) * 2.08;
+    }
+
+    function cameraProjection(data) {
+      const laneX = laneToWorldX(visualLaneValue(data));
+      const shake = data.raceState.cameraShake || 0;
+      const curve = roadCurveValue(data);
+      const jitter = shake &gt; 0 ? (Math.random() - 0.5) * shake * 0.012 : 0;
+      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
+      let eye = phoneFrame ? [laneX * 0.08 - curve * 0.78 + jitter, 1.62, -15.8] : [laneX * 0.06 - curve * 0.9 + jitter, 2.1, -14.6];
+      let target = phoneFrame ? [laneX * 0.015 + curve * 3.45, 1.24, 62] : [laneX * 0.015 + curve * 3.4, 1.96, 50];
+      if (data.cameraMode === &quot;hood&quot;) {
+        eye = phoneFrame ? [laneX * 0.3 - curve * 0.56 + jitter, 1.18, -7.8] : [laneX * 0.34 - curve * 0.62 + jitter, 1.42, -7.4];
+        target = phoneFrame ? [laneX * 0.08 + curve * 3.65, 1.02, 64] : [laneX * 0.1 + curve * 3.6, 1.38, 52];
+      } else if (data.cameraMode === &quot;cockpit&quot;) {
+        eye = [laneX * 0.2 - curve * 0.5 + jitter, 1.58, -3.8];
+        target = [laneX * 0.05 + curve * 3.8, 1.52, 56];
+      }
+      const view = lookAt(eye, target, [0, 1, 0]);
+      const fov = phoneFrame &amp;&amp; data.cameraMode !== &quot;cockpit&quot; ? 2.28 : data.cameraMode === &quot;cockpit&quot; ? 2.25 : 2.55;
+      const proj = perspective(Math.PI / fov, data.width / Math.max(1, data.height), 0.1, 220);
+      return {
+        mvp: multiply(proj, view),
+        width: data.width,
+        height: data.height,
+        raceDistance: data.raceState.distance,
+        roadTurn: curve,
+        roadOffset: data.raceState.roadOffset || 0,
+        cameraMode: data.cameraMode
+      };
+    }
+
+    function projectPoint(projection, x, y, z) {
+      const m = projection.mvp;
+      const clipX = m[0] * x + m[4] * y + m[8] * z + m[12];
+      const clipY = m[1] * x + m[5] * y + m[9] * z + m[13];
+      const clipW = m[3] * x + m[7] * y + m[11] * z + m[15];
+      if (!Number.isFinite(clipW) || clipW &lt;= 0.02) return null;
+      const ndcX = clipX / clipW;
+      const ndcY = clipY / clipW;
+      if (!Number.isFinite(ndcX) || !Number.isFinite(ndcY)) return null;
+      const screenY = (0.5 - ndcY * 0.5) * projection.height;
+      const t = Math.max(0, Math.min(1.16, screenY / Math.max(1, projection.height)));
+      return {
+        x: (ndcX * 0.5 + 0.5) * projection.width,
+        y: screenY,
+        scale: Math.max(0.34, Math.min(1.24, 0.42 + t * 0.78)),
+        clipW,
+        z
+      };
+    }
+
+    function screenYFromRoadDistance(data, distance) {
+      return data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
+    }
+
+    function zFromRoadScreenY(data, y) {
+      const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
+      return 116 - t * 108;
+    }
+
+    function zFromRoadDistance(data, distance) {
+      return zFromRoadScreenY(data, screenYFromRoadDistance(data, distance));
+    }
+
+    function addVertex(point, color) {
+      vertices.push(point[0], point[1], point[2], color[0], color[1], color[2], color[3]);
+    }
+
+    function tri(a, b, c, color) {
+      addVertex(a, color);
+      addVertex(b, color);
+      addVertex(c, color);
+    }
+
+    function quad(a, b, c, d, color) {
+      tri(a, b, c, color);
+      tri(a, c, d, color);
+    }
+
+    function box(x, y, z, w, h, d, color) {
+      const x0 = x - w / 2;
+      const x1 = x + w / 2;
+      const y0 = y - h / 2;
+      const y1 = y + h / 2;
+      const z0 = z - d / 2;
+      const z1 = z + d / 2;
+      quad([x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1], shade(color, 1.14));
+      quad([x0, y0, z1], [x1, y0, z1], [x1, y0, z0], [x0, y0, z0], shade(color, 0.55));
+      quad([x0, y0, z0], [x0, y1, z0], [x0, y1, z1], [x0, y0, z1], shade(color, 0.76));
+      quad([x1, y0, z1], [x1, y1, z1], [x1, y1, z0], [x1, y0, z0], shade(color, 0.88));
+      quad([x0, y0, z1], [x0, y1, z1], [x1, y1, z1], [x1, y0, z1], shade(color, 1.02));
+      quad([x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z0], shade(color, 0.64));
+    }
+
+    function taperedBox(x, y, z, bottomW, topW, h, d, color) {
+      const y0 = y - h / 2;
+      const y1 = y + h / 2;
+      const z0 = z - d / 2;
+      const z1 = z + d / 2;
+      const b0 = x - bottomW / 2;
+      const b1 = x + bottomW / 2;
+      const t0 = x - topW / 2;
+      const t1 = x + topW / 2;
+      quad([t0, y1, z0], [t1, y1, z0], [t1, y1, z1], [t0, y1, z1], shade(color, 1.16));
+      quad([b0, y0, z1], [b1, y0, z1], [b1, y0, z0], [b0, y0, z0], shade(color, 0.55));
+      quad([b0, y0, z0], [t0, y1, z0], [t0, y1, z1], [b0, y0, z1], shade(color, 0.78));
+      quad([b1, y0, z1], [t1, y1, z1], [t1, y1, z0], [b1, y0, z0], shade(color, 0.9));
+      quad([b0, y0, z1], [t0, y1, z1], [t1, y1, z1], [b1, y0, z1], shade(color, 1.02));
+      quad([b1, y0, z0], [t1, y1, z0], [t0, y1, z0], [b0, y0, z0], shade(color, 0.66));
+    }
+
+    function lowMound(x, z, w, h, d, color) {
+      taperedBox(x, h * 0.3, z, w, w * 0.72, h * 0.6, d, shade(color, 0.82));
+      taperedBox(x, h * 0.78, z - d * 0.05, w * 0.72, w * 0.42, h * 0.44, d * 0.76, color);
+      taperedBox(x, h * 1.08, z - d * 0.1, w * 0.42, w * 0.18, h * 0.24, d * 0.48, shade(color, 1.18));
+    }
+
+    function signPanel(x, z, textColor, baseColor) {
+      box(x, 2.15, z, 3.2, 1.25, 0.14, baseColor);
+      box(x, 2.22, z - 0.08, 2.35, 0.14, 0.16, textColor);
+      box(x - 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
+      box(x + 0.9, 1.7, z + 0.05, 0.12, 1.0, 0.12, [0.42, 0.44, 0.4, 1]);
+    }
+
+    function person(x, z, shirtColor, scale = 1) {
+      box(x, 0.18 * scale, z, 0.12 * scale, 0.36 * scale, 0.08 * scale, [0.04, 0.045, 0.04, 1]);
+      box(x, 0.62 * scale, z, 0.28 * scale, 0.52 * scale, 0.16 * scale, shirtColor);
+      box(x, 1.02 * scale, z, 0.22 * scale, 0.22 * scale, 0.18 * scale, [0.72, 0.52, 0.38, 1]);
+      box(x - 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
+      box(x + 0.24 * scale, 0.68 * scale, z, 0.08 * scale, 0.42 * scale, 0.08 * scale, shade(shirtColor, 0.75));
+    }
+
+    function spectatorCluster(x, z, accent, accent2) {
+      for (let j = 0; j &lt; 5; j += 1) {
+        const row = Math.floor(j / 3);
+        const px = x + (j % 3 - 1) * 0.55;
+        const pz = z + row * 0.34;
+        person(px, pz, j % 2 ? accent : accent2, 0.74);
+      }
+      box(x, 0.28, z + 0.85, 2.4, 0.14, 0.14, [0.78, 0.82, 0.78, 1]);
+    }
+
+    function streetLight(x, z, accent) {
+      const side = x &lt; 0 ? 1 : -1;
+      box(x, 1.35, z, 0.1, 2.7, 0.1, [0.38, 0.42, 0.39, 1]);
+      box(x + side * 0.55, 2.62, z, 1.1, 0.08, 0.08, [0.38, 0.42, 0.39, 1]);
+      box(x + side * 1.05, 2.52, z, 0.34, 0.12, 0.32, accent);
+      box(x + side * 1.05, 2.43, z, 0.6, 0.03, 0.56, shade(accent, 1.35));
+    }
+
+    function roadsideTree(x, z, color, kind = &quot;tree&quot;) {
+      box(x, 0.74, z, 0.22, 1.45, 0.22, [0.34, 0.2, 0.1, 1]);
+      if (kind === &quot;palm&quot;) {
+        taperedBox(x - 0.45, 1.82, z, 1.6, 0.25, 0.22, 1.0, color);
+        taperedBox(x + 0.45, 1.86, z, 1.6, 0.25, 0.22, 1.0, color);
+        taperedBox(x, 2.02, z - 0.45, 1.4, 0.2, 0.2, 1.15, color);
+      } else {
+        taperedBox(x, 1.85, z, 1.8, 0.7, 1.3, 1.6, color);
+        taperedBox(x + 0.35, 2.45, z - 0.1, 1.3, 0.45, 1.0, 1.25, shade(color, 1.18));
+      }
+    }
+
+    function barrierRun(x, z, accent) {
+      box(x, 0.58, z, 0.14, 0.75, 0.16, [0.62, 0.66, 0.62, 1]);
+      box(x, 0.86, z, 0.16, 0.12, 3.2, [0.78, 0.82, 0.78, 1]);
+      box(x, 0.68, z, 0.18, 0.08, 3.0, shade(accent, 0.9));
+    }
+
+    function isAirType(type) {
+      return [&quot;airplane&quot;, &quot;helicopter&quot;, &quot;fighterjet&quot;, &quot;bomber&quot;, &quot;drone&quot;].includes(type);
+    }
+
+    function groundContactPad(type, x, z, scale, paint) {
+      const air = isAirType(type);
+      const water = type === &quot;boat&quot;;
+      const wide = type === &quot;semi&quot; || type === &quot;monster&quot; || type === &quot;tank&quot; || type === &quot;truck&quot;;
+      const shadow = water ? [0.02, 0.18, 0.22, 1] : [0.006, 0.008, 0.007, 1];
+      const dust = water ? [0.1, 0.5, 0.62, 1] : shade(paint, 0.24);
+      const padW = (air ? 1.65 : wide ? 2.45 : 1.95) * scale;
+      const padD = (air ? 2.1 : wide ? 3.2 : 2.75) * scale;
+      box(x, 0.012 * scale, z, padW, 0.024 * scale, padD, shadow);
+      box(x, 0.018 * scale, z + 0.42 * scale, padW * 0.72, 0.014 * scale, padD * 0.32, shade(shadow, 1.4));
+      if (air || water) {
+        box(x, 0.045 * scale, z + 0.88 * scale, padW * 0.58, 0.018 * scale, 0.36 * scale, dust);
+        return;
+      }
+      const tireX = wide ? 0.86 : 0.64;
+      const rearZ = wide ? 1.0 : 0.78;
+      const frontZ = wide ? -0.95 : -0.82;
+      box(x - tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
+      box(x + tireX * scale, 0.044 * scale, z + rearZ * scale, 0.42 * scale, 0.03 * scale, 0.34 * scale, shadow);
+      box(x - tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
+      box(x + tireX * scale, 0.044 * scale, z + frontZ * scale, 0.36 * scale, 0.03 * scale, 0.3 * scale, shadow);
+      box(x - tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
+      box(x + tireX * 0.72 * scale, 0.038 * scale, z + (rearZ + 0.54) * scale, 0.13 * scale, 0.025 * scale, 0.9 * scale, shade(shadow, 1.25));
+    }
+
+    function wrapZ(index, spacing, offset, speed = 0.07) {
+      const total = spacing * 22;
+      let z = index * spacing - ((offset * speed * 2.35) % total);
+      while (z &lt; 0) z += total;
+      return z + 8;
+    }
+
+    function roadCurveValue(data) {
+      const state = data &amp;&amp; data.raceState ? data.raceState : {};
+      return Math.max(-1.34, Math.min(1.34, Number(state.roadTurn || state.roadCurve || 0)));
+    }
+
+    function roadWorldXFor(turn, offset, x, z) {
+      const depth = Math.max(0, Math.min(1.12, Number(z) / 150));
+      const sweep = turn * depth * depth * 8.4;
+      const surfaceWave = Math.sin((Number(z) || 0) * 0.035 + (Number(offset) || 0) * 0.0028) * Math.abs(turn) * depth * 0.72;
+      return x + sweep + surfaceWave;
+    }
+
+    function roadWorldX(data, x, z) {
+      return roadWorldXFor(roadCurveValue(data), data.raceState.roadOffset || 0, x, z);
+    }
+
+    function addRoad(data) {
+      const place = data.selectedRace.place;
+      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
+      const accent = hexToRgba(theme[1], 1);
+      const accent2 = hexToRgba(theme[2], 1);
+      const turn = roadCurveValue(data);
+      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
+      const roadColors = {
+        snow: [0.34, 0.42, 0.41, 1],
+        harbor: [0.12, 0.25, 0.3, 1],
+        airfield: [0.24, 0.24, 0.22, 1],
+        farm: [0.31, 0.25, 0.16, 1],
+        desert: [0.42, 0.31, 0.18, 1],
+        tokyo: [0.12, 0.11, 0.18, 1],
+        rainforest: [0.12, 0.18, 0.14, 1],
+        europe: [0.18, 0.24, 0.25, 1]
+      };
+      const groundColors = {
+        coast: [0.05, 0.2, 0.2, 1],
+        city: [0.06, 0.07, 0.08, 1],
+        canyon: [0.28, 0.13, 0.08, 1],
+        alpine: [0.05, 0.14, 0.12, 1],
+        harbor: [0.03, 0.16, 0.2, 1],
+        snow: [0.6, 0.68, 0.66, 1],
+        airfield: [0.24, 0.18, 0.12, 1],
+        freight: [0.2, 0.22, 0.13, 1],
+        farm: [0.12, 0.28, 0.12, 1],
+        tokyo: [0.04, 0.03, 0.08, 1],
+        desert: [0.48, 0.32, 0.16, 1],
+        rainforest: [0.03, 0.18, 0.1, 1],
+        europe: [0.07, 0.18, 0.16, 1]
+      };
+      let roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
+      let groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
+      let roadMark = [0.78, 0.82, 0.78, 1];
+      let roadMarkDim = [0.48, 0.52, 0.5, 1];
+      if (phoneFrame) {
+        roadColor = shade(roadColor, place === &quot;snow&quot; ? 0.56 : 0.38);
+        groundColor = shade(groundColor, 0.34);
+        roadMark = [0.34, 0.37, 0.36, 1];
+        roadMarkDim = [0.18, 0.2, 0.2, 1];
+      }
+      quad([-70, -0.05, 0], [70, -0.05, 0], [70, -0.05, 170], [-70, -0.05, 170], groundColor);
+      quad([roadWorldX(data, -5.8, 0), 0, 0], [roadWorldX(data, 5.8, 0), 0, 0], [roadWorldX(data, 7.4, 170), 0, 170], [roadWorldX(data, -7.4, 170), 0, 170], roadColor);
+      for (let segment = 0; segment &lt; 12; segment += 1) {
+        const z0 = segment * 14.2;
+        const z1 = (segment + 1) * 14.2;
+        const t0 = z0 / 170;
+        const t1 = z1 / 170;
+        const half0 = 5.8 + t0 * 1.6;
+        const half1 = 5.8 + t1 * 1.6;
+        const tone = phoneFrame ? (segment % 2 ? 0.82 : 0.92) : (segment % 2 ? 0.98 : 1.06);
+        quad(
+          [roadWorldX(data, -half0, z0), 0.006, z0],
+          [roadWorldX(data, half0, z0), 0.006, z0],
+          [roadWorldX(data, half1, z1), 0.006, z1],
+          [roadWorldX(data, -half1, z1), 0.006, z1],
+          shade(roadColor, tone)
+        );
+      }
+      quad([roadWorldX(data, -8.7, 0), -0.02, 0], [roadWorldX(data, -5.9, 0), -0.02, 0], [roadWorldX(data, -7.7, 170), -0.02, 170], [roadWorldX(data, -10.2, 170), -0.02, 170], shade(groundColor, 0.72));
+      quad([roadWorldX(data, 5.9, 0), -0.02, 0], [roadWorldX(data, 8.7, 0), -0.02, 0], [roadWorldX(data, 10.2, 170), -0.02, 170], [roadWorldX(data, 7.7, 170), -0.02, 170], shade(groundColor, 0.72));
+      for (let i = 0; i &lt; 42; i += 1) {
+        const z = wrapZ(i, 4.1, data.raceState.roadOffset, 0.16);
+        const x = ((i * 1.37) % 10.6) - 5.3;
+        const patch = phoneFrame ? (i % 3 ? shade(roadColor, 0.72) : shade(roadColor, 0.98)) : (i % 3 ? shade(roadColor, 0.78) : shade(roadColor, 1.18));
+        box(roadWorldX(data, x, z), 0.026, z, 0.38 + (i % 4) * 0.18, 0.014, 1.1 + (i % 5) * 0.28, patch);
+      }
+      for (let i = 0; i &lt; 36; i += 1) {
+        const z = wrapZ(i, 5.1, data.raceState.roadOffset, 0.16);
+        const color = i % 2 ? roadMarkDim : shade(roadMarkDim, 0.72);
+        box(roadWorldX(data, -6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
+        box(roadWorldX(data, 6.25, z), 0.046, z, 0.16, 0.016, 1.05, color);
+      }
+      for (let i = 0; i &lt; 34; i += 1) {
+        const z = wrapZ(i, 5.6, data.raceState.roadOffset, 0.14);
+        box(roadWorldX(data, -5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
+        box(roadWorldX(data, 5.45, z), 0.04, z, 0.14, 0.018, 0.24, roadMark);
+      }
+      for (let lane = -1; lane &lt;= 1; lane += 1) {
+        for (let i = 0; i &lt; 24; i += 1) {
+          const z = wrapZ(i, 7.2, data.raceState.roadOffset, 0.1);
+          box(roadWorldX(data, lane * 2.08, z), 0.034, z, 0.1, 0.016, 1.55, [0.86, 0.9, 0.86, 1]);
+        }
+      }
+      for (let i = 0; i &lt; 28; i += 1) {
+        const z = wrapZ(i, 6.5, data.raceState.roadOffset, 0.13);
+        const side = i % 2 ? -1 : 1;
+        barrierRun(roadWorldX(data, side * 8.4, z), z, i % 3 ? roadMark : roadMarkDim);
+        box(roadWorldX(data, side * 6.55, z + 1.9), 0.08, z + 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.85, 0.86, 0.82, 1] : [0.72, 0.08, 0.06, 1]);
+        box(roadWorldX(data, side * 6.55, z - 1.9), 0.08, z - 1.9, 0.45, 0.05, 1.0, i % 2 ? [0.72, 0.08, 0.06, 1] : [0.85, 0.86, 0.82, 1]);
+      }
+      if (Math.abs(turn) &gt; 0.22) {
+        const side = turn &gt; 0 ? 1 : -1;
+        for (let i = 0; i &lt; 12; i += 1) {
+          const z = wrapZ(i, 9.2, data.raceState.roadOffset, 0.14);
+          box(roadWorldX(data, side * 7.25, z), 0.75, z, 0.18, 1.0, 0.12, roadMarkDim);
+          box(roadWorldX(data, side * 7.05, z - 0.18), 1.32, z - 0.18, 1.2, 0.34, 0.12, i % 2 ? accent : accent2);
+          box(roadWorldX(data, side * 7.05, z - 0.34), 1.32, z - 0.34, 0.48, 0.08, 0.14, [0.9, 0.94, 0.88, 1]);
+        }
+      }
+      if (place === &quot;city&quot; || place === &quot;tokyo&quot;) {
+        for (let i = 0; i &lt; 10; i += 1) {
+          const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
+          for (let stripe = -2; stripe &lt;= 2; stripe += 1) {
+            box(roadWorldX(data, stripe * 1.15, z), 0.034, z, 0.72, 0.018, 1.2, [0.85, 0.86, 0.82, 1]);
+          }
+        }
+      }
+      if ([&quot;city&quot;, &quot;tokyo&quot;, &quot;coast&quot;, &quot;harbor&quot;, &quot;rainforest&quot;].includes(place)) {
+        for (let i = 0; i &lt; 22; i += 1) {
+          const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
+          box(roadWorldX(data, Math.sin(i * 1.7) * 1.6, z), 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
+        }
+      }
+      if ([&quot;city&quot;, &quot;tokyo&quot;, &quot;europe&quot;, &quot;freight&quot;].includes(place)) {
+        for (let i = 0; i &lt; 8; i += 1) {
+          const z = wrapZ(i, 22, data.raceState.roadOffset, 0.08);
+          box(-6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
+          box(6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
+          box(0, 6.12, z, 13.8, 0.22, 0.3, [0.34, 0.36, 0.34, 1]);
+          box(-2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? accent : [0.08, 0.1, 0.1, 1]);
+          box(2.8, 5.72, z - 0.18, 2.4, 0.3, 0.16, i % 2 ? [0.08, 0.1, 0.1, 1] : accent);
+        }
+      }
+    }
+
+    function addScenery(data) {
+      const place = data.selectedRace.place;
+      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
+      const accent = hexToRgba(theme[1], 1);
+      const accent2 = hexToRgba(theme[2], 1);
+      const offset = data.raceState.roadOffset;
+      for (let i = 0; i &lt; 18; i += 1) {
+        const z = wrapZ(i, 12.6, offset, 0.038);
+        const side = i % 2 ? -1 : 1;
+        const x = roadWorldX(data, side * (12.4 + (i % 5) * 4.2), z);
+        if (place === &quot;city&quot; || place === &quot;tokyo&quot;) {
+          const height = 5 + (i % 7) * 2.2;
+          taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === &quot;tokyo&quot; ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
+          box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
+          box(x, height * 0.32, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent2 : accent);
+          box(x, height * 0.72, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent : accent2);
+          if (place === &quot;tokyo&quot; &amp;&amp; i % 5 === 0) {
+            box(side * 6.6, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent2);
+            box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
+          }
+          if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === &quot;tokyo&quot; ? accent2 : accent);
+          if (i % 14 === 0) signPanel(x - side * 2.8, z + 1.5, place === &quot;tokyo&quot; ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
+          if (i % 9 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
+        } else if (place === &quot;farm&quot;) {
+          box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
+          taperedBox(x, 1.95, z - 1.25, 2.45, 1.3, 0.6, 2.55, [0.44, 0.22, 0.12, 1]);
+          box(side * 8.5, 0.35, z + 3, 0.12, 0.7, 4, [0.72, 0.56, 0.32, 1]);
+          if (i % 4 === 0) roadsideTree(side * 10.8, z + 1.5, [0.12, 0.44, 0.14, 1]);
+          if (i % 5 === 0) box(x + side * 3.4, 0.65, z - 1, 2.2, 1.3, 1.8, [0.86, 0.72, 0.34, 1]);
+          if (i % 9 === 0) spectatorCluster(side * 9.4, z + 2, accent, accent2);
+        } else if (place === &quot;freight&quot;) {
+          box(x, 0.9, z, 4.8, 1.8, 2.2, i % 2 ? [0.22, 0.25, 0.24, 1] : [0.68, 0.7, 0.72, 1]);
+          box(x + side * 3.2, 1.4, z + 1.4, 1.1, 2.8, 1.1, [0.12, 0.14, 0.14, 1]);
+          if (i % 14 === 0) signPanel(x - side * 4.1, z + 1.8, accent, [0.04, 0.07, 0.06, 1]);
+          if (i % 7 === 0) box(side * 9.4, 0.9, z - 2.4, 3.6, 1.8, 1.9, [0.52, 0.08, 0.06, 1]);
+          if (i % 8 === 0) streetLight(side * 7.7, z + 2.1, accent2);
+        } else if (place === &quot;desert&quot; || place === &quot;canyon&quot;) {
+          lowMound(x, z, 4.2 + (i % 3) * 1.4, 1.2 + (i % 5) * 0.28, 3.3, place === &quot;canyon&quot; ? [0.55, 0.22, 0.12, 1] : [0.74, 0.48, 0.22, 1]);
+          if (i % 6 === 0) lowMound(side * 18.5, z + 2.7, 7.5, 2.6, 5.2, place === &quot;canyon&quot; ? [0.64, 0.25, 0.13, 1] : [0.78, 0.5, 0.22, 1]);
+          if (i % 16 === 0) box(side * 10.2, 0.6, z + 1.2, 2.2, 1.2, 1.2, [0.12, 0.08, 0.04, 1]);
+        } else if (place === &quot;rainforest&quot;) {
+          taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
+          taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
+          if (i % 4 === 0) roadsideTree(side * 8.6, z + 1.8, [0.08, 0.38, 0.18, 1]);
+          if (i % 11 === 0) spectatorCluster(side * 8.7, z + 1.4, accent, accent2);
+        } else if (place === &quot;snow&quot; || place === &quot;alpine&quot; || place === &quot;europe&quot;) {
+          lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
+          if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
+          if (i % 5 === 0) roadsideTree(side * 9.2, z + 1.5, [0.08, 0.24, 0.18, 1]);
+          if (place === &quot;europe&quot; &amp;&amp; i % 8 === 0) spectatorCluster(side * 8.8, z + 2.2, accent, accent2);
+        } else if (place === &quot;harbor&quot; || place === &quot;coast&quot;) {
+          box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
+          box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
+          if (i % 6 === 0) {
+            box(side * 14.2, 2.1, z, 0.24, 4.2, 0.24, [0.72, 0.48, 0.2, 1]);
+            box(side * 12.4, 4.0, z - 0.6, 3.8, 0.22, 0.24, [0.72, 0.48, 0.2, 1]);
+            taperedBox(side * 15.4, 0.5, z + 1.8, 2.4, 1.5, 0.72, 3.2, accent2);
+          }
+          if (i % 4 === 0) roadsideTree(side * 10.4, z + 0.9, [0.18, 0.48, 0.2, 1], &quot;palm&quot;);
+          if (i % 5 === 0) taperedBox(x - side * 2.8, 0.65, z + 1.6, 2.2, 1.1, 0.55, 3.1, accent2);
+          if (i % 9 === 0) spectatorCluster(side * 9.1, z + 2.8, accent, accent2);
+        } else if (place === &quot;airfield&quot;) {
+          box(x, 1.1, z, 4.4, 2.2, 3.4, [0.18, 0.18, 0.16, 1]);
+          taperedBox(x, 2.35, z - 1.8, 4.8, 2.4, 0.6, 3.6, [0.24, 0.24, 0.22, 1]);
+          if (i % 6 === 0) box(side * 8.8, 0.35, z + 2, 1.8, 0.7, 2.6, accent);
+          if (i % 8 === 0) streetLight(side * 7.6, z + 1.7, accent2);
+        }
+      }
+    }
+
+    function addVehicle(type, x, z, colorHex, scale = 1, police = false, damage = 0) {
+      const paint = police ? [0.9, 0.92, 0.9, 1] : hexToRgba(colorHex, 1);
+      const dark = [0.01, 0.015, 0.014, 1];
+      const red = [1, 0.08, 0.12, 1];
+      const blue = [0.1, 0.55, 1, 1];
+      const glass = [0.52, 0.72, 0.78, 1];
+      const chrome = [0.76, 0.82, 0.78, 1];
+      groundContactPad(type, x, z, scale, paint);
+      if (type === &quot;semi&quot;) {
+        taperedBox(x, 0.8 * scale, z + 0.95 * scale, 1.75 * scale, 1.25 * scale, 1.2 * scale, 1.6 * scale, paint);
+        taperedBox(x, 0.95 * scale, z - 1.25 * scale, 2.05 * scale, 1.78 * scale, 1.6 * scale, 3.2 * scale, shade(paint, 0.78));
+        box(x, 1.14 * scale, z + 1.45 * scale, 0.95 * scale, 0.16 * scale, 0.08 * scale, [0.72, 0.86, 0.9, 1]);
+      } else if (type === &quot;tractor&quot;) {
+        taperedBox(x, 0.7 * scale, z, 1.45 * scale, 0.95 * scale, 0.8 * scale, 1.55 * scale, paint);
+        taperedBox(x, 1.25 * scale, z - 0.2 * scale, 1.0 * scale, 0.72 * scale, 0.9 * scale, 0.8 * scale, shade(paint, 0.9));
+        box(x - 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
+        box(x + 0.75 * scale, 0.45 * scale, z + 0.2 * scale, 0.35 * scale, 0.65 * scale, 0.75 * scale, dark);
+      } else if (type === &quot;f1&quot; || type === &quot;prototype&quot;) {
+        taperedBox(x, 0.36 * scale, z, 0.9 * scale, 0.36 * scale, 0.34 * scale, 2.5 * scale, paint);
+        taperedBox(x, 0.54 * scale, z - 0.2 * scale, 0.58 * scale, 0.32 * scale, 0.32 * scale, 0.55 * scale, dark);
+        box(x, 0.28 * scale, z + 1.0 * scale, 1.5 * scale, 0.12 * scale, 0.25 * scale, shade(paint, 0.7));
+      } else if (type === &quot;truck&quot; || type === &quot;monster&quot; || type === &quot;tank&quot;) {
+        taperedBox(x, 0.75 * scale, z, 1.85 * scale, 1.35 * scale, type === &quot;tank&quot; ? 0.75 * scale : 1.0 * scale, 2.1 * scale, paint);
+        taperedBox(x, 1.25 * scale, z - 0.25 * scale, 1.1 * scale, 0.78 * scale, 0.65 * scale, 0.9 * scale, shade(paint, 0.82));
+        if (type === &quot;tank&quot;) box(x, 1.55 * scale, z - 1.15 * scale, 0.22 * scale, 0.18 * scale, 1.8 * scale, shade(paint, 0.7));
+      } else if (type === &quot;boat&quot; || type === &quot;snowmobile&quot;) {
+        taperedBox(x, 0.42 * scale, z, 1.45 * scale, 0.7 * scale, 0.36 * scale, 2.3 * scale, paint);
+        taperedBox(x, 0.68 * scale, z - 0.25 * scale, 0.62 * scale, 0.35 * scale, 0.42 * scale, 0.75 * scale, dark);
+      } else if (type === &quot;airplane&quot; || type === &quot;fighterjet&quot; || type === &quot;bomber&quot;) {
+        const bomber = type === &quot;bomber&quot;;
+        const fighter = type === &quot;fighterjet&quot;;
+        taperedBox(x, 0.7 * scale, z, (bomber ? 0.92 : fighter ? 0.58 : 0.68) * scale, 0.38 * scale, 0.45 * scale, (bomber ? 3.3 : 2.9) * scale, paint);
+        box(x, 0.66 * scale, z, (bomber ? 3.2 : fighter ? 2.8 : 2.55) * scale, 0.13 * scale, 0.42 * scale, shade(paint, 0.88));
+        if (fighter) {
+          box(x - 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
+          box(x + 0.52 * scale, 0.72 * scale, z + 1.1 * scale, 0.34 * scale, 0.08 * scale, 0.58 * scale, shade(paint, 0.72));
+        }
+      } else if (type === &quot;helicopter&quot;) {
+        taperedBox(x, 0.95 * scale, z, 1.2 * scale, 0.78 * scale, 0.65 * scale, 1.45 * scale, paint);
+        box(x, 1.45 * scale, z, 2.3 * scale, 0.08 * scale, 0.1 * scale, [0.9, 0.94, 0.94, 1]);
+      } else if (type === &quot;drone&quot;) {
+        taperedBox(x, 0.72 * scale, z, 0.74 * scale, 0.3 * scale, 0.48 * scale, 0.74 * scale, paint);
+        box(x - 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x + 0.72 * scale, 0.8 * scale, z - 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x - 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+        box(x + 0.72 * scale, 0.8 * scale, z + 0.62 * scale, 0.52 * scale, 0.04 * scale, 0.16 * scale, [0.9, 0.94, 0.94, 1]);
+      } else {
+        taperedBox(x, 0.55 * scale, z, 1.46 * scale, 0.9 * scale, 0.55 * scale, 2.1 * scale, paint);
+        taperedBox(x, 0.95 * scale, z - 0.25 * scale, 0.88 * scale, 0.55 * scale, 0.45 * scale, 0.82 * scale, dark);
+        box(x, 0.78 * scale, z + 0.8 * scale, 0.7 * scale, 0.08 * scale, 0.08 * scale, [0.86, 0.93, 1, 1]);
+      }
+      const groundVehicle = !isAirType(type);
+      if (groundVehicle) {
+        box(x - 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
+        box(x + 0.42 * scale, 0.54 * scale, z + 1.04 * scale, 0.28 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
+        box(x, 0.46 * scale, z + 1.08 * scale, 0.58 * scale, 0.06 * scale, 0.08 * scale, shade(dark, 1.5));
+        box(x - 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.72));
+        box(x + 0.82 * scale, 0.66 * scale, z - 0.16 * scale, 0.08 * scale, 0.36 * scale, 0.72 * scale, shade(paint, 0.84));
+        box(x - 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.64));
+        box(x + 0.96 * scale, 0.88 * scale, z + 0.34 * scale, 0.18 * scale, 0.1 * scale, 0.2 * scale, shade(paint, 0.72));
+        box(x, 1.02 * scale, z + 0.38 * scale, 0.72 * scale, 0.08 * scale, 0.36 * scale, glass);
+        box(x, 0.94 * scale, z - 0.66 * scale, 0.86 * scale, 0.08 * scale, 0.28 * scale, shade(glass, 0.6));
+        box(x, 0.52 * scale, z - 1.22 * scale, 0.36 * scale, 0.055 * scale, 0.07 * scale, chrome);
+        box(x, 0.42 * scale, z + 1.12 * scale, 0.78 * scale, 0.055 * scale, 0.08 * scale, dark);
+        box(x - 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
+        box(x + 0.46 * scale, 0.82 * scale, z - 0.22 * scale, 0.05 * scale, 0.52 * scale, 1.42 * scale, chrome);
+        if (type === &quot;f1&quot; || type === &quot;prototype&quot; || type === &quot;car&quot;) {
+          box(x, 0.8 * scale, z - 1.16 * scale, 1.28 * scale, 0.1 * scale, 0.16 * scale, shade(paint, 0.65));
+        }
+        if (type === &quot;semi&quot; || type === &quot;truck&quot;) {
+          box(x, 1.25 * scale, z - 0.86 * scale, 1.55 * scale, 0.06 * scale, 0.12 * scale, chrome);
+          box(x, 0.72 * scale, z - 1.84 * scale, 1.45 * scale, 0.08 * scale, 0.1 * scale, shade(paint, 1.18));
+        }
+        if (type === &quot;policecar&quot;) {
+          box(x - 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, red);
+          box(x + 0.2 * scale, 1.19 * scale, z - 0.18 * scale, 0.28 * scale, 0.08 * scale, 0.16 * scale, blue);
+          box(x, 0.73 * scale, z - 1.0 * scale, 0.72 * scale, 0.055 * scale, 0.08 * scale, [0.94, 0.96, 0.96, 1]);
+        }
+      } else {
+        box(x - 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
+        box(x + 0.32 * scale, 0.78 * scale, z + 1.12 * scale, 0.18 * scale, 0.08 * scale, 0.08 * scale, [1, 0.92, 0.62, 1]);
+      }
+      if (damage &gt; 18) {
+        const dent = [0.02, 0.022, 0.02, 1];
+        box(x - 0.28 * scale, 1.04 * scale, z - 0.34 * scale, 0.48 * scale, 0.035 * scale, 0.16 * scale, dent);
+        box(x + 0.34 * scale, 0.86 * scale, z + 0.18 * scale, 0.42 * scale, 0.035 * scale, 0.14 * scale, dent);
+        if (damage &gt; 52) box(x - 0.1 * scale, 0.72 * scale, z + 0.9 * scale, 0.36 * scale, 0.06 * scale, 0.1 * scale, [1, 0.18, 0.16, 1]);
+        if (damage &gt; 76) box(x + 0.18 * scale, 1.2 * scale, z - 0.86 * scale, 0.28 * scale, 0.08 * scale, 0.18 * scale, [0.05, 0.05, 0.045, 1]);
+      }
+      box(x - 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x + 0.64 * scale, 0.17 * scale, z + 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x - 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x + 0.64 * scale, 0.17 * scale, z - 0.72 * scale, 0.24 * scale, 0.34 * scale, 0.5 * scale, dark);
+      box(x - 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x + 0.64 * scale, 0.2 * scale, z + 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x - 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x + 0.64 * scale, 0.2 * scale, z - 0.72 * scale, 0.1 * scale, 0.055 * scale, 0.2 * scale, chrome);
+      box(x - 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? blue : red);
+      box(x + 0.32 * scale, 0.62 * scale, z - 1.15 * scale, 0.36 * scale, 0.08 * scale, 0.08 * scale, police ? red : red);
+    }
+
+    function addMovingObjects(data) {
+      const defs = data.vehicleDefs || [];
+      const getVehicle = (id) =&gt; defs.find((vehicle) =&gt; vehicle.id === id) || defs[0] || { type: &quot;car&quot;, color: &quot;#46d9ff&quot; };
+      const screenYFromRoadDistance = (distance) =&gt; data.height * 0.68 - (distance - data.raceState.distance) * 0.11;
+      const distanceFromScreenY = (y) =&gt; {
+        const clampedY = Math.max(data.height * 0.34, Math.min(data.height * 0.98, Number(y) || data.height * 0.34));
+        return data.raceState.distance + (data.height * 0.68 - clampedY) / 0.11;
+      };
+      const zFromRoadDistance = (distance) =&gt; {
+        const y = screenYFromRoadDistance(distance);
+        const t = Math.max(0.32, Math.min(1.02, y / Math.max(1, data.height)));
+        return 116 - t * 108;
+      };
+      const projectRoadObject = (object) =&gt; {
+        const distance = Number.isFinite(Number(object.distance)) ? Number(object.distance) : distanceFromScreenY(object.y);
+        const y = screenYFromRoadDistance(distance);
+        if (y &lt; data.height * 0.32 || y &gt; data.height * 1.08) return null;
+        return { distance, z: zFromRoadDistance(distance) };
+      };
+      data.raceState.opponents.forEach((opponent) =&gt; {
+        const projected = projectRoadObject(opponent);
+        if (!projected) return;
+        const z = projected.z;
+        if (z &lt; 4 || z &gt; 132) return;
+        const vehicle = getVehicle(opponent.vehicleId);
+        addVehicle(vehicle.type, roadWorldX(data, laneToWorldX(opponent.lane), z), z, opponent.color || vehicle.color, opponent.wrecked ? 0.9 : 0.95, false, opponent.damage || 0);
+      });
+      data.raceState.rivals.forEach((rival) =&gt; {
+        const projected = projectRoadObject(rival);
+        if (!projected) return;
+        const z = projected.z;
+        if (z &lt; 4 || z &gt; 132) return;
+        addVehicle(rival.type || &quot;car&quot;, roadWorldX(data, laneToWorldX(rival.lane), z), z, rival.color, rival.type === &quot;semi&quot; ? 1.08 : 0.9, false, rival.damage || 0);
+      });
+      data.raceState.police.forEach((unit) =&gt; {
+        const projected = projectRoadObject(unit);
+        if (!projected) return;
+        const z = projected.z;
+        if (z &lt; 4 || z &gt; 132) return;
+        addVehicle(&quot;car&quot;, roadWorldX(data, laneToWorldX(unit.lane), z), z, &quot;#f4fbf8&quot;, 0.98, true, unit.damage || 0);
+      });
+      data.raceState.coinsOnRoad.forEach((coin) =&gt; {
+        const projected = projectRoadObject(coin);
+        if (!projected) return;
+        const z = projected.z;
+        if (z &lt; 4 || z &gt; 132) return;
+        box(roadWorldX(data, laneToWorldX(coin.lane), z), 0.52, z, 0.52, 0.72, 0.12, [1, 0.77, 0.26, 1]);
+      });
+      if (data.cameraMode === &quot;chase&quot;) {
+        addVehicle(data.selectedVehicle.type, roadWorldX(data, laneToWorldX(data.raceState.lane), 5.2), 5.2, data.selectedVehicle.color, data.selectedVehicle.type === &quot;semi&quot; ? 1.2 : 1.05, false, data.raceState.damage || 0);
+      } else if (data.cameraMode === &quot;hood&quot;) {
+        const hoodX = roadWorldX(data, laneToWorldX(data.raceState.lane), 1.2);
+        box(hoodX, 0.22, 1.2, 2.2, 0.28, 2.3, hexToRgba(data.selectedVehicle.color, 1));
+        if ((data.raceState.damage || 0) &gt; 25) box(hoodX - 0.5, 0.39, 1.68, 0.5, 0.04, 0.16, [0.02, 0.022, 0.02, 1]);
+      }
+    }
+
+    function render(data) {
+      vertices = [];
+      const theme = data.selectedRace.theme || [&quot;#09100f&quot;, &quot;#46d9ff&quot;, &quot;#ffd166&quot;];
+      const clear = hexToRgba(theme[0], 1);
+      const phoneFrame = data.width &lt;= 940 || data.height &lt;= 540;
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+      gl.clearColor(clear[0] * 0.72, clear[1] * 0.72, clear[2] * 0.72, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+
+      const projection = cameraProjection(data);
+      const mvp = projection.mvp;
+      lastProjection = {
+        ...projection,
+        data
+      };
+
+      addRoad(data);
+      if (!phoneFrame) addScenery(data);
+
+      gl.useProgram(program);
+      gl.uniformMatrix4fv(uMvp, false, new Float32Array(mvp));
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.DYNAMIC_DRAW);
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 28, 0);
+      gl.enableVertexAttribArray(aColor);
+      gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 28, 12);
+      gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 7);
+    }
+
+    function resize(width, height) {
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
+    }
+
+    function projectRoadPoint(lane, distance) {
+      if (!lastProjection || !lastProjection.data) return null;
+      const data = lastProjection.data;
+      const z = zFromRoadDistance(data, Number(distance));
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
+    }
+
+    function projectWorldRoadPoint(lane, z) {
+      if (!lastProjection) return null;
+      return projectPoint(lastProjection, roadWorldXFor(lastProjection.roadTurn || 0, lastProjection.roadOffset || 0, laneToWorldX(lane), z), 0, z);
+    }
+
+    return {
+      ready: true,
+      render,
+      resize,
+      projectRoadPoint,
+      projectWorldRoadPoint
+    };
+  }
+
+  window.VelocityWebGLPipeline = VelocityWebGLPipeline;
+}());
+</pre>
 <h2>manifest.json</h2>
 <pre>{
   &quot;name&quot;: &quot;Velocity Vault&quot;,
@@ -17066,7 +17627,7 @@ drawFrame();
 <h2>sw.js</h2>
 <pre>&quot;use strict&quot;;
 
-const cacheName = &quot;velocity-vault-v86-spread-world-detail&quot;;
+const cacheName = &quot;velocity-vault-v87-reference-world-scenes&quot;;
 const appShell = [
   &quot;./&quot;,
   &quot;./index.html&quot;,
@@ -17107,20 +17668,6 @@ self.addEventListener(&quot;fetch&quot;, (event) =&gt; {
     })
   );
 });
-</pre>
-<h2>app-icon.svg</h2>
-<pre>&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 512 512&quot; role=&quot;img&quot; aria-label=&quot;Velocity Vault icon&quot;&gt;
-  &lt;rect width=&quot;512&quot; height=&quot;512&quot; rx=&quot;96&quot; fill=&quot;#09100f&quot;/&gt;
-  &lt;path d=&quot;M80 358 206 110h100L180 358Z&quot; fill=&quot;#bbf24a&quot;/&gt;
-  &lt;path d=&quot;M220 358 346 110h86L306 358Z&quot; fill=&quot;#46d9ff&quot;/&gt;
-  &lt;path d=&quot;M116 374h286c18 0 32 14 32 32v8H78v-8c0-18 14-32 38-32Z&quot; fill=&quot;#f4fbf8&quot;/&gt;
-  &lt;path d=&quot;M148 276c0-26 21-47 47-47h122c26 0 47 21 47 47v68H148Z&quot; fill=&quot;#172220&quot;/&gt;
-  &lt;path d=&quot;M184 250h144l-22-50H206Z&quot; fill=&quot;#46d9ff&quot;/&gt;
-  &lt;circle cx=&quot;164&quot; cy=&quot;382&quot; r=&quot;34&quot; fill=&quot;#050807&quot;/&gt;
-  &lt;circle cx=&quot;348&quot; cy=&quot;382&quot; r=&quot;34&quot; fill=&quot;#050807&quot;/&gt;
-  &lt;circle cx=&quot;164&quot; cy=&quot;382&quot; r=&quot;15&quot; fill=&quot;#bbf24a&quot;/&gt;
-  &lt;circle cx=&quot;348&quot; cy=&quot;382&quot; r=&quot;15&quot; fill=&quot;#bbf24a&quot;/&gt;
-&lt;/svg&gt;
 </pre>
 <h2>README.md</h2>
 <pre># Velocity Vault
@@ -17220,6 +17767,7 @@ Real-world style visuals:
 - The v84 specialty-world pass makes races declare appropriate vehicle types, adds dedicated semi, monster truck, and tank events, adds more upgradeable variants in those categories, and gives each specialty route its own scenery: convoy lanes, weigh stations, diesel stops, dirt arena berms, crush cars, grandstands, bunkers, range targets, watch towers, and concrete proving-ground details. Profiles also silently auto-save race state every few seconds and on app/page hide so local coins, owned vehicles, per-vehicle upgrades, paint, plates, reputation, and live race progress are remembered after reopening.
 - The v85 all-vehicle upgrade pass expands the garage and race rules so police cars, offshore boats, racing helicopters, fighter jets, bombers, drones, sport planes, tanks, semis, tractors, monster trucks, and standard road cars all use the same saved per-vehicle upgrades, colors, plates, ownership, reputation unlocks, and race compatibility system. It also adds dedicated police interceptor and sky-command routes with pursuit hideouts, runway/skybase traffic, air gates, lightbar visuals, and type-specific phone/WebGL sprites.
 - The v86 world-spacing pass spreads scenery farther down the route, removes most repeated sign-like props from phone mode, turns police roadblocks into lower physical barricades, limits stacked stage boards, and swaps excess labels for grounded buildings, parked cars, lights, fences, people, barriers, and service vehicles so races feel more like driving through a real place instead of a cluster of signs.
+- The v87 reference-world scene pass uses real driving-photo/video cues such as long guardrails, shorelines, sidewalks, parked vehicles, storefront rows, utility poles, fields, cliffs, mountains, service yards, and set-back buildings. It spaces these as drive-by scene blocks by route distance, reduces repeated signs in both phone and browser views, and gives the WebGL route wider roadside spacing so the world reads more like passing through actual places.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
@@ -17495,6 +18043,38 @@ If Apex gives you a custom domain option, point the domain to this deployment an
     &quot;After deployment, open the secure URL on a phone and use Add to Home Screen or Install.&quot;
   ]
 }
+</pre>
+<h2>_headers</h2>
+<pre>/*
+  Content-Security-Policy: default-src &#x27;self&#x27;; script-src &#x27;self&#x27;; style-src &#x27;self&#x27;; img-src &#x27;self&#x27; data:; connect-src &#x27;self&#x27;; manifest-src &#x27;self&#x27;; worker-src &#x27;self&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;; frame-ancestors &#x27;none&#x27;; upgrade-insecure-requests
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), xr-spatial-tracking=(), fullscreen=(self), gamepad=(self)
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/*.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000
+
+/*.svg
+  Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000
 </pre>
 </body>
 </html>

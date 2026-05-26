@@ -4173,6 +4173,7 @@ function drawGroundLockedWorldVisibilityPass(w, h, horizon, roadTop, roadBottom,
     ctx.restore();
     return;
   }
+  drawReferenceInspiredDriveByScenePass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode);
   drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode);
   drawVisibleGroundRoadPass(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode);
@@ -4547,6 +4548,545 @@ function drawSpecialtySurfaceAndWorldPass(w, h, horizon, roadTop, roadBottom, pl
   ctx.globalAlpha = 1;
 }
 
+function referenceInspiredSceneSet(place, stage) {
+  if (stage && stage.prop === "tunnel") return ["tunnelMouthScene", "maintenanceBay", "concreteShoulder", "tunnelLightRun"];
+  if (stage && (stage.prop === "bridge" || stage.prop === "pier")) return ["bridgeGuardrailScene", "waterSpanScene", "inspectionTruckScene", "pierDeckScene"];
+  if (stage && stage.prop === "checkpoint") return ["marshalPullout", "cameraCrewSetback", "crowdBehindBarrier", "serviceVanPullout"];
+  const sets = {
+    coast: ["shorelineHomes", "beachPullout", "palmShoulder", "marinaShore", "seaCliffRail"],
+    city: ["storefrontBlock", "parkedStreet", "glassOfficeSetback", "sidewalkCafe", "crosswalkCorner"],
+    canyon: ["rockCutGuardrail", "photoPullout", "desertScrubBasin", "mesaWall", "tourVanPullout"],
+    alpine: ["pineSlope", "stoneGuardwall", "chaletCluster", "snowbankCurve", "mountainPullout"],
+    harbor: ["containerYardRow", "dockWarehouse", "craneSilhouette", "marinaPier", "serviceQuay"],
+    snow: ["pineSnowfield", "snowFenceRun", "skiLodgeCluster", "plowPullout", "stoneGuardwall"],
+    airfield: ["hangarApron", "runwayServiceRow", "controlTowerSet", "beaconFence", "fuelTruckPad"],
+    pursuit: ["cityPoliceBlock", "parkedStreet", "streetLightRun", "crowdBehindBarrier", "serviceVanPullout"],
+    freight: ["truckStopRow", "semiLot", "soundWallTraffic", "dieselCanopy", "containerYardRow"],
+    interstate: ["truckStopRow", "soundWallTraffic", "dieselCanopy", "semiLot", "restAreaPullout"],
+    farm: ["fieldFenceRows", "barnYard", "grainSiloSet", "tractorField", "countyRoadShoulder"],
+    monsterpark: ["grandstandBerm", "dirtArenaEdge", "crushCarYard", "servicePitRow", "crowdBehindBarrier"],
+    military: ["bunkerSetback", "watchTowerRidge", "blastWallRun", "serviceConvoyPullout", "rangeMound"],
+    skybase: ["hangarApron", "controlTowerSet", "beaconFence", "serviceConvoyPullout", "radarPad"],
+    tokyo: ["neonStreetRow", "railOverpassScene", "taxiCurb", "towerAlley", "wetSidewalkGlow"],
+    desert: ["openDesertHighway", "telephonePoleLine", "rallyCampSparse", "distantButtes", "desertScrubBasin"],
+    rainforest: ["canopyVillage", "riverBridgeScene", "marketRoadside", "mistWaterfall", "woodRailRun"],
+    europe: ["stoneVillageStreet", "terraceVineyard", "switchbackWall", "tramStreet", "cafeCurve"]
+  };
+  return sets[place] || sets.city;
+}
+
+function drawReferenceInspiredDriveByScenePass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
+  const length = Math.max(1, raceLength());
+  const spacing = phoneMode ? 760 : 620;
+  const lookBehind = phoneMode ? 260 : 340;
+  const lookAhead = phoneMode ? 2300 : 3000;
+  const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
+  const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
+  const scenes = [];
+  for (let index = first; index <= last; index += 1) {
+    const baseDistance = index * spacing + seededUnit(seed, index + 510) * spacing * 0.38;
+    if (baseDistance < 0 || baseDistance > length + lookAhead * 0.24) continue;
+    const gap = baseDistance - raceState.distance;
+    if (gap < -lookBehind || gap > lookAhead) continue;
+    const progress = Math.max(0, Math.min(1, baseDistance / length));
+    const stage = routeStageInfo(place, progress);
+    const set = referenceInspiredSceneSet(place, stage);
+    const side = seededUnit(seed, index + 520) > 0.5 ? 1 : -1;
+    const lane = side * (2.56 + seededUnit(seed, index + 530) * (phoneMode ? 0.5 : 0.72));
+    const projected = roadObjectPos(lane, baseDistance);
+    if (!projected || projected.y < horizon - 52 || projected.y > h + 130) continue;
+    scenes.push({
+      x: projected.x,
+      y: projected.y,
+      scale: projected.scale,
+      depth: projected.depth || Math.max(0, Math.min(1, (projected.y - horizon) / Math.max(1, h - horizon))),
+      side,
+      kind: set[Math.abs(index + stage.index) % set.length],
+      seed: seed + index * 173,
+      distance: baseDistance
+    });
+    if (!phoneMode && index % 3 === 0) {
+      const otherDistance = baseDistance + spacing * (0.42 + seededUnit(seed, index + 540) * 0.16);
+      const otherProgress = Math.max(0, Math.min(1, otherDistance / length));
+      const otherStage = routeStageInfo(place, otherProgress);
+      const otherSet = referenceInspiredSceneSet(place, otherStage);
+      const otherSide = -side;
+      const otherProjected = roadObjectPos(otherSide * (2.46 + seededUnit(seed, index + 550) * 0.58), otherDistance);
+      if (otherProjected && otherProjected.y >= horizon - 52 && otherProjected.y <= h + 130) {
+        scenes.push({
+          x: otherProjected.x,
+          y: otherProjected.y,
+          scale: otherProjected.scale,
+          depth: otherProjected.depth || Math.max(0, Math.min(1, (otherProjected.y - horizon) / Math.max(1, h - horizon))),
+          side: otherSide,
+          kind: otherSet[(Math.abs(index) + otherStage.index + 2) % otherSet.length],
+          seed: seed + index * 191,
+          distance: otherDistance
+        });
+      }
+    }
+  }
+  scenes.sort((a, b) => a.y - b.y);
+  ctx.save();
+  clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 18 : 24);
+  const lastBySide = { "-1": -9999, "1": -9999 };
+  scenes.forEach((scene) => {
+    const sideKey = String(scene.side < 0 ? -1 : 1);
+    const minGap = phoneMode ? 220 : 150;
+    if (scene.y - lastBySide[sideKey] < minGap) return;
+    lastBySide[sideKey] = scene.y;
+    const near = Math.max(0, Math.min(1, scene.depth || 0));
+    const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, scene.y, scene.side, scene.x, phoneMode, phoneMode ? 42 : 58);
+    const scale = Math.max(0.36, Math.min(phoneMode ? 1.74 : 2.02, scene.scale * (0.92 + near * 0.72)));
+    ctx.globalAlpha = Math.min(0.96, (phoneMode ? 0.58 : 0.56) + near * 0.34);
+    drawReferenceInspiredSceneCluster(scene.kind, x, scene.y, scale, scene.side, place, route, design, theme, scene.seed);
+  });
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawReferenceInspiredSceneCluster(kind, x, y, scale, side, place, route, design, theme, seed) {
+  const accent = design.accent || theme[1] || "#46d9ff";
+  const light = design.light || theme[2] || "#ffd166";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  drawReferenceSceneGroundPatch(kind, side, place, design, theme);
+  if (/storefront|parkedStreet|glassOffice|sidewalkCafe|crosswalk|neonStreet|taxiCurb|towerAlley|wetSidewalk|stoneVillage|tramStreet|cafeCurve|cityPolice/i.test(kind)) {
+    drawReferenceBuildingRow(side, kind, place, accent, light, seed);
+    if (!/glassOffice|towerAlley/i.test(kind)) drawReferenceParkedVehicleLine(side, accent, light, seed);
+    if (/sidewalk|cafe|crosswalk|taxi|stoneVillage|neon|police/i.test(kind)) drawReferencePeopleLine(side, accent, light, seed);
+    drawReferenceStreetFurniture(side, kind, accent, light);
+  } else if (/shoreline|beach|palm|marina|seaCliff|waterSpan|pierDeck/i.test(kind)) {
+    drawReferenceWaterEdge(side, kind, accent, light, seed);
+    drawReferenceTreeLine("palm", side, seed);
+    if (/Homes|beach|marina/i.test(kind)) drawReferenceSmallHouseRow(side, accent, light, seed);
+    if (/seaCliff|bridge|waterSpan/i.test(kind)) drawReferenceGuardrail(side, "rgba(214,226,221,0.62)");
+  } else if (/rock|mesa|desert|telephone|rallyCamp|distantButtes|photoPullout|tourVan/i.test(kind)) {
+    drawReferenceRockAndDesertScene(side, kind, accent, light, seed);
+    drawReferenceGuardrail(side, "rgba(210,190,156,0.42)");
+    if (/telephone/i.test(kind)) drawReferenceUtilityPoleLine(side, accent, light);
+    if (/rallyCamp|photoPullout|tourVan/i.test(kind)) drawReferenceParkedVehicleLine(side, accent, light, seed);
+  } else if (/pine|stoneGuard|chalet|snowbank|mountainPullout|skiLodge|snowFence|plow/i.test(kind)) {
+    drawReferenceTreeLine("pine", side, seed);
+    drawReferenceMountainVillage(side, kind, accent, light, seed);
+    drawReferenceGuardrail(side, /snow|pine/i.test(kind) ? "rgba(244,251,248,0.58)" : "rgba(170,178,170,0.58)");
+  } else if (/container|dockWarehouse|crane|serviceQuay|truckStop|semiLot|soundWall|diesel|restArea/i.test(kind)) {
+    drawReferenceIndustrialScene(side, kind, accent, light, seed);
+    if (/truckStop|semiLot|diesel|restArea/i.test(kind)) drawReferenceParkedVehicleLine(side, light, accent, seed);
+  } else if (/field|barn|grainSilo|tractor|countyRoad/i.test(kind)) {
+    drawReferenceFarmScene(side, kind, accent, light, seed);
+  } else if (/hangar|runway|controlTower|beacon|fuelTruck|radar/i.test(kind)) {
+    drawReferenceAirfieldScene(side, kind, accent, light, seed);
+  } else if (/bunker|watchTower|blastWall|serviceConvoy|rangeMound|concreteShoulder/i.test(kind)) {
+    drawReferenceMilitaryScene(side, kind, accent, light, seed);
+  } else if (/grandstand|dirtArena|crushCar|servicePit|Berm/i.test(kind)) {
+    drawReferenceMonsterScene(side, kind, accent, light, seed);
+  } else if (/canopy|riverBridge|market|mistWaterfall|woodRail/i.test(kind)) {
+    drawReferenceRainforestScene(side, kind, accent, light, seed);
+  } else {
+    drawReferenceBuildingRow(side, kind, place, accent, light, seed);
+    drawReferenceParkedVehicleLine(side, accent, light, seed);
+  }
+  ctx.restore();
+}
+
+function drawReferenceSceneGroundPatch(kind, side, place, design, theme) {
+  const ground = place === "desert" || place === "canyon" ? "rgba(178,92,48,0.26)"
+    : place === "coast" || place === "harbor" ? "rgba(70,217,255,0.18)"
+      : place === "farm" ? "rgba(115,146,56,0.2)"
+        : place === "snow" || place === "alpine" ? "rgba(244,251,248,0.2)"
+          : "rgba(16,24,23,0.26)";
+  ctx.fillStyle = "rgba(0,0,0,0.36)";
+  ctx.beginPath();
+  ctx.ellipse(side * -10, 18, 126, 18, -0.04 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = ground;
+  ctx.beginPath();
+  ctx.moveTo(-136 * side, 14);
+  ctx.lineTo(118 * side, 2);
+  ctx.lineTo(146 * side, 34);
+  ctx.lineTo(-118 * side, 40);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawReferenceBuildingRow(side, kind, place, accent, light, seed) {
+  const night = place === "tokyo" || /neon|wetSidewalk|towerAlley/i.test(kind);
+  const village = /stoneVillage|tramStreet|cafeCurve/i.test(kind);
+  const baseColor = night ? "rgba(18,10,34,0.9)" : village ? "rgba(72,54,42,0.88)" : "rgba(12,22,24,0.88)";
+  for (let i = -1; i <= 2; i += 1) {
+    const bx = side * (i * 42 + seededUnit(seed, i + 3) * 10);
+    const bw = village ? 44 + seededUnit(seed, i + 11) * 14 : 34 + seededUnit(seed, i + 11) * 26;
+    const bh = village ? 46 + seededUnit(seed, i + 22) * 24 : 64 + seededUnit(seed, i + 22) * 94;
+    ctx.fillStyle = baseColor;
+    roundRect(bx - bw / 2, 12 - bh, bw, bh, 4);
+    ctx.fill();
+    if (village) {
+      ctx.fillStyle = i % 2 ? "rgba(156,72,48,0.9)" : "rgba(104,74,54,0.9)";
+      ctx.beginPath();
+      ctx.moveTo(bx - bw * 0.62, 12 - bh);
+      ctx.lineTo(bx, -bh - 10);
+      ctx.lineTo(bx + bw * 0.62, 12 - bh);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = night ? (i % 2 ? `${accent}92` : `${light}88`) : "rgba(244,251,248,0.36)";
+    for (let row = 0; row < Math.min(6, Math.floor(bh / 18)); row += 1) {
+      ctx.fillRect(bx - bw * 0.28, 23 - bh + row * 15, bw * 0.16, 4);
+      ctx.fillRect(bx + bw * 0.1, 24 - bh + row * 15, bw * 0.18, 4);
+    }
+  }
+}
+
+function drawReferenceSmallHouseRow(side, accent, light, seed) {
+  for (let i = -1; i <= 1; i += 1) {
+    const bx = side * (i * 48 + 8);
+    ctx.fillStyle = i % 2 ? "rgba(228,208,170,0.82)" : "rgba(28,46,48,0.82)";
+    roundRect(bx - 28, -42, 56, 52, 5);
+    ctx.fill();
+    ctx.fillStyle = i % 2 ? `${accent}99` : `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(bx - 34, -42);
+    ctx.lineTo(bx, -66);
+    ctx.lineTo(bx + 34, -42);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawReferenceWaterEdge(side, kind, accent, light, seed) {
+  ctx.fillStyle = "rgba(70,217,255,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(side * -14, 18, 130, 22, -0.05 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,248,0.28)";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(-108 * side, i * 8 + 10);
+    ctx.quadraticCurveTo(-20 * side, i * 8 + 4 + Math.sin(seed + i) * 5, 104 * side, i * 8 + 12);
+    ctx.stroke();
+  }
+  if (/marina|pier|waterSpan/i.test(kind)) {
+    ctx.strokeStyle = "rgba(138,102,62,0.78)";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-94 * side, -4);
+    ctx.lineTo(92 * side, -18);
+    ctx.moveTo(-94 * side, 12);
+    ctx.lineTo(92 * side, -2);
+    for (let p = -3; p <= 3; p += 1) {
+      ctx.moveTo(p * 28 * side, -20);
+      ctx.lineTo(p * 28 * side, 20);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawReferenceRockAndDesertScene(side, kind, accent, light, seed) {
+  const main = /canyon|rock|mesa|Buttes/i.test(kind) ? "rgba(172,82,42,0.72)" : "rgba(216,142,66,0.5)";
+  for (let i = -1; i <= 1; i += 1) {
+    const bx = side * (i * 52 + seededUnit(seed, i + 4) * 16);
+    const peak = -42 - seededUnit(seed, i + 14) * 52;
+    ctx.fillStyle = main;
+    ctx.beginPath();
+    ctx.moveTo(bx - 58, 18);
+    ctx.lineTo(bx - 24, peak * 0.72);
+    ctx.lineTo(bx + 8, -18);
+    ctx.lineTo(bx + 44, peak);
+    ctx.lineTo(bx + 72, 18);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = "rgba(96,118,52,0.72)";
+  for (let i = -3; i <= 3; i += 1) {
+    ctx.beginPath();
+    ctx.ellipse(side * (i * 24 + 6), 4 + (i % 2) * 7, 14, 9, 0.2 * i, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMountainVillage(side, kind, accent, light, seed) {
+  if (/chalet|Lodge|mountainPullout/i.test(kind)) {
+    drawReferenceSmallHouseRow(side, accent, light, seed);
+  }
+  ctx.fillStyle = /snow|pine/i.test(kind) ? "rgba(244,251,248,0.42)" : "rgba(150,168,160,0.34)";
+  ctx.beginPath();
+  ctx.moveTo(-128, 18);
+  ctx.lineTo(-58, -58);
+  ctx.lineTo(-16, -20);
+  ctx.lineTo(46, -86);
+  ctx.lineTo(128, 20);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawReferenceIndustrialScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = /dock|container|crane/i.test(kind) ? "rgba(18,34,36,0.88)" : "rgba(28,30,28,0.88)";
+  roundRect(side > 0 ? -86 : -70, -42, 156, 54, 5);
+  ctx.fill();
+  const colors = ["#ff5b6b", "#46d9ff", "#ffd166", "#dce8ef"];
+  for (let i = -2; i <= 2; i += 1) {
+    ctx.fillStyle = colors[(Math.abs(i) + Math.floor(seed)) % colors.length];
+    roundRect(side * (i * 30) - 14, -26 + (i % 2) * 12, 28, 18, 2);
+    ctx.fill();
+  }
+  if (/crane|container|dock/i.test(kind)) {
+    ctx.strokeStyle = `${light}99`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(52 * side, 12);
+    ctx.lineTo(34 * side, -86);
+    ctx.lineTo(-72 * side, -72);
+    ctx.moveTo(34 * side, -86);
+    ctx.lineTo(4 * side, -18);
+    ctx.stroke();
+  }
+}
+
+function drawReferenceFarmScene(side, kind, accent, light, seed) {
+  ctx.strokeStyle = "rgba(187,242,74,0.35)";
+  ctx.lineWidth = 2;
+  for (let i = -4; i <= 4; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(-126 * side, i * 8 + 16);
+    ctx.lineTo(126 * side, i * 2 + 2);
+    ctx.stroke();
+  }
+  if (/barn|county|field/i.test(kind)) {
+    ctx.fillStyle = "rgba(148,42,34,0.88)";
+    roundRect(side > 0 ? -44 : -32, -52, 76, 62, 5);
+    ctx.fill();
+    ctx.fillStyle = "rgba(96,28,24,0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-52 * side, -52);
+    ctx.lineTo(-6 * side, -86);
+    ctx.lineTo(44 * side, -52);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (/silo|grain/i.test(kind)) {
+    ctx.fillStyle = "rgba(220,224,210,0.72)";
+    roundRect(side > 0 ? 48 : -80, -82, 32, 92, 8);
+    ctx.fill();
+  }
+  drawReferenceGuardrail(side, "rgba(150,117,80,0.58)");
+}
+
+function drawReferenceAirfieldScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = "rgba(22,26,26,0.88)";
+  roundRect(side > 0 ? -104 : -76, -38, 180, 52, 8);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(216,224,213,0.58)";
+  ctx.lineWidth = 3;
+  for (let i = -3; i <= 3; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 30 * side, 16);
+    ctx.lineTo(i * 34 * side, -28);
+    ctx.stroke();
+  }
+  if (/control|beacon|radar/i.test(kind)) {
+    ctx.fillStyle = "rgba(214,226,221,0.72)";
+    roundRect(side > 0 ? 62 : -96, -86, 34, 94, 5);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.arc(78 * side, -96, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMilitaryScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = "rgba(58,68,54,0.82)";
+  roundRect(side > 0 ? -86 : -46, -30, 132, 42, 4);
+  ctx.fill();
+  ctx.fillStyle = "rgba(26,32,28,0.9)";
+  roundRect(side > 0 ? -46 : -26, -58, 72, 42, 5);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(187,242,74,0.44)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-110 * side, -4);
+  ctx.lineTo(110 * side, -14);
+  ctx.stroke();
+  if (/watchTower/i.test(kind)) {
+    ctx.strokeStyle = "rgba(170,182,160,0.72)";
+    ctx.beginPath();
+    ctx.moveTo(60 * side, 12);
+    ctx.lineTo(48 * side, -82);
+    ctx.moveTo(96 * side, 12);
+    ctx.lineTo(84 * side, -82);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(20,26,22,0.86)";
+    roundRect(side > 0 ? 38 : -96, -102, 58, 26, 3);
+    ctx.fill();
+  }
+}
+
+function drawReferenceMonsterScene(side, kind, accent, light, seed) {
+  ctx.fillStyle = "rgba(110,62,30,0.58)";
+  ctx.beginPath();
+  ctx.ellipse(0, 10, 122, 30, -0.08 * side, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(8,12,12,0.82)";
+  roundRect(side > 0 ? -94 : -48, -70, 142, 42, 5);
+  ctx.fill();
+  ctx.fillStyle = `${accent}88`;
+  for (let i = -2; i <= 2; i += 1) {
+    const carX = i * 28 * side;
+    roundRect(carX - 17, -14 + (i % 2) * 5, 34, 14, 2);
+    ctx.fill();
+  }
+}
+
+function drawReferenceRainforestScene(side, kind, accent, light, seed) {
+  drawReferenceTreeLine("canopy", side, seed);
+  if (/market|Village/i.test(kind)) {
+    ctx.fillStyle = "rgba(62,42,26,0.86)";
+    roundRect(side > 0 ? -62 : -42, -42, 104, 52, 5);
+    ctx.fill();
+    ctx.fillStyle = `${light}88`;
+    ctx.beginPath();
+    ctx.moveTo(-70 * side, -42);
+    ctx.lineTo(-12 * side, -74);
+    ctx.lineTo(54 * side, -42);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (/river|Waterfall/i.test(kind)) {
+    ctx.fillStyle = "rgba(70,217,255,0.24)";
+    ctx.beginPath();
+    ctx.ellipse(0, 20, 116, 18, -0.05 * side, 0, Math.PI * 2);
+    ctx.fill();
+    if (/Waterfall/i.test(kind)) {
+      ctx.fillStyle = "rgba(222,249,255,0.45)";
+      roundRect(side > 0 ? 28 : -50, -86, 22, 94, 6);
+      ctx.fill();
+    }
+  }
+  drawReferenceGuardrail(side, "rgba(124,86,48,0.6)");
+}
+
+function drawReferenceTreeLine(kind, side, seed) {
+  for (let i = -2; i <= 2; i += 1) {
+    const x = side * (i * 34 + seededUnit(seed, i + 12) * 9);
+    const trunk = kind === "palm" ? "rgba(136,88,46,0.86)" : "rgba(70,54,34,0.86)";
+    ctx.strokeStyle = trunk;
+    ctx.lineWidth = kind === "canopy" ? 5 : 4;
+    ctx.beginPath();
+    ctx.moveTo(x, 14);
+    ctx.lineTo(x + side * 4, -48 - seededUnit(seed, i + 18) * 26);
+    ctx.stroke();
+    ctx.fillStyle = kind === "palm" ? "rgba(54,164,88,0.8)" : kind === "canopy" ? "rgba(32,118,58,0.82)" : "rgba(24,92,54,0.84)";
+    if (kind === "pine") {
+      for (let tier = 0; tier < 3; tier += 1) {
+        ctx.beginPath();
+        ctx.moveTo(x, -82 + tier * 22);
+        ctx.lineTo(x - 28, -38 + tier * 18);
+        ctx.lineTo(x + 30, -38 + tier * 18);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(x + side * 4, -64, kind === "canopy" ? 42 : 30, kind === "palm" ? 10 : 22, 0.15 * side, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x - side * 14, -52, kind === "canopy" ? 34 : 26, kind === "palm" ? 9 : 20, -0.35 * side, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawReferenceParkedVehicleLine(side, accent, light, seed) {
+  for (let i = -1; i <= 1; i += 1) {
+    const x = side * (i * 42 + 8);
+    const paint = i % 2 ? accent : light;
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
+    ctx.beginPath();
+    ctx.ellipse(x, 17, 34, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = paint;
+    roundRect(x - 30, -12, 60, 27, 6);
+    ctx.fill();
+    ctx.fillStyle = "rgba(5,8,7,0.8)";
+    roundRect(x - 12, -22, 24, 13, 4);
+    ctx.fill();
+    ctx.fillStyle = "#050807";
+    ctx.beginPath();
+    ctx.arc(x - 20, 15, 6, 0, Math.PI * 2);
+    ctx.arc(x + 20, 15, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawReferencePeopleLine(side, accent, light, seed) {
+  const colors = [accent, light, "#f4fbf8", "#ff5b6b"];
+  for (let i = -2; i <= 2; i += 1) {
+    const x = side * (i * 13 + 2);
+    ctx.fillStyle = colors[(Math.abs(i) + Math.floor(seed)) % colors.length];
+    ctx.beginPath();
+    ctx.arc(x, -18 + (i % 2) * 3, 4, 0, Math.PI * 2);
+    ctx.fill();
+    roundRect(x - 4, -14 + (i % 2) * 3, 8, 18, 3);
+    ctx.fill();
+  }
+}
+
+function drawReferenceStreetFurniture(side, kind, accent, light) {
+  ctx.strokeStyle = "rgba(205,218,214,0.64)";
+  ctx.lineWidth = 3;
+  for (let i = -1; i <= 1; i += 2) {
+    const x = side * (80 + i * 12);
+    ctx.beginPath();
+    ctx.moveTo(x, 12);
+    ctx.lineTo(x, -74);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = /neon|wet/i.test(kind) ? accent : light;
+    ctx.beginPath();
+    ctx.arc(x, -80, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+  }
+}
+
+function drawReferenceUtilityPoleLine(side, accent, light) {
+  ctx.strokeStyle = "rgba(120,86,54,0.72)";
+  ctx.lineWidth = 4;
+  for (let i = -2; i <= 2; i += 1) {
+    const x = side * (i * 42);
+    ctx.beginPath();
+    ctx.moveTo(x, 16);
+    ctx.lineTo(x, -74);
+    ctx.moveTo(x - 20 * side, -54);
+    ctx.lineTo(x + 20 * side, -54);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(216,226,221,0.26)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-106 * side, -58);
+  ctx.bezierCurveTo(-42 * side, -66, 30 * side, -42, 108 * side, -56);
+  ctx.stroke();
+}
+
+function drawReferenceGuardrail(side, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(-112 * side, -10);
+  ctx.lineTo(112 * side, -20);
+  ctx.moveTo(-112 * side, 8);
+  ctx.lineTo(112 * side, -2);
+  for (let i = -4; i <= 4; i += 1) {
+    ctx.moveTo(i * 28 * side, -26);
+    ctx.lineTo(i * 28 * side, 18);
+  }
+  ctx.stroke();
+}
+
 function groundLockedPlaceProps(place, stage) {
   if (stage && stage.prop === "tunnel") return ["barrier", "wallLamp", "tunnelFan", "routeSign"];
   if (stage && (stage.prop === "bridge" || stage.prop === "pier")) return ["bridgeRail", "lamp", "waterEdge", "routeSign"];
@@ -4661,9 +5201,9 @@ function realWorldGroundFallback(place = "city", index = 0) {
 }
 
 function worldSceneryProp(kind, place = "city", index = 0, phoneMode = phoneGraphicsActive()) {
-  if (!phoneMode) return kind;
   if (!isSignLikeWorldProp(kind)) return kind;
-  return realWorldGroundFallback(place, index);
+  if (phoneMode) return realWorldGroundFallback(place, index);
+  return Math.abs(index) % 3 === 0 ? kind : realWorldGroundFallback(place, index);
 }
 
 function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
@@ -6423,7 +6963,7 @@ function drawRouteMicroLandmarks(w, h, horizon, roadTop, roadBottom, place, desi
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
     const x = perspectiveRoadCenter(w, t) + side * (half * (0.82 + seededUnit(seed, i + 830) * 0.3));
     const scale = (0.34 + t * 0.98) * (phoneMode ? 0.8 : 1);
-    const kind = routeMicroLandmarkKind(place, i, seed);
+    const kind = routeMicroLandmarkProp(routeMicroLandmarkKind(place, i, seed), place, i, phoneMode);
     drawRouteMicroLandmark(kind, x, y, scale, side, design, theme, seed + i * 43);
   }
   ctx.restore();
@@ -6447,6 +6987,28 @@ function routeMicroLandmarkKind(place, index, seed) {
   };
   const list = sets[place] || sets.city;
   return list[(index + Math.floor(seed % list.length)) % list.length];
+}
+
+function routeMicroLandmarkProp(kind, place, index, phoneMode) {
+  if (!/sign|marker|post|flag/i.test(kind)) return kind;
+  if (!phoneMode && Math.abs(index) % 2 === 0) return kind;
+  const sets = {
+    coast: ["surfboardRack", "guardUmbrella", "beachFence", "cafeTable"],
+    city: ["taxiStand", "newsKiosk", "busShelter", "cafeTable"],
+    canyon: ["photoPullout", "rockStack", "desertGuard", "hayBale"],
+    alpine: ["cafeTable", "hayBale", "busShelter", "snowPole"],
+    harbor: ["bollard", "dockCart", "lifeRing", "containerCone"],
+    snow: ["cafeTable", "hayBale", "busShelter", "snowPole"],
+    airfield: ["fuelCart", "dockCart", "busShelter", "cafeTable"],
+    freight: ["palletStack", "yardLight", "fuelCart", "dockCart"],
+    farm: ["mailbox", "hayBale", "farmGate", "cafeTable"],
+    tokyo: ["neonKiosk", "taxiStand", "busShelter", "cafeTable"],
+    desert: ["shadeTent", "rockStack", "desertGuard", "hayBale"],
+    rainforest: ["marketLantern", "woodPost", "leafBarrier", "cafeTable"],
+    europe: ["villageLamp", "stoneMarker", "cafeTable", "busShelter"]
+  };
+  const list = sets[place] || sets.city;
+  return list[Math.abs(index) % list.length];
 }
 
 function drawRouteMicroLandmark(kind, x, y, scale, side, design, theme, seed) {
