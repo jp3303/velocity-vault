@@ -451,7 +451,13 @@
         desert: [0.42, 0.31, 0.18, 1],
         tokyo: [0.12, 0.11, 0.18, 1],
         rainforest: [0.12, 0.18, 0.14, 1],
-        europe: [0.18, 0.24, 0.25, 1]
+        europe: [0.18, 0.24, 0.25, 1],
+        vegas: [0.11, 0.1, 0.15, 1],
+        dubai: [0.13, 0.22, 0.25, 1],
+        venice: [0.08, 0.24, 0.28, 1],
+        iceland: [0.3, 0.38, 0.4, 1],
+        monaco: [0.15, 0.2, 0.22, 1],
+        rio: [0.12, 0.2, 0.15, 1]
       };
       const groundColors = {
         coast: [0.05, 0.2, 0.2, 1],
@@ -466,7 +472,13 @@
         tokyo: [0.04, 0.03, 0.08, 1],
         desert: [0.48, 0.32, 0.16, 1],
         rainforest: [0.03, 0.18, 0.1, 1],
-        europe: [0.07, 0.18, 0.16, 1]
+        europe: [0.07, 0.18, 0.16, 1],
+        vegas: [0.08, 0.04, 0.1, 1],
+        dubai: [0.05, 0.16, 0.18, 1],
+        venice: [0.03, 0.17, 0.2, 1],
+        iceland: [0.42, 0.5, 0.48, 1],
+        monaco: [0.08, 0.15, 0.16, 1],
+        rio: [0.03, 0.2, 0.1, 1]
       };
       let roadColor = roadColors[place] || [0.14, 0.16, 0.15, 1];
       let groundColor = groundColors[place] || [0.04, 0.08, 0.06, 1];
@@ -537,7 +549,7 @@
           box(roadWorldX(data, side * 7.05, z - 0.34), 1.32, z - 0.34, 0.48, 0.08, 0.14, [0.9, 0.94, 0.88, 1]);
         }
       }
-      if (place === "city" || place === "tokyo") {
+      if (place === "city" || place === "tokyo" || place === "vegas" || place === "dubai" || place === "monaco" || place === "rio") {
         for (let i = 0; i < 10; i += 1) {
           const z = wrapZ(i, 18, data.raceState.roadOffset, 0.09);
           for (let stripe = -2; stripe <= 2; stripe += 1) {
@@ -545,13 +557,13 @@
           }
         }
       }
-      if (["city", "tokyo", "coast", "harbor", "rainforest"].includes(place)) {
+      if (["city", "tokyo", "coast", "harbor", "rainforest", "vegas", "dubai", "venice", "monaco", "rio"].includes(place)) {
         for (let i = 0; i < 22; i += 1) {
           const z = wrapZ(i, 7.8, data.raceState.roadOffset, 0.12);
           box(roadWorldX(data, Math.sin(i * 1.7) * 1.6, z), 0.032, z, 1.0 + (i % 4) * 0.42, 0.012, 0.16, i % 2 ? roadMarkDim : roadMark);
         }
       }
-      if (["city", "tokyo", "europe", "freight"].includes(place)) {
+      if (["city", "tokyo", "europe", "freight", "vegas", "dubai", "monaco"].includes(place)) {
         for (let i = 0; i < 8; i += 1) {
           const z = wrapZ(i, 22, data.raceState.roadOffset, 0.08);
           box(-6.8, 3.1, z, 0.22, 6.2, 0.22, [0.34, 0.36, 0.34, 1]);
@@ -575,21 +587,25 @@
         const z = wrapZ(i, 12.6, offset, 0.038);
         const side = i % 2 ? -1 : 1;
         const x = roadWorldX(data, side * (phoneFrame ? 9.8 + (i % 4) * 2.2 : 11.2 + (i % 5) * 3.2), z);
-        if (place === "city" || place === "tokyo") {
+        if (place === "city" || place === "tokyo" || place === "vegas" || place === "dubai") {
           const height = 5 + (i % 7) * 2.2;
-          taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
+          taperedBox(x, height / 2, z, 2.6 + (i % 3), 2.1 + (i % 2), height, 2.8, place === "tokyo" || place === "vegas" ? [0.08, 0.06, 0.16, 1] : [0.08, 0.1, 0.11, 1]);
           box(x, height * 0.55, z - 1.42, 1.7, 0.14, 0.08, i % 2 ? accent : accent2);
           box(x, height * 0.32, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent2 : accent);
           box(x, height * 0.72, z - 1.45, 0.24, 0.1, 0.1, i % 2 ? accent : accent2);
-          if (place === "tokyo" && i % 5 === 0) {
+          if ((place === "tokyo" || place === "vegas") && i % 5 === 0) {
             box(side * 6.6, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent2);
             box(side * 6.95, 3.1, z + 1.2, 0.2, 4.5, 0.18, accent);
           }
-          if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === "tokyo" ? accent2 : accent);
-          if (i % 14 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
+          if (place === "dubai" && i % 6 === 0) {
+            taperedBox(x + side * 4.0, 3.0, z + 1.7, 1.6, 1.0, 6.0, 1.9, [0.1, 0.28, 0.32, 1]);
+            box(roadWorldX(data, side * 10.8, z + 2.4), 0.22, z + 2.4, 4.4, 0.22, 5.8, [0.04, 0.22, 0.28, 1]);
+          }
+          if (i % 4 === 0) streetLight(side * 7.55, z + 1.1, place === "tokyo" || place === "vegas" ? accent2 : accent);
+          if (i % 14 === 0) signPanel(x - side * 2.8, z + 1.5, place === "tokyo" || place === "vegas" ? accent2 : accent, [0.04, 0.05, 0.06, 1]);
           if (i % 9 === 0) spectatorCluster(side * 8.9, z + 2.4, accent, accent2);
           if (i % 13 === 0) animalGroup(side * 9.8, z + 2.9, "dog", side);
-          if (i % 5 === 0) livingCrowdLine(roadWorldX(data, side * 9.6, z + 1.7), z + 1.7, side, accent, accent2, place === "tokyo" ? "stadium" : "crowd");
+          if (i % 5 === 0) livingCrowdLine(roadWorldX(data, side * 9.6, z + 1.7), z + 1.7, side, accent, accent2, place === "tokyo" || place === "vegas" ? "stadium" : "crowd");
           if (i % 6 === 0) cyclistPair(roadWorldX(data, side * 8.25, z + 0.7), z + 0.7, side, accent, accent2);
         } else if (place === "farm") {
           box(x, 0.8, z, 2.2, 1.6, 2.4, i % 2 ? [0.5, 0.1, 0.08, 1] : [0.72, 0.66, 0.38, 1]);
@@ -615,6 +631,14 @@
           if (i % 16 === 0) box(side * 10.2, 0.6, z + 1.2, 2.2, 1.2, 1.2, [0.12, 0.08, 0.04, 1]);
           if (i % 11 === 0) animalGroup(side * 10.8, z + 2.4, place === "desert" ? "camel" : "deer", side);
           if (i % 9 === 0) livingCrowdLine(roadWorldX(data, side * 10.4, z + 1.8), z + 1.8, side, accent, accent2, "crowd");
+        } else if (place === "rio") {
+          taperedBox(x, 1.6, z, 2.4, 1.4, 3.2, 2.2, i % 2 ? [0.1, 0.32, 0.2, 1] : [0.12, 0.18, 0.14, 1]);
+          lowMound(x + side * 4.6, z + 2.1, 4.8 + (i % 3), 2.0, 3.2, [0.1, 0.36, 0.18, 1]);
+          if (i % 3 === 0) roadsideTree(side * 8.7, z + 1.2, [0.12, 0.46, 0.18, 1], "palm");
+          if (i % 4 === 0) streetLight(side * 7.7, z + 0.8, accent2);
+          if (i % 6 === 0) spectatorCluster(side * 9.2, z + 1.8, accent, accent2);
+          if (i % 8 === 0) animalGroup(side * 10.7, z + 2.6, i % 16 === 0 ? "monkey" : "birds", side);
+          if (i % 5 === 0) livingCrowdLine(roadWorldX(data, side * 9.5, z + 1.1), z + 1.1, side, accent, accent2, "crowd");
         } else if (place === "rainforest") {
           taperedBox(x, 2.0, z, 0.7, 0.42, 4, 0.7, [0.12, 0.22, 0.12, 1]);
           taperedBox(x, 4.3, z, 3.6, 2.2, 1.8, 2.5, i % 2 ? [0.1, 0.42, 0.22, 1] : [0.18, 0.52, 0.18, 1]);
@@ -622,17 +646,27 @@
           if (i % 11 === 0) spectatorCluster(side * 8.7, z + 1.4, accent, accent2);
           if (i % 9 === 0) animalGroup(side * 10.5, z + 2.4, "monkey", side);
           if (i % 7 === 0) livingCrowdLine(roadWorldX(data, side * 9.8, z + 1.2), z + 1.2, side, accent, accent2, "crowd");
-        } else if (place === "snow" || place === "alpine" || place === "europe") {
+        } else if (place === "snow" || place === "alpine" || place === "europe" || place === "iceland") {
           lowMound(x, z, 5.8 + (i % 4) * 1.3, 2.3 + (i % 5) * 0.5, 3.8, [0.74, 0.82, 0.84, 1]);
           if (i % 3 === 0) box(x + side * 2.5, 1.2, z + 2.2, 1.8, 2.4, 1.7, [0.08, 0.2, 0.16, 1]);
           if (i % 5 === 0) roadsideTree(side * 9.2, z + 1.5, [0.08, 0.24, 0.18, 1]);
+          if (place === "iceland" && i % 4 === 0) lowMound(side * 13.2, z + 2.8, 5.6, 2.8, 4.4, [0.25, 0.32, 0.34, 1]);
           if (place === "europe" && i % 8 === 0) spectatorCluster(side * 8.8, z + 2.2, accent, accent2);
-          if (i % 10 === 0) animalGroup(side * 10.4, z + 2.5, place === "europe" ? "sheep" : "deer", side);
+          if (i % 10 === 0) animalGroup(side * 10.4, z + 2.5, place === "europe" ? "sheep" : place === "iceland" ? "goat" : "deer", side);
           if (place === "europe" && i % 5 === 0) cyclistPair(roadWorldX(data, side * 8.4, z + 0.8), z + 0.8, side, accent, accent2);
           if (i % 6 === 0) livingCrowdLine(roadWorldX(data, side * 9.7, z + 1.8), z + 1.8, side, accent, accent2, place === "europe" ? "crowd" : "farm");
-        } else if (place === "harbor" || place === "coast") {
+        } else if (place === "harbor" || place === "coast" || place === "venice" || place === "monaco") {
           box(x, 0.22, z, 5.5, 0.25, 6.5, [0.04, 0.22, 0.28, 1]);
           box(x + side * 1.4, 0.9, z, 0.28, 1.8, 0.28, [0.58, 0.44, 0.26, 1]);
+          if (place === "monaco" && i % 5 === 0) {
+            taperedBox(x - side * 2.8, 1.45, z - 0.6, 2.8, 1.8, 2.9, 2.4, [0.16, 0.18, 0.18, 1]);
+            streetLight(side * 7.7, z + 1.2, accent2);
+          }
+          if (place === "venice" && i % 4 === 0) {
+            box(x + side * 3.6, 0.7, z + 1.2, 2.5, 1.4, 1.5, [0.48, 0.34, 0.22, 1]);
+            box(roadWorldX(data, side * 6.5, z + 0.6), 1.8, z + 0.6, 0.18, 3.6, 0.18, [0.66, 0.58, 0.42, 1]);
+            box(roadWorldX(data, side * 6.5, z + 0.6), 3.5, z + 0.6, 2.8, 0.18, 0.18, [0.66, 0.58, 0.42, 1]);
+          }
           if (i % 6 === 0) {
             box(side * 14.2, 2.1, z, 0.24, 4.2, 0.24, [0.72, 0.48, 0.2, 1]);
             box(side * 12.4, 4.0, z - 0.6, 3.8, 0.22, 0.24, [0.72, 0.48, 0.2, 1]);

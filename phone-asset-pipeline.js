@@ -866,7 +866,10 @@
     if (textureCache.has(key)) return textureCache.get(key);
     const canvas = makeCanvas(512, 512);
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = place === "snow" ? "rgba(205,222,224,0.14)" : place === "desert" || place === "canyon" ? "rgba(156,92,42,0.13)" : "rgba(244,251,248,0.08)";
+    const icy = place === "snow" || place === "iceland";
+    const dusty = place === "desert" || place === "canyon" || place === "vegas";
+    const watery = place === "harbor" || place === "venice" || place === "monaco" || place === "dubai";
+    ctx.fillStyle = icy ? "rgba(205,222,224,0.14)" : dusty ? "rgba(156,92,42,0.13)" : watery ? "rgba(70,217,255,0.09)" : "rgba(244,251,248,0.08)";
     ctx.fillRect(0, 0, 512, 512);
     for (let i = 0; i < 420; i += 1) {
       const x = (i * 47) % 512;
@@ -881,7 +884,7 @@
       ctx.stroke();
     }
     ctx.globalAlpha = 0.18;
-    ctx.strokeStyle = place === "snow" ? "rgba(244,251,248,0.9)" : "rgba(0,0,0,0.85)";
+    ctx.strokeStyle = icy ? "rgba(244,251,248,0.9)" : "rgba(0,0,0,0.85)";
     ctx.lineCap = "round";
     for (let i = 0; i < 54; i += 1) {
       const x = (i * 109) % 512;
@@ -892,7 +895,7 @@
       ctx.bezierCurveTo(x + 24, y + 9, x - 18, y + 31, x + 38, y + 45);
       ctx.stroke();
     }
-    ctx.globalAlpha = place === "tokyo" || place === "city" || place === "harbor" || place === "rainforest" ? 0.22 : 0.1;
+    ctx.globalAlpha = place === "tokyo" || place === "city" || place === "harbor" || place === "rainforest" || place === "vegas" || place === "dubai" || place === "venice" || place === "monaco" || place === "rio" ? 0.22 : 0.1;
     for (let i = 0; i < 18; i += 1) {
       const x = (i * 131) % 512;
       const y = (i * 191) % 512;

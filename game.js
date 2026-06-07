@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 76;
+const starterGarageVersion = 77;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -37,19 +37,30 @@ const races = [
   { id: "tokyo", name: "Tokyo Neon Expressway", length: 5700, target: "Keep focus above 62", type: "focus", goal: 62, reward: 310, rep: 40, theme: ["#100d1c", "#ff4fd8", "#46d9ff"], place: "tokyo", sign: "Tokyo Express", mood: "neon tunnel", unlock: 44, vehicleTypes: ["car", "f1", "prototype"] },
   { id: "sahara", name: "Sahara Desert Rally", length: 6100, target: "Dodge 34 rivals", type: "dodges", goal: 34, reward: 330, rep: 44, theme: ["#160f0a", "#ffb74a", "#f4fbf8"], place: "desert", sign: "Sahara Rally", mood: "sand storm", unlock: 66, vehicleTypes: ["car", "truck", "monster", "tank"] },
   { id: "rainforest", name: "Amazon Rainforest Rush", length: 5400, target: "Score 4600 points", type: "score", goal: 4600, reward: 320, rep: 42, theme: ["#07130d", "#36d98a", "#ffd166"], place: "rainforest", sign: "Amazon Route", mood: "jungle rain", unlock: 88, vehicleTypes: ["truck", "monster", "tractor", "car"] },
-  { id: "eurotour", name: "Swiss Alps Grand Tour", length: 6400, target: "Score 5600 points", type: "score", goal: 5600, reward: 360, rep: 48, theme: ["#091119", "#dce8ef", "#46d9ff"], place: "europe", sign: "Swiss Alps", mood: "euro pass", unlock: 110, vehicleTypes: ["car", "f1", "prototype", "airplane", "helicopter"] }
+  { id: "eurotour", name: "Swiss Alps Grand Tour", length: 6400, target: "Score 5600 points", type: "score", goal: 5600, reward: 360, rep: 48, theme: ["#091119", "#dce8ef", "#46d9ff"], place: "europe", sign: "Swiss Alps", mood: "euro pass", unlock: 110, vehicleTypes: ["car", "f1", "prototype", "airplane", "helicopter"] },
+  { id: "vegasstrip", name: "Desert Neon Strip Circuit", length: 6500, target: "Keep focus above 66", type: "focus", goal: 66, reward: 390, rep: 52, theme: ["#120f18", "#ff4fd8", "#ffd166"], place: "vegas", sign: "Neon Strip", mood: "night boulevard pursuit", unlock: 58, vehicleTypes: ["car", "prototype", "policecar"], hotPursuit: true },
+  { id: "dubaimarina", name: "Dubai Marina Hyper Sprint", length: 6900, target: "Score 6400 points", type: "score", goal: 6400, reward: 430, rep: 58, theme: ["#07151b", "#46d9ff", "#ffd166"], place: "dubai", sign: "Marina Hyper", mood: "glass towers and tunnel ramps", unlock: 78, vehicleTypes: ["car", "prototype", "f1"] },
+  { id: "venicecanal", name: "Venice Canal Boat Grand Prix", length: 5600, target: "Collect 22 water markers", type: "coins", goal: 22, reward: 360, rep: 48, theme: ["#07161b", "#6fffe9", "#ffd166"], place: "venice", sign: "Canal GP", mood: "lagoon bridges and boats", unlock: 74, vehicleTypes: ["boat"] },
+  { id: "icelandglacier", name: "Iceland Glacier Storm Rally", length: 6200, target: "Dodge 36 rivals", type: "dodges", goal: 36, reward: 410, rep: 56, theme: ["#081116", "#dce8ef", "#46d9ff"], place: "iceland", sign: "Glacier Ring", mood: "ice lava storm", unlock: 94, vehicleTypes: ["snowmobile", "truck", "monster"] },
+  { id: "monacocliff", name: "Mediterranean Cliff Grand Prix", length: 6800, target: "Score 6800 points", type: "score", goal: 6800, reward: 460, rep: 64, theme: ["#10141a", "#f4fbf8", "#ffd166"], place: "monaco", sign: "Cliff GP", mood: "yachts tunnels and hairpins", unlock: 118, vehicleTypes: ["f1", "prototype", "car"] },
+  { id: "riomountain", name: "Rio Mountain Coast Rush", length: 6300, target: "Collect 24 route markers", type: "coins", goal: 24, reward: 420, rep: 58, theme: ["#06150e", "#36d98a", "#ffd166"], place: "rio", sign: "Mountain Coast", mood: "coastline switchbacks", unlock: 102, vehicleTypes: ["car", "truck", "monster", "helicopter"] }
 ];
 
 const vehicleDefs = [
   { id: "street", name: "Street Supercar", type: "car", desc: "Fast all-around modern racing feel.", speed: 1, handling: 1, mass: 1, color: "#1bb7e8", price: 0, unlock: 0, class: "road" },
   { id: "rally", name: "Rally Coupe", type: "car", desc: "Widebody dirt-road racer with fast lane changes.", speed: 0.96, handling: 1.16, mass: 0.96, color: "#ff8c42", price: 1800, unlock: 28, class: "road", model: "Rally widebody" },
   { id: "drift", name: "Drift Street Coupe", type: "car", desc: "Slide-focused city build with extra drift control.", speed: 0.98, handling: 1.24, mass: 0.92, color: "#ff4fd8", price: 2200, unlock: 38, class: "road", model: "Drift kit" },
+  { id: "hypergt", name: "Hyper GT Coupe", type: "car", desc: "Low, wide, high-grip road build for late-game city and coast routes.", speed: 1.1, handling: 1.06, mass: 0.94, color: "#6fffe9", price: 7200, unlock: 118, class: "road", model: "Hyper GT" },
+  { id: "touringgt", name: "Endurance Touring GT", type: "car", desc: "Stable grand-touring racer with strong corner exits on long world routes.", speed: 1.04, handling: 1.12, mass: 1.06, color: "#dce8ef", price: 6400, unlock: 104, class: "road", model: "Endurance GT" },
   { id: "interceptor", name: "Police Interceptor", type: "policecar", desc: "Pursuit-class cruiser with lightbar heat control and upgradeable chase grip.", speed: 1.02, handling: 1.06, mass: 1.16, color: "#dce8ef", price: 2800, unlock: 34, class: "pursuit", model: "Interceptor cruiser" },
   { id: "pursuitsuv", name: "Pursuit SUV", type: "policecar", desc: "Heavier pursuit build with stronger contact resistance and upgradeable torque.", speed: 0.9, handling: 0.84, mass: 1.48, color: "#101820", price: 3800, unlock: 56, class: "pursuit", model: "Pursuit utility" },
   { id: "f1", name: "F1 Open-Wheel", type: "f1", desc: "Sharp steering and high top speed.", speed: 1.18, handling: 1.18, mass: 0.72, color: "#ff3348", price: 2600, unlock: 45, class: "road" },
+  { id: "nightformula", name: "Formula Night Aero", type: "f1", desc: "Low-drag open-wheel build with brighter night-race light signatures.", speed: 1.25, handling: 1.2, mass: 0.68, color: "#101820", price: 8800, unlock: 145, class: "road", model: "Night aero" },
   { id: "grandprix", name: "Grand Prix Prototype", type: "prototype", desc: "Stable, fast, low race body.", speed: 1.12, handling: 1.08, mass: 0.82, color: "#f4fbf8", price: 3200, unlock: 58, class: "road" },
+  { id: "electricproto", name: "Electric Track Prototype", type: "prototype", desc: "Instant-response prototype with smooth acceleration and bright light trim.", speed: 1.22, handling: 1.12, mass: 0.78, color: "#46d9ff", price: 9400, unlock: 156, class: "road", model: "Electric aero" },
   { id: "truck", name: "Performance Truck", type: "truck", desc: "Heavier, stable, strong contact resistance.", speed: 0.88, handling: 0.82, mass: 1.35, color: "#ffd166", price: 1200, unlock: 20, class: "road" },
   { id: "buggy", name: "Desert Buggy", type: "truck", desc: "Light off-road machine built for dunes and shortcut branches.", speed: 0.92, handling: 1.04, mass: 0.88, color: "#ffb74a", price: 2400, unlock: 50, class: "rally", model: "Open desert buggy" },
+  { id: "bajatruck", name: "Baja Trophy Truck", type: "truck", desc: "Long-travel off-road racer for desert, glacier, and mountain world routes.", speed: 0.98, handling: 0.94, mass: 1.18, color: "#ff8c42", price: 5200, unlock: 90, class: "rally", model: "Long-travel trophy" },
   { id: "semi", name: "Semi Truck Racer", type: "semi", desc: "Huge highway pull, heavy drafting, upgrade into a freight rocket.", speed: 0.72, handling: 0.58, mass: 2.1, color: "#dce8ef", price: 3400, unlock: 60, class: "freight" },
   { id: "aerosemi", name: "Aero Cab Semi", type: "semi", desc: "Streamlined convoy racer with stronger highway speed and upgrade headroom.", speed: 0.84, handling: 0.62, mass: 1.95, color: "#46d9ff", price: 5200, unlock: 86, class: "freight", model: "Aero cab" },
   { id: "hauler", name: "Heavy Hauler Semi", type: "semi", desc: "Big torque freight build for long interstate races and heavy contact.", speed: 0.66, handling: 0.52, mass: 2.45, color: "#ffd166", price: 6400, unlock: 112, class: "freight", model: "Long-haul sleeper" },
@@ -65,6 +76,7 @@ const vehicleDefs = [
   { id: "hydro", name: "Hydroplane Racer", type: "boat", desc: "Higher-speed water rocket for harbor and marina cuts.", speed: 1.18, handling: 0.78, mass: 0.78, color: "#6fffe9", price: 3600, unlock: 64, class: "water", model: "Hydroplane" },
   { id: "patrolboat", name: "Armored Patrol Boat", type: "boat", desc: "Heavy water build for chase scenarios and rough wakes.", speed: 0.88, handling: 0.74, mass: 1.35, color: "#dce8ef", price: 4600, unlock: 82, class: "water", model: "Patrol hull" },
   { id: "offshorecat", name: "Offshore Catamaran", type: "boat", desc: "Twin-hull speed boat for rough wake racing and long harbor sprints.", speed: 1.25, handling: 0.72, mass: 0.86, color: "#ff8c42", price: 5600, unlock: 104, class: "water", model: "Twin hull" },
+  { id: "marinavhull", name: "Marina V-Hull Racer", type: "boat", desc: "Sleek high-speed boat tuned for canal bridges, harbor chop, and tight shorelines.", speed: 1.16, handling: 0.86, mass: 0.9, color: "#f4fbf8", price: 6200, unlock: 124, class: "water", model: "V-hull sprint" },
   { id: "helicopter", name: "Pursuit Helicopter", type: "helicopter", desc: "Air-style handling with wide steering.", speed: 0.92, handling: 0.98, mass: 0.9, color: "#dce8ef", price: 6000, unlock: 110, class: "air" },
   { id: "attackheli", name: "Attack Helicopter", type: "helicopter", desc: "Faster air mission build with stronger pursuit handling.", speed: 1.02, handling: 0.9, mass: 1.05, color: "#6d7667", price: 7800, unlock: 145, class: "air", model: "Attack rotor" },
   { id: "racingheli", name: "Racing Helicopter", type: "helicopter", desc: "Light rotorcraft tuned for faster sky gates and sharper air slaloms.", speed: 1.1, handling: 1.02, mass: 0.76, color: "#ffd166", price: 8200, unlock: 152, class: "air", model: "Racing rotor" },
@@ -105,18 +117,18 @@ function isWaterVehicleType(vehicleOrType) {
 }
 
 const vehicleRaceRules = {
-  car: { places: ["coast", "city", "canyon", "alpine", "tokyo", "desert", "rainforest", "europe"], label: "road circuits" },
-  policecar: { places: ["pursuit", "city", "tokyo"], label: "police pursuit routes" },
-  f1: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
-  prototype: { places: ["coast", "city", "alpine", "tokyo", "europe"], label: "road and grand prix circuits" },
-  truck: { places: ["coast", "city", "canyon", "alpine", "freight", "farm", "desert", "rainforest"], label: "road, freight, and rally routes" },
+  car: { places: ["coast", "city", "canyon", "alpine", "tokyo", "desert", "rainforest", "europe", "vegas", "dubai", "monaco", "rio"], label: "road circuits" },
+  policecar: { places: ["pursuit", "city", "tokyo", "vegas"], label: "police pursuit routes" },
+  f1: { places: ["coast", "city", "alpine", "tokyo", "europe", "dubai", "monaco"], label: "road and grand prix circuits" },
+  prototype: { places: ["coast", "city", "alpine", "tokyo", "europe", "vegas", "dubai", "monaco"], label: "road and grand prix circuits" },
+  truck: { places: ["coast", "city", "canyon", "alpine", "freight", "farm", "desert", "rainforest", "iceland", "rio"], label: "road, freight, and rally routes" },
   semi: { places: ["freight", "interstate"], label: "semi and freight routes" },
   tractor: { places: ["farm", "rainforest"], label: "farm rally routes" },
-  monster: { places: ["monsterpark", "canyon", "desert", "rainforest"], label: "monster truck arenas" },
+  monster: { places: ["monsterpark", "canyon", "desert", "rainforest", "iceland", "rio"], label: "monster truck arenas" },
   tank: { places: ["military", "desert"], label: "armored proving routes" },
-  snowmobile: { places: ["snow"], label: "snow routes" },
-  boat: { places: ["harbor"], label: "water routes" },
-  helicopter: { places: ["airfield", "skybase", "desert", "rainforest", "europe", "military"], label: "sky routes" },
+  snowmobile: { places: ["snow", "iceland"], label: "snow routes" },
+  boat: { places: ["harbor", "venice"], label: "water routes" },
+  helicopter: { places: ["airfield", "skybase", "desert", "rainforest", "europe", "military", "rio"], label: "sky routes" },
   airplane: { places: ["airfield", "skybase", "desert", "europe"], label: "sky routes" },
   fighterjet: { places: ["airfield", "skybase", "military", "desert"], label: "fighter jet sky routes" },
   bomber: { places: ["skybase", "military", "desert"], label: "bomber sky routes" },
@@ -470,7 +482,13 @@ const routeWorlds = {
   tokyo: { country: "Japan", scene: "Tokyo Expressway", cue: "neon overpasses", turn: 1.18, seed: 9.6 },
   desert: { country: "Morocco", scene: "Sahara Rally", cue: "sand ridges", turn: 1.12, seed: 10.5 },
   rainforest: { country: "Brazil", scene: "Amazon Rainforest", cue: "jungle tunnels", turn: 1.02, seed: 11.4 },
-  europe: { country: "Switzerland", scene: "Swiss Alps Tour", cue: "village switchbacks", turn: 1.36, seed: 12.2 }
+  europe: { country: "Switzerland", scene: "Swiss Alps Tour", cue: "village switchbacks", turn: 1.36, seed: 12.2 },
+  vegas: { country: "USA", scene: "Desert Neon Strip", cue: "hotel canyons and beltway sweepers", turn: 0.98, seed: 13.1 },
+  dubai: { country: "UAE", scene: "Dubai Marina", cue: "glass towers and tunnel ramps", turn: 1.08, seed: 14.2 },
+  venice: { country: "Italy", scene: "Venice Lagoon", cue: "canal bridges and stone quays", turn: 0.86, seed: 15.3 },
+  iceland: { country: "Iceland", scene: "Glacier Ring", cue: "lava roads and ice walls", turn: 1.26, seed: 16.4 },
+  monaco: { country: "Monaco", scene: "Mediterranean Cliff GP", cue: "harbor hairpins", turn: 1.42, seed: 17.5 },
+  rio: { country: "Brazil", scene: "Rio Mountain Coast", cue: "beachfront and hillside switchbacks", turn: 1.28, seed: 18.6 }
 };
 
 const genAiSceneDesigns = {
@@ -491,7 +509,13 @@ const genAiSceneDesigns = {
   tokyo: { style: "neon expressway battle", surface: "#151424", accent: "#ff4fd8", light: "#46d9ff", props: ["neon", "tunnel", "tower", "crowd", "brake"] },
   desert: { style: "open desert rally", surface: "#4b3321", accent: "#ffb74a", light: "#f4fbf8", props: ["dune", "dust", "camera", "barrier", "brake"] },
   rainforest: { style: "jungle wet rally", surface: "#17241e", accent: "#36d98a", light: "#ffd166", props: ["canopy", "rain", "bridge", "crowd", "brake"] },
-  europe: { style: "euro alpine tour", surface: "#263235", accent: "#dce8ef", light: "#46d9ff", props: ["village", "snowcap", "guard", "crowd", "brake"] }
+  europe: { style: "euro alpine tour", surface: "#263235", accent: "#dce8ef", light: "#46d9ff", props: ["village", "snowcap", "guard", "crowd", "brake"] },
+  vegas: { style: "desert neon boulevard circuit", surface: "#17151d", accent: "#ff4fd8", light: "#ffd166", props: ["neon", "tower", "tunnel", "crowd", "brake"] },
+  dubai: { style: "glass marina hypercar route", surface: "#14242a", accent: "#46d9ff", light: "#ffd166", props: ["tower", "bridge", "tunnel", "camera", "brake"] },
+  venice: { style: "lagoon boat grand prix", surface: "#10272c", accent: "#6fffe9", light: "#ffd166", props: ["bridge", "pier", "boat", "crowd", "brake"] },
+  iceland: { style: "glacier storm rally", surface: "#253034", accent: "#dce8ef", light: "#46d9ff", props: ["snowcap", "rock", "tunnel", "flag", "brake"] },
+  monaco: { style: "mediterranean cliff grand prix", surface: "#1b2226", accent: "#f4fbf8", light: "#ffd166", props: ["marina", "tunnel", "tower", "crowd", "brake"] },
+  rio: { style: "mountain coast street rush", surface: "#14241c", accent: "#36d98a", light: "#ffd166", props: ["palm", "mountain", "tunnel", "crowd", "brake"] }
 };
 
 function routeWorldInfo(place = "city") {
@@ -2234,11 +2258,17 @@ function routeVehicleBoost(place, vehicleType, rival = false) {
   if (place === "desert" && (vehicleType === "monster" || vehicleType === "truck")) return rival ? 1.12 : 1.1;
   if (place === "rainforest" && (vehicleType === "truck" || vehicleType === "monster" || vehicleType === "tractor")) return rival ? 1.1 : 1.08;
   if (place === "europe" && (vehicleType === "f1" || vehicleType === "prototype" || vehicleType === "car" || isAirVehicleType(vehicleType))) return rival ? 1.1 : 1.08;
+  if (place === "vegas" && (vehicleType === "car" || vehicleType === "prototype" || vehicleType === "policecar")) return rival ? 1.11 : 1.09;
+  if (place === "dubai" && (vehicleType === "car" || vehicleType === "f1" || vehicleType === "prototype")) return rival ? 1.12 : 1.1;
+  if (place === "venice" && vehicleType === "boat") return rival ? 1.14 : 1.12;
+  if (place === "iceland" && (vehicleType === "snowmobile" || vehicleType === "truck" || vehicleType === "monster")) return rival ? 1.12 : 1.1;
+  if (place === "monaco" && (vehicleType === "f1" || vehicleType === "prototype" || vehicleType === "car")) return rival ? 1.13 : 1.11;
+  if (place === "rio" && (vehicleType === "car" || vehicleType === "truck" || vehicleType === "monster" || vehicleType === "helicopter")) return rival ? 1.1 : 1.08;
   return 1;
 }
 
 function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
-  if (vehicle.type === "boat" || race.place === "harbor") return ["boat", "boat", "boat", "boat"];
+  if (vehicle.type === "boat" || race.place === "harbor" || race.place === "venice") return ["boat", "boat", "boat", "boat"];
   if (isAirVehicleType(vehicle.type)) return ["airplane", "helicopter", "fighterjet", "drone", "bomber"];
   if (vehicle.type === "policecar" || race.place === "pursuit") return ["policecar", "car", "truck", "policecar"];
   if (vehicle.type === "tank") return ["tank", "truck", "semi", "monster"];
@@ -2256,6 +2286,11 @@ function raceTrafficTypes(race = selectedRace, vehicle = selectedVehicle()) {
   if (race.place === "tokyo") return ["car", "f1", "prototype", "semi"];
   if (race.place === "desert") return ["monster", "truck", "semi", "car"];
   if (race.place === "rainforest") return ["truck", "monster", "tractor", "car"];
+  if (race.place === "vegas") return ["car", "prototype", "policecar", "truck"];
+  if (race.place === "dubai") return ["prototype", "f1", "car", "car"];
+  if (race.place === "iceland") return ["snowmobile", "truck", "monster", "truck"];
+  if (race.place === "monaco") return ["f1", "prototype", "car", "car"];
+  if (race.place === "rio") return ["car", "truck", "monster", "car"];
   return ["car", "f1", "prototype", "truck", "monster"];
 }
 
@@ -2277,16 +2312,16 @@ function pursuitIntensity() {
 
 function raceHasOncomingTraffic(race = selectedRace, vehicle = selectedVehicle()) {
   if (isWaterVehicleType(vehicle.type) || isAirVehicleType(vehicle.type) || vehicle.type === "tank") return false;
-  return ["city", "tokyo", "coast", "desert", "europe", "pursuit"].includes(race.place);
+  return ["city", "tokyo", "coast", "desert", "europe", "pursuit", "vegas", "dubai", "monaco", "rio"].includes(race.place);
 }
 
 function raceAllowsCivilians(race = selectedRace, vehicle = selectedVehicle()) {
   if (isAirVehicleType(vehicle.type) || isWaterVehicleType(vehicle.type)) return false;
-  return !["airfield", "snow", "military", "monsterpark", "skybase"].includes(race.place);
+  return !["airfield", "snow", "military", "monsterpark", "skybase", "iceland"].includes(race.place);
 }
 
 function raceIsNight(race = selectedRace) {
-  return race.place === "city" || race.place === "tokyo" || /night|neon|tunnel/i.test(race.name + " " + race.mood);
+  return race.place === "city" || race.place === "tokyo" || race.place === "vegas" || /night|neon|tunnel/i.test(race.name + " " + race.mood);
 }
 
 function raceRankings() {
@@ -2384,7 +2419,13 @@ function routeAnimalChance(place = "city") {
     desert: 0.32,
     rainforest: 0.42,
     europe: 0.3,
-    pursuit: 0.12
+    pursuit: 0.12,
+    vegas: 0.1,
+    dubai: 0.12,
+    venice: 0.22,
+    iceland: 0.34,
+    monaco: 0.16,
+    rio: 0.34
   };
   return chances[place] || 0.18;
 }
@@ -2403,7 +2444,13 @@ function routeAnimalSet(place = "city") {
     desert: ["camel", "coyote", "bird"],
     rainforest: ["monkey", "tapir", "bird"],
     europe: ["deer", "sheep", "dog"],
-    pursuit: ["dog", "bird"]
+    pursuit: ["dog", "bird"],
+    vegas: ["dog", "bird"],
+    dubai: ["dog", "shoreBird"],
+    venice: ["dog", "shoreBird"],
+    iceland: ["goat", "bird"],
+    monaco: ["dog", "shoreBird"],
+    rio: ["dog", "shoreBird", "monkey"]
   };
   return sets[place] || sets.city;
 }
@@ -2514,6 +2561,30 @@ function routeFeatureCatalog(race = selectedRace, vehicle = selectedVehicle()) {
     europe: [
       { type: "hide", label: "Village Arch", detail: "building hideout", icon: "building" },
       { type: "shortcut", label: "Switchback Cut", detail: "extra alpine road", icon: "road" }
+    ],
+    vegas: [
+      { type: "hide", label: "Hotel Garage", detail: "drop heat under the tower deck", icon: "building" },
+      { type: "shortcut", label: "Service Ramp", detail: "neon beltway shortcut", icon: "road" }
+    ],
+    dubai: [
+      { type: "hide", label: "Tower Podium", detail: "glass district cover", icon: "building" },
+      { type: "shortcut", label: "Marina Ramp", detail: "waterfront slip road", icon: "road" }
+    ],
+    venice: [
+      { type: "hide", label: "Bridge Shadow", detail: "hide behind stone arches", icon: "dock" },
+      { type: "shortcut", label: "Side Canal", detail: "tight canal branch", icon: "water" }
+    ],
+    iceland: [
+      { type: "hide", label: "Ice Cave", detail: "glacier cover", icon: "cave" },
+      { type: "shortcut", label: "Lava Cut", detail: "rough rally bypass", icon: "road" }
+    ],
+    monaco: [
+      { type: "hide", label: "Harbor Garage", detail: "hide under the cliff-side deck", icon: "building" },
+      { type: "shortcut", label: "Tunnel Exit", detail: "fast hairpin bypass", icon: "road" }
+    ],
+    rio: [
+      { type: "hide", label: "Hillside Arch", detail: "mountain-road cover", icon: "mountain" },
+      { type: "shortcut", label: "Beach Bypass", detail: "coast road shortcut", icon: "road" }
     ]
   };
   return byPlace[race.place] || byPlace.city;
@@ -3973,7 +4044,13 @@ function routeStageInfo(place = "city", progress = 0) {
     tokyo: [["Neon Entry", "neon"], ["Expressway", "tower"], ["Tunnel Run", "tunnel"], ["Tokyo Finish", "checkpoint"]],
     desert: [["Dune Sea", "dune"], ["Oasis Road", "palm"], ["Rock Gate", "cliff"], ["Rally Finish", "checkpoint"]],
     rainforest: [["Jungle Entry", "canopy"], ["Bridge Bypass", "bridge"], ["Canopy Tunnel", "canopy"], ["Rain Finish", "checkpoint"]],
-    europe: [["Village Road", "village"], ["Switchback", "mountain"], ["Stone Tunnel", "tunnel"], ["Alps Finish", "checkpoint"]]
+    europe: [["Village Road", "village"], ["Switchback", "mountain"], ["Stone Tunnel", "tunnel"], ["Alps Finish", "checkpoint"]],
+    vegas: [["Neon Boulevard", "neon"], ["Casino Tunnel", "tunnel"], ["Desert Beltway", "tower"], ["Strip Finish", "checkpoint"]],
+    dubai: [["Marina Towers", "tower"], ["Glass Tunnel", "tunnel"], ["Palm Causeway", "bridge"], ["Marina Finish", "checkpoint"]],
+    venice: [["Lagoon Start", "pier"], ["Stone Bridge", "bridge"], ["Canal Turn", "village"], ["Canal Finish", "checkpoint"]],
+    iceland: [["Lava Coast", "cliff"], ["Glacier Wall", "mountain"], ["Ice Tunnel", "tunnel"], ["Storm Finish", "checkpoint"]],
+    monaco: [["Harbor Hairpin", "pier"], ["Cliff Tunnel", "tunnel"], ["Casino Square", "tower"], ["Grand Prix Finish", "checkpoint"]],
+    rio: [["Beachfront", "palm"], ["Hillside Switchback", "mountain"], ["Mountain Tunnel", "tunnel"], ["Coast Finish", "checkpoint"]]
   };
   const selected = (stages[place] || stages.city)[stageIndex];
   return { index: stageIndex, label: selected[0], prop: selected[1] };
@@ -4481,7 +4558,7 @@ function drawVisibleCityUnderpass(w, h, horizon, roadTop, roadBottom, place, des
 }
 
 function drawVisibleMountainHillDrive(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, turn, phoneMode) {
-  const color = place === "desert" || place === "canyon" ? "rgba(178,92,48,0.5)" : place === "snow" || place === "alpine" || place === "europe" ? "rgba(198,214,210,0.42)" : "rgba(35,118,68,0.38)";
+  const color = place === "desert" || place === "canyon" || place === "vegas" ? "rgba(178,92,48,0.5)" : place === "snow" || place === "alpine" || place === "europe" || place === "iceland" ? "rgba(198,214,210,0.42)" : place === "monaco" ? "rgba(118,142,132,0.38)" : "rgba(35,118,68,0.38)";
   ctx.globalAlpha = phoneMode ? 0.58 : 0.62;
   ctx.fillStyle = color;
   for (let side = -1; side <= 1; side += 2) {
@@ -4953,7 +5030,13 @@ function referenceInspiredSceneSet(place, stage) {
     tokyo: ["neonStreetRow", "railOverpassScene", "taxiCurb", "towerAlley", "wetSidewalkGlow", "bystanderCorner"],
     desert: ["openDesertHighway", "telephonePoleLine", "rallyCampSparse", "distantButtes", "desertScrubBasin", "wildlifePullout"],
     rainforest: ["canopyVillage", "riverBridgeScene", "marketRoadside", "mistWaterfall", "woodRailRun", "canopyAnimals"],
-    europe: ["stoneVillageStreet", "terraceVineyard", "switchbackWall", "tramStreet", "cafeCurve", "pastureAnimals"]
+    europe: ["stoneVillageStreet", "terraceVineyard", "switchbackWall", "tramStreet", "cafeCurve", "pastureAnimals"],
+    vegas: ["neonStreetRow", "wetSidewalkGlow", "glassOfficeSetback", "taxiCurb", "towerAlley", "bystanderCorner"],
+    dubai: ["glassOfficeSetback", "marinaShore", "bridgeGuardrailScene", "sidewalkCafe", "towerAlley", "cameraCrewSetback"],
+    venice: ["marinaPier", "waterSpanScene", "stoneVillageStreet", "cafeCurve", "bridgeGuardrailScene", "dockBystanders"],
+    iceland: ["rockCutGuardrail", "snowbankCurve", "mountainPullout", "stoneGuardwall", "wildlifeSlope", "serviceVanPullout"],
+    monaco: ["marinaShore", "stoneVillageStreet", "sidewalkCafe", "switchbackWall", "towerAlley", "crowdBehindBarrier"],
+    rio: ["beachPullout", "palmShoulder", "mountainPullout", "canopyVillage", "marketRoadside", "bystanderCorner"]
   };
   return sets[place] || sets.city;
 }
@@ -5649,7 +5732,13 @@ function groundLockedPlaceProps(place, stage) {
     tokyo: ["neonShop", "streetLight", "parkedCar", "crowd", "expressSign"],
     desert: ["dune", "desertScrub", "supportTent", "rallyMarker", "rockFace"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"],
-    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"]
+    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"],
+    vegas: ["neonShop", "streetLight", "parkedCar", "pedestrianBridge", "crowd"],
+    dubai: ["storefront", "streetLight", "marinaDock", "pedestrianBridge", "spectators"],
+    venice: ["marinaDock", "bridgeRail", "waterEdge", "cafe", "spectators"],
+    iceland: ["rockFace", "snowFence", "supportTent", "routeSign", "spectators"],
+    monaco: ["cafe", "stoneWall", "marinaDock", "streetLight", "spectators"],
+    rio: ["palm", "beachHouse", "stoneWall", "marketStand", "spectators"]
   };
   return props[place] || props.city;
 }
@@ -5707,7 +5796,13 @@ function routeDriveByProps(place, stage) {
     tokyo: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "parkedCar", "crowd"],
     desert: ["dune", "supportTent", "rallyMarker", "desertScrub", "rockFace", "serviceTruck"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd", "routeSign"],
-    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "billboard", "spectators"]
+    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "billboard", "spectators"],
+    vegas: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "parkedCar", "crowd"],
+    dubai: ["storefront", "billboard", "pedestrianBridge", "marinaDock", "trafficSignal", "spectators"],
+    venice: ["marinaDock", "bridgeRail", "cafe", "villageHouse", "dockLight", "spectators"],
+    iceland: ["rockFace", "snowFence", "supportTent", "curveBoard", "routeSign", "spectators"],
+    monaco: ["cafe", "stoneWall", "marinaDock", "pedestrianBridge", "billboard", "spectators"],
+    rio: ["palm", "beachHouse", "marketStand", "stoneWall", "crowd", "routeSign"]
   };
   return props[place] || props.city;
 }
@@ -5735,7 +5830,13 @@ function realWorldGroundFallback(place = "city", index = 0) {
     tokyo: ["neonShop", "streetLight", "parkedCar", "crowd", "pedestrianBridge"],
     desert: ["dune", "desertScrub", "supportTent", "rockFace", "serviceTruck"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "crowd", "parkedCar"],
-    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"]
+    europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"],
+    vegas: ["neonShop", "streetLight", "parkedCar", "crowd", "pedestrianBridge"],
+    dubai: ["storefront", "streetLight", "marinaDock", "parkedCar", "spectators"],
+    venice: ["marinaDock", "bridgeRail", "cafe", "villageHouse", "spectators"],
+    iceland: ["rockFace", "snowFence", "supportTent", "stoneWall", "spectators"],
+    monaco: ["cafe", "stoneWall", "marinaDock", "streetLight", "spectators"],
+    rio: ["palm", "beachHouse", "marketStand", "stoneWall", "crowd"]
   };
   const set = sets[place] || sets.city;
   return set[Math.abs(index) % set.length];
@@ -6515,7 +6616,13 @@ function depthInfrastructureProfile(place, stage) {
     tokyo: { band: "neonTowers", side: "expressWall", overhead: "expressSigns", traffic: "farCars" },
     desert: { band: "duneLayers", side: "rallyFence", overhead: "utilityLines", traffic: "supportFlow" },
     rainforest: { band: "canopyLayers", side: "woodRail", overhead: "vineLines", traffic: "marketFlow" },
-    europe: { band: "villageSlope", side: "stoneWall", overhead: "tramWire", traffic: "tourTraffic" }
+    europe: { band: "villageSlope", side: "stoneWall", overhead: "tramWire", traffic: "tourTraffic" },
+    vegas: { band: "neonTowers", side: "expressWall", overhead: "expressSigns", traffic: "farCars" },
+    dubai: { band: "cityBlocks", side: "coastRail", overhead: "gantry", traffic: "farCars" },
+    venice: { band: "waterSpan", side: "bridgeRail", overhead: "cables", traffic: "boatWake" },
+    iceland: { band: "mountainLayers", side: "snowFence", overhead: "utilityLines", traffic: "shuttle" },
+    monaco: { band: "villageSlope", side: "stoneWall", overhead: "tramWire", traffic: "tourTraffic" },
+    rio: { band: "canopyLayers", side: "coastRail", overhead: "powerLines", traffic: "marketFlow" }
   };
   return profiles[place] || profiles.city;
 }
@@ -6888,7 +6995,13 @@ function livingRouteActivitySet(place, stage) {
     tokyo: ["taxiQueue", "neonCrowd", "deliveryVan", "railWorker", "foodKiosk"],
     desert: ["supportTruck", "rallyCrew", "checkpointTent", "shadeCrew", "waterTruck"],
     rainforest: ["marketCrowd", "bridgeCrew", "riverGuide", "rainShelter", "supportTruck"],
-    europe: ["villageCrowd", "cafeStand", "marshalGroup", "tourVan", "stoneCrew"]
+    europe: ["villageCrowd", "cafeStand", "marshalGroup", "tourVan", "stoneCrew"],
+    vegas: ["neonCrowd", "taxiQueue", "cameraCrew", "foodKiosk", "trafficWorker"],
+    dubai: ["marinaCrowd", "cameraCrew", "deliveryVan", "serviceTruck", "trafficWorker"],
+    venice: ["dockWorker", "marinaCrowd", "bridgeCrew", "cafeStand", "waterfrontCrowd"],
+    iceland: ["snowCrew", "rescueTruck", "rallyCrew", "warmingTent", "cameraCrew"],
+    monaco: ["marshalGroup", "marinaCrowd", "cafeStand", "cameraCrew", "tourVan"],
+    rio: ["beachSpectators", "marketCrowd", "cameraCrew", "roadCrew", "supportTruck"]
   };
   return sets[place] || sets.city;
 }
@@ -6964,7 +7077,13 @@ function livingRouteServiceVehicleSet(place, stage) {
     tokyo: ["taxiQueue", "deliveryVan", "serviceCart"],
     desert: ["supportTruck", "waterTruck", "cameraVan"],
     rainforest: ["supportTruck", "marketVan", "utilityTruck"],
-    europe: ["tourVan", "marshalCar", "utilityTruck"]
+    europe: ["tourVan", "marshalCar", "utilityTruck"],
+    vegas: ["taxiQueue", "cameraVan", "utilityTruck"],
+    dubai: ["deliveryVan", "cameraVan", "utilityTruck"],
+    venice: ["inspectionVan", "utilityTruck", "dockCart"],
+    iceland: ["rescueVan", "snowService", "cameraVan"],
+    monaco: ["tourVan", "marshalCar", "cameraVan"],
+    rio: ["supportTruck", "marketVan", "cameraVan"]
   };
   return sets[place] || sets.city;
 }
@@ -7764,11 +7883,11 @@ function drawRouteWeatherAndAir(w, h, horizon, roadTop, roadBottom, place, desig
 }
 
 function routeAirMode(place) {
-  if (place === "snow" || place === "alpine") return "snow";
-  if (place === "rainforest" || place === "city") return "rain";
-  if (place === "desert" || place === "canyon" || place === "farm") return "dust";
-  if (place === "coast" || place === "harbor") return "spray";
-  if (place === "tokyo") return "nightGlow";
+  if (place === "snow" || place === "alpine" || place === "iceland") return "snow";
+  if (place === "rainforest" || place === "city" || place === "rio") return "rain";
+  if (place === "tokyo" || place === "vegas") return "nightGlow";
+  if (place === "desert" || place === "canyon" || place === "farm" || place === "dubai") return "dust";
+  if (place === "coast" || place === "harbor" || place === "venice" || place === "monaco") return "spray";
   return "leaf";
 }
 
@@ -7853,6 +7972,42 @@ function routeWeatherCondition(place, progress = 0, elapsed = 0) {
       { sky: "sun", surface: "dry", hazard: "train", label: "clear alpine village" },
       { sky: "rain", surface: "standingWater", hazard: "train", label: "rain on stone road" },
       { sky: "snow", surface: "blackIce", hazard: "train", label: "icy switchback" }
+    ],
+    vegas: [
+      { sky: "night", surface: "dry", hazard: "train", label: "clear neon boulevard" },
+      { sky: "night", surface: "oilSlick", hazard: "train", label: "glossy casino service lane" },
+      { sky: "cloud", surface: "dust", hazard: "heat", label: "desert dust on beltway" },
+      { sky: "night", surface: "wet", hazard: "train", label: "wet neon reflections" }
+    ],
+    dubai: [
+      { sky: "sun", surface: "dry", hazard: "heat", label: "hot marina asphalt" },
+      { sky: "cloud", surface: "wet", hazard: "train", label: "cool tower shadows" },
+      { sky: "storm", surface: "standingWater", hazard: "coastalFlood", label: "marina flood spray" },
+      { sky: "sun", surface: "dust", hazard: "heat", label: "desert dust across glass district" }
+    ],
+    venice: [
+      { sky: "sun", surface: "wet", hazard: "spray", label: "sunlit canal wake" },
+      { sky: "rain", surface: "standingWater", hazard: "coastalFlood", label: "rain over lagoon route" },
+      { sky: "cloud", surface: "wet", hazard: "train", label: "cool stone bridge mist" },
+      { sky: "storm", surface: "standingWater", hazard: "tidalSurge", label: "high water canal surge" }
+    ],
+    iceland: [
+      { sky: "cloud", surface: "blackIce", hazard: "train", label: "black ice glacier bend" },
+      { sky: "snow", surface: "snowSlush", hazard: "avalancheView", label: "snow wall rally road" },
+      { sky: "sun", surface: "wet", hazard: "meltwater", label: "glacier meltwater shine" },
+      { sky: "storm", surface: "cracked", hazard: "earthquake", label: "lava road fracture" }
+    ],
+    monaco: [
+      { sky: "sun", surface: "dry", hazard: "train", label: "clear harbor hairpin" },
+      { sky: "cloud", surface: "wet", hazard: "train", label: "wet cliff tunnel exit" },
+      { sky: "rain", surface: "standingWater", hazard: "coastalFlood", label: "rain along yacht harbor" },
+      { sky: "sun", surface: "oilSlick", hazard: "train", label: "glossy service lane" }
+    ],
+    rio: [
+      { sky: "sun", surface: "dry", hazard: "train", label: "sunny beach road" },
+      { sky: "rain", surface: "wet", hazard: "train", label: "rain on hillside switchback" },
+      { sky: "storm", surface: "standingWater", hazard: "floodedBridge", label: "storm runoff by coast" },
+      { sky: "cloud", surface: "mud", hazard: "train", label: "mud at mountain shoulder" }
     ]
   };
   const list = table[place] || table.city;
@@ -7942,7 +8097,13 @@ function realWorldPlaceIdentityKind(place, index, seed) {
     tokyo: ["neonBlock", "expressPylon", "railPlatform", "towerSign"],
     desert: ["rallyCamp", "lowDune", "checkpointTent", "stoneOutpost"],
     rainforest: ["canopyWall", "riverDock", "woodMarket", "mistFalls"],
-    europe: ["villageRoof", "stoneViaduct", "churchTower", "switchbackWall"]
+    europe: ["villageRoof", "stoneViaduct", "churchTower", "switchbackWall"],
+    vegas: ["neonBlock", "towerSign", "expressPylon", "downtownTower"],
+    dubai: ["glassOffice", "downtownTower", "drawBridge", "marinaLight"],
+    venice: ["riverDock", "drawBridge", "stoneViaduct", "villageRoof"],
+    iceland: ["stoneTunnel", "snowLodge", "redRockWall", "switchbackWall"],
+    monaco: ["marinaLight", "stoneViaduct", "villageRoof", "towerSign"],
+    rio: ["beachHotel", "canopyWall", "switchbackWall", "riverDock"]
   };
   const list = sets[place] || sets.city;
   return list[(index + Math.floor(seed % list.length)) % list.length];
@@ -8972,7 +9133,7 @@ function drawWeatherEarthquakeRoadsideDamage(w, h, horizon, roadTop, roadBottom,
 function drawRealWorldRoadHardware(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion) {
   const phoneMode = phoneGraphicsActive();
   const hardwareCount = phoneMode ? 5 : 14;
-  const cityRoad = place === "city" || place === "tokyo" || place === "europe" || place === "harbor";
+  const cityRoad = place === "city" || place === "tokyo" || place === "europe" || place === "harbor" || place === "vegas" || place === "dubai" || place === "venice" || place === "monaco" || place === "rio";
   for (let i = 0; i < hardwareCount; i += 1) {
     const y = horizon + (((i * 144 + motion * 0.74 + seed * 0.01) % (h - horizon + 240)) - 70);
     if (y < horizon || y > h + 42) continue;
@@ -9090,7 +9251,13 @@ function realWorldPropSet(place) {
     tokyo: ["neon", "building", "person", "bystanders", "animal", "parked", "streetlight", "busStop", "roadSign", "speedCamera"],
     desert: ["dune", "rock", "animal", "person", "roadSign", "fence", "telephone", "parked", "mileMarker", "tunnelMouth"],
     rainforest: ["canopy", "animal", "person", "bystanders", "bridge", "fence", "roadSign", "parked", "market", "waterfall"],
-    europe: ["village", "mountain", "animal", "person", "bystanders", "parked", "streetlight", "roadSign", "fence", "market"]
+    europe: ["village", "mountain", "animal", "person", "bystanders", "parked", "streetlight", "roadSign", "fence", "market"],
+    vegas: ["neon", "building", "person", "bystanders", "parked", "streetlight", "busStop", "roadSign", "speedCamera"],
+    dubai: ["building", "person", "bystanders", "parked", "streetlight", "roadSign", "pier", "bridge", "speedCamera"],
+    venice: ["pier", "boat", "person", "bystanders", "animal", "village", "streetlight", "bridge", "market"],
+    iceland: ["rock", "mountain", "animal", "person", "roadSign", "snowbank", "tunnelMouth", "fence", "parked"],
+    monaco: ["pier", "village", "person", "bystanders", "parked", "streetlight", "roadSign", "bridge", "market"],
+    rio: ["palm", "building", "animal", "person", "bystanders", "parked", "streetlight", "market", "mountain"]
   };
   return sets[place] || sets.city;
 }
@@ -9120,13 +9287,13 @@ function drawRealWorldRoadsideLife(w, h, horizon, roadTop, roadBottom, place, de
 }
 
 function drawRealWorldSidewalkBand(w, h, horizon, roadTop, roadBottom, place, design) {
-  if (place !== "city" && place !== "tokyo" && place !== "europe" && place !== "harbor") return;
+  if (!["city", "tokyo", "europe", "harbor", "vegas", "dubai", "venice", "monaco", "rio"].includes(place)) return;
   ctx.save();
   ctx.globalAlpha = phoneGraphicsActive() ? 0.12 : 0.2;
   for (let side = -1; side <= 1; side += 2) {
     const grad = ctx.createLinearGradient(0, horizon, 0, h);
     grad.addColorStop(0, "rgba(244,251,248,0)");
-    grad.addColorStop(1, place === "tokyo" ? `${design.accent}33` : "rgba(150,160,156,0.35)");
+    grad.addColorStop(1, place === "tokyo" || place === "vegas" ? `${design.accent}33` : "rgba(150,160,156,0.35)");
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(perspectiveRoadCenter(canvas.width, 0) + side * roadTop * 0.92, horizon);
@@ -10763,7 +10930,13 @@ function drawRealWorldRoutePaintGlyphs(w, h, horizon, place, design, theme, seed
     tokyo: ["EXP", "TUNNEL", "NIGHT"],
     desert: ["RALLY", "DUNE", "CHECK"],
     rainforest: ["RAIN", "BRIDGE", "SLOW"],
-    europe: ["ALPS", "VILLAGE", "PASS"]
+    europe: ["ALPS", "VILLAGE", "PASS"],
+    vegas: ["STRIP", "NEON", "SLOW"],
+    dubai: ["MARINA", "TUNNEL", "HYPER"],
+    venice: ["CANAL", "BRIDGE", "WAKE"],
+    iceland: ["ICE", "LAVA", "RALLY"],
+    monaco: ["GP", "HAIRPIN", "HARBOR"],
+    rio: ["COAST", "HILL", "CURVE"]
   };
   const set = labels[place] || labels.city;
   const count = phoneGraphicsActive() ? 3 : 5;
@@ -10786,9 +10959,9 @@ function drawRealWorldRoutePaintGlyphs(w, h, horizon, place, design, theme, seed
 }
 
 function drawRealWorldSurfaceEffects(w, h, horizon, roadTop, roadBottom, place, design, theme, seed, motion, phoneMode) {
-  const wet = ["coast", "city", "harbor", "tokyo", "rainforest", "europe"].includes(place);
-  const dusty = ["canyon", "desert", "farm", "freight"].includes(place);
-  const snowy = ["snow", "alpine"].includes(place);
+  const wet = ["coast", "city", "harbor", "tokyo", "rainforest", "europe", "dubai", "venice", "monaco", "rio"].includes(place);
+  const dusty = ["canyon", "desert", "farm", "freight", "vegas"].includes(place);
+  const snowy = ["snow", "alpine", "iceland"].includes(place);
   const count = phoneMode ? 12 : 22;
   for (let i = 0; i < count; i += 1) {
     const y = horizon + (((i * 76 + motion * (wet ? 1.02 : 0.72) + seed * 0.003) % (h - horizon + 160)) - 52);
@@ -14165,6 +14338,7 @@ function drawRealWorldVehicleSkinDetails(w, h, color, vehicleType = "car", damag
     }
   }
 
+  drawModernVehicleDetailKit(w, h, color, vehicleType, police, air, water);
   drawRealisticRearVehicleSignature(w, h, color, vehicleType, police, air, water);
 
   if (damage > 24) {
@@ -14177,6 +14351,143 @@ function drawRealWorldVehicleSkinDetails(w, h, color, vehicleType = "car", damag
     ctx.moveTo(w * 0.18, -h * 0.02);
     ctx.lineTo(w * 0.32, h * 0.18);
     ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawModernVehicleDetailKit(w, h, color, vehicleType = "car", police = false, air = false, water = false) {
+  const accent = police ? "#46d9ff" : shade(color, 36);
+  const dark = "rgba(3,5,5,0.82)";
+  ctx.save();
+  ctx.globalAlpha *= phoneGraphicsActive() ? 0.82 : 0.9;
+
+  if (water) {
+    ctx.strokeStyle = "rgba(244,251,248,0.42)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    for (let side = -1; side <= 1; side += 2) {
+      ctx.beginPath();
+      ctx.moveTo(side * w * 0.18, -h * 0.38);
+      ctx.quadraticCurveTo(side * w * 0.32, -h * 0.02, side * w * 0.24, h * 0.4);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(70,217,255,0.36)";
+    roundRect(-w * 0.28, h * 0.19, w * 0.56, h * 0.04, Math.max(2, w * 0.014));
+    ctx.fill();
+    ctx.fillStyle = `${accent}66`;
+    roundRect(-w * 0.11, -h * 0.45, w * 0.22, h * 0.035, 3);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  if (air) {
+    ctx.strokeStyle = "rgba(244,251,248,0.36)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(0, -h * 0.52);
+    ctx.lineTo(0, h * 0.5);
+    ctx.moveTo(-w * 0.4, h * 0.05);
+    ctx.lineTo(w * 0.4, h * 0.05);
+    ctx.stroke();
+    ctx.fillStyle = `${accent}55`;
+    if (vehicleType === "helicopter") {
+      ctx.beginPath();
+      ctx.ellipse(0, -h * 0.62, w * 0.72, h * 0.052, 0, 0, Math.PI * 2);
+      ctx.fill();
+      roundRect(-w * 0.26, h * 0.46, w * 0.52, h * 0.035, 3);
+      ctx.fill();
+    } else if (vehicleType === "drone") {
+      for (let sx = -1; sx <= 1; sx += 2) {
+        for (let sy = -1; sy <= 1; sy += 2) {
+          ctx.beginPath();
+          ctx.ellipse(sx * w * 0.36, sy * h * 0.25, w * 0.16, h * 0.034, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    } else {
+      roundRect(-w * 0.46, h * 0.1, w * 0.92, h * 0.032, 3);
+      roundRect(-w * 0.07, -h * 0.53, w * 0.14, h * 0.04, 3);
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
+  const heavy = ["semi", "truck", "monster", "tractor"].includes(vehicleType);
+  const raceCar = ["car", "f1", "prototype", "policecar"].includes(vehicleType);
+  if (raceCar) {
+    ctx.fillStyle = "rgba(2,4,4,0.7)";
+    roundRect(-w * 0.35, -h * 0.34, w * 0.2, h * 0.045, 3);
+    roundRect(w * 0.15, -h * 0.34, w * 0.2, h * 0.045, 3);
+    ctx.fill();
+    ctx.fillStyle = `${accent}44`;
+    roundRect(-w * 0.43, h * 0.28, w * 0.12, h * 0.032, 3);
+    roundRect(w * 0.31, h * 0.28, w * 0.12, h * 0.032, 3);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.28)";
+    ctx.lineWidth = Math.max(1, w * 0.01);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.16, -h * 0.5);
+    ctx.lineTo(-w * 0.28, h * 0.4);
+    ctx.moveTo(w * 0.16, -h * 0.5);
+    ctx.lineTo(w * 0.28, h * 0.4);
+    ctx.stroke();
+    ctx.fillStyle = dark;
+    roundRect(-w * 0.44, h * 0.43, w * 0.88, h * 0.035, 3);
+    ctx.fill();
+  }
+
+  if (vehicleType === "f1" || vehicleType === "prototype") {
+    ctx.fillStyle = "rgba(2,4,4,0.82)";
+    roundRect(-w * 0.53, -h * 0.23, w * 0.18, h * 0.065, 3);
+    roundRect(w * 0.35, -h * 0.23, w * 0.18, h * 0.065, 3);
+    roundRect(-w * 0.45, h * 0.4, w * 0.9, h * 0.055, 3);
+    ctx.fill();
+    ctx.fillStyle = `${accent}60`;
+    roundRect(-w * 0.09, -h * 0.22, w * 0.18, h * 0.042, 3);
+    ctx.fill();
+  } else if (heavy) {
+    ctx.fillStyle = "rgba(244,251,248,0.28)";
+    roundRect(-w * 0.45, -h * 0.1, w * 0.13, h * 0.34, 4);
+    roundRect(w * 0.32, -h * 0.1, w * 0.13, h * 0.34, 4);
+    ctx.fill();
+    ctx.strokeStyle = `${accent}55`;
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.44, h * 0.34);
+    ctx.lineTo(w * 0.44, h * 0.34);
+    ctx.moveTo(-w * 0.34, h * 0.2);
+    ctx.lineTo(w * 0.34, h * 0.2);
+    ctx.stroke();
+    if (vehicleType === "monster") {
+      ctx.strokeStyle = "rgba(255,209,102,0.38)";
+      ctx.lineWidth = Math.max(2, w * 0.018);
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.52, h * 0.4);
+      ctx.lineTo(w * 0.52, -h * 0.05);
+      ctx.moveTo(w * 0.52, h * 0.4);
+      ctx.lineTo(-w * 0.52, -h * 0.05);
+      ctx.stroke();
+    }
+  } else if (vehicleType === "tank") {
+    ctx.fillStyle = "rgba(2,4,2,0.58)";
+    roundRect(-w * 0.42, h * 0.12, w * 0.84, h * 0.14, 4);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(187,242,74,0.38)";
+    ctx.lineWidth = Math.max(1, w * 0.012);
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.beginPath();
+      ctx.arc(i * w * 0.09, h * 0.19, w * 0.026, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  if (police) {
+    ctx.fillStyle = "rgba(244,251,248,0.82)";
+    ctx.font = `900 ${Math.max(6, w * 0.07)}px system-ui`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("UNIT", 0, h * 0.09, w * 0.42);
   }
   ctx.restore();
 }
