@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Velocity Vault Code Source v95</title><style>body{font-family:Segoe UI,Arial,sans-serif;margin:36px;background:#f6f8fb;color:#111827}h1{margin:0 0 8px}h2{break-before:page;margin-top:32px;border-bottom:2px solid #0ea5e9;padding-bottom:6px}.meta{color:#475569}.summary{background:#e0f2fe;border-left:5px solid #0284c7;padding:14px 16px;line-height:1.45}pre{white-space:pre-wrap;word-break:break-word;background:#0f172a;color:#e2e8f0;padding:18px;border-radius:8px;font:11px/1.45 Consolas,monospace}.missing{color:#b91c1c}</style></head><body><h1>Velocity Vault Code Source</h1><p class="meta">Generated 6/7/2026, 10:08:00 AM for the v95 world-route detail build.</p><p class="summary">This PDF/HTML companion contains the current standalone Velocity Vault source for the v95 world-route detail build. This update adds six original real-world-inspired routes, new route stages, compatible vehicle rules, weather and surface behavior, hideouts, shortcuts, bystanders and animals, ground-locked scenery, phone-safe fallback scenery, WebGL route colors, generated phone road textures, and extra vehicle detail layers. New purchasable builds include Hyper GT Coupe, Endurance Touring GT, Formula Night Aero, Electric Track Prototype, Baja Trophy Truck, and Marina V-Hull Racer. The build remains standalone, uses local profiles and saves, and does not depend on remote game assets, CDN scripts, or licensed vehicle models.</p><h2>index.html</h2><pre>&lt;!doctype html&gt;
+<!doctype html><html><head><meta charset=utf-8><title>Velocity Vault Code Source</title><style>body{font-family:Arial,sans-serif;margin:32px;color:#111;background:#fff}h1{font-size:28px;margin:0 0 8px}p{margin:0 0 22px;color:#444}h2{break-before:page;font-size:18px;margin:28px 0 10px;padding:8px 10px;background:#111;color:#fff;border-radius:4px}pre{white-space:pre-wrap;word-break:break-word;font:10px/1.45 Consolas,'Courier New',monospace;border:1px solid #ccc;padding:14px;border-radius:6px;background:#fafafa}@media print{body{margin:18px}h2{break-before:page}}</style></head><body><h1>Velocity Vault Code Source</h1><p>Generated 6/7/2026, 10:45:51 AM from the standalone game repository. Includes the playable code, secure hosting notes, and documentation.</p><h2>index.html</h2><pre>&lt;!doctype html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;
   &lt;meta charset="utf-8"&gt;
@@ -205,7 +205,8 @@
   &lt;script src="game.js" defer&gt;&lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-</pre><h2>styles.css</h2><pre>:root {
+</pre>
+<h2>styles.css</h2><pre>:root {
   color-scheme: dark;
   --bg: #09100f;
   --panel: #111817;
@@ -2076,7 +2077,8 @@ input:focus {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 104px);
   }
 }
-</pre><h2>game.js</h2><pre>"use strict";
+</pre>
+<h2>game.js</h2><pre>"use strict";
 
 const $ = (selector) =&gt; document.querySelector(selector);
 const $$ = (selector) =&gt; Array.from(document.querySelectorAll(selector));
@@ -2087,7 +2089,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 77;
+const starterGarageVersion = 78;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -3448,7 +3450,7 @@ function setCameraMode(mode, quiet = false) {
 }
 
 function applyPhoneGraphicsDefaults() {
-  const key = "velocityVaultPhoneGraphicsDefaultsV56";
+  const key = "velocityVaultPhoneGraphicsDefaultsV57";
   if (!phoneGraphicsActive() || localStorage.getItem(key)) return;
   rendererMode = "canvas";
   if (cameraMode === "chase") cameraMode = "hood";
@@ -3484,7 +3486,7 @@ function phoneGraphicsActive() {
 }
 
 function phoneCleanRoadActive() {
-  return phoneGraphicsActive();
+  return false;
 }
 
 function setRendererMode(mode, quiet = false) {
@@ -3987,15 +3989,17 @@ function makeOpponents(playerVehicle, age, director) {
   const compatiblePool = vehicleDefs.filter((vehicle) =&gt; vehicle.id !== playerVehicle.id &amp;&amp; (raceCompatibleWithVehicle(selectedRace, vehicle) || routeTypes.includes(vehicle.type)));
   const pool = compatiblePool.length ? compatiblePool : vehicleDefs.filter((vehicle) =&gt; vehicle.id !== playerVehicle.id);
   const scenario = activeScenario();
+  const routeLength = raceLength(selectedRace);
+  const waveGap = Math.max(1350, Math.min(2600, routeLength / 4.8));
   const grid = [
-    { gap: 1080, lane: -1.95, bias: 0.58, speed: 28 },
-    { gap: 5200, lane: 0.86, bias: 0.66, speed: 34 },
-    { gap: -1800, lane: 1.34, bias: 0.74, speed: 32 },
-    { gap: 9800, lane: 1.95, bias: 0.74, speed: 42 },
-    { gap: -4500, lane: -1.28, bias: 0.84, speed: 38 },
-    { gap: 14400, lane: -0.76, bias: 0.78, speed: 44 },
-    { gap: -7200, lane: 1.95, bias: 0.86, speed: 40 },
-    { gap: 18800, lane: 1.18, bias: 0.82, speed: 48 }
+    { gap: Math.min(980, waveGap * 0.62), lane: -1.95, bias: 0.58, speed: 30 },
+    { gap: waveGap * 1.22, lane: 1.95, bias: 0.66, speed: 34 },
+    { gap: -waveGap * 0.82, lane: 1.18, bias: 0.76, speed: 36 },
+    { gap: waveGap * 2.18, lane: -0.74, bias: 0.72, speed: 40 },
+    { gap: -waveGap * 1.86, lane: -1.56, bias: 0.86, speed: 41 },
+    { gap: waveGap * 3.28, lane: 0.74, bias: 0.78, speed: 44 },
+    { gap: -waveGap * 2.72, lane: 1.95, bias: 0.9, speed: 42 },
+    { gap: waveGap * 4.34, lane: -1.18, bias: 0.84, speed: 48 }
   ];
   const allyGrid = [
     { gap: -720, lane: 1.72, bias: 0.72, speed: 31 },
@@ -4013,12 +4017,13 @@ function makeOpponents(playerVehicle, age, director) {
     const slot = ally ? allyGrid[allyIndex % allyGrid.length] : grid[rivalIndex % grid.length];
     if (ally) allyIndex += 1;
     else rivalIndex += 1;
-    const startGap = slot.gap + (Math.random() - 0.5) * 18;
+    const laneJitter = (Math.random() - 0.5) * 0.16;
+    const startGap = slot.gap + (Math.random() - 0.5) * 42;
     return {
       name,
       vehicleId: vehicle.id,
-      lane: slot.lane,
-      homeLane: slot.lane,
+      lane: Math.max(-2.08, Math.min(2.08, slot.lane + laneJitter)),
+      homeLane: Math.max(-2.08, Math.min(2.08, slot.lane + laneJitter)),
       distance: startGap,
       speed: slot.speed + index * 2,
       targetBias: slot.bias + Math.random() * 0.035 + (ally ? 0.035 : 0),
@@ -4151,7 +4156,7 @@ function enforceOpponentSpacing(length, dt) {
     .filter((opponent) =&gt; opponent &amp;&amp; !opponent.finished)
     .sort((a, b) =&gt; a.distance - b.distance);
   const phoneMode = phoneGraphicsActive();
-  const minGap = phoneMode ? 1500 : 1250;
+  const minGap = phoneMode ? 1680 : 1380;
   const laneSlots = phonePassLaneSlots();
   active.forEach((opponent, index) =&gt; {
     if (index &gt; 0) {
@@ -4163,17 +4168,17 @@ function enforceOpponentSpacing(length, dt) {
       }
     }
     const playerGap = opponent.distance - raceState.distance;
-    if (playerGap &gt; -420 &amp;&amp; playerGap &lt; 2200 &amp;&amp; !opponent.wrecked) {
-      const nearPlayerLane = Math.abs(opponent.lane - raceState.lane) &lt; 0.9 &amp;&amp; playerGap &gt; -110 &amp;&amp; playerGap &lt; 520;
+    if (playerGap &gt; -520 &amp;&amp; playerGap &lt; 2500 &amp;&amp; !opponent.wrecked) {
+      const nearPlayerLane = Math.abs(opponent.lane - raceState.lane) &lt; 1.02 &amp;&amp; playerGap &gt; -140 &amp;&amp; playerGap &lt; 620;
       const laneConflict = active.some((other) =&gt; {
         if (other === opponent || other.finished) return false;
         const otherGap = other.distance - opponent.distance;
-        return Math.abs(otherGap) &lt; (phoneMode ? 420 : 360) &amp;&amp; Math.abs(other.lane - opponent.lane) &lt; 0.72;
+        return Math.abs(otherGap) &lt; (phoneMode ? 560 : 430) &amp;&amp; Math.abs(other.lane - opponent.lane) &lt; 0.82;
       });
       const openSlot = laneSlots.find((slot) =&gt; Math.abs(slot - raceState.lane) &gt; 1.05 &amp;&amp; active.every((other) =&gt; {
         if (other === opponent) return true;
         const otherGap = other.distance - raceState.distance;
-        return Math.abs(otherGap - playerGap) &gt; (phoneMode ? 420 : 360) || Math.abs(other.lane - slot) &gt; 0.72;
+        return Math.abs(otherGap - playerGap) &gt; (phoneMode ? 560 : 430) || Math.abs(other.lane - slot) &gt; 0.82;
       }));
       const currentHome = Number.isFinite(Number(opponent.homeLane)) ? Number(opponent.homeLane) : opponent.lane;
       const laneTarget = nearPlayerLane || laneConflict
@@ -6123,12 +6128,12 @@ function routeStageInfo(place = "city", progress = 0) {
     desert: [["Dune Sea", "dune"], ["Oasis Road", "palm"], ["Rock Gate", "cliff"], ["Rally Finish", "checkpoint"]],
     rainforest: [["Jungle Entry", "canopy"], ["Bridge Bypass", "bridge"], ["Canopy Tunnel", "canopy"], ["Rain Finish", "checkpoint"]],
     europe: [["Village Road", "village"], ["Switchback", "mountain"], ["Stone Tunnel", "tunnel"], ["Alps Finish", "checkpoint"]],
-    vegas: [["Neon Boulevard", "neon"], ["Casino Tunnel", "tunnel"], ["Desert Beltway", "tower"], ["Strip Finish", "checkpoint"]],
-    dubai: [["Marina Towers", "tower"], ["Glass Tunnel", "tunnel"], ["Palm Causeway", "bridge"], ["Marina Finish", "checkpoint"]],
-    venice: [["Lagoon Start", "pier"], ["Stone Bridge", "bridge"], ["Canal Turn", "village"], ["Canal Finish", "checkpoint"]],
-    iceland: [["Lava Coast", "cliff"], ["Glacier Wall", "mountain"], ["Ice Tunnel", "tunnel"], ["Storm Finish", "checkpoint"]],
-    monaco: [["Harbor Hairpin", "pier"], ["Cliff Tunnel", "tunnel"], ["Casino Square", "tower"], ["Grand Prix Finish", "checkpoint"]],
-    rio: [["Beachfront", "palm"], ["Hillside Switchback", "mountain"], ["Mountain Tunnel", "tunnel"], ["Coast Finish", "checkpoint"]]
+    vegas: [["Neon Boulevard", "hotelBlock"], ["Casino Tunnel", "tunnel"], ["Desert Beltway", "neon"], ["Strip Finish", "checkpoint"]],
+    dubai: [["Marina Towers", "glassTower"], ["Glass Tunnel", "tunnel"], ["Palm Causeway", "marinaYacht"], ["Marina Finish", "checkpoint"]],
+    venice: [["Lagoon Start", "gondolaBoat"], ["Stone Bridge", "stoneBridge"], ["Canal Turn", "cafe"], ["Canal Finish", "checkpoint"]],
+    iceland: [["Lava Coast", "lavaRock"], ["Glacier Wall", "glacierWall"], ["Ice Tunnel", "tunnel"], ["Storm Finish", "checkpoint"]],
+    monaco: [["Harbor Hairpin", "marinaYacht"], ["Cliff Tunnel", "tunnel"], ["Casino Square", "cliffVilla"], ["Grand Prix Finish", "checkpoint"]],
+    rio: [["Beachfront", "beachKiosk"], ["Hillside Switchback", "hillsideHomes"], ["Mountain Tunnel", "tunnel"], ["Coast Finish", "checkpoint"]]
   };
   const selected = (stages[place] || stages.city)[stageIndex];
   return { index: stageIndex, label: selected[0], prop: selected[1] };
@@ -6145,10 +6150,10 @@ function drawRouteStageLandmarks(w, h, theme) {
   const phoneMode = phoneGraphicsActive();
   const seed = hashText(`${place}:${stage.label}:${stage.index}`);
   ctx.save();
-  ctx.globalAlpha = phoneMode ? 0.72 : 0.82;
+  ctx.globalAlpha = phoneMode ? 0.86 : 0.86;
   drawRouteHorizonSetPiece(w, h, horizon, stage, design, theme, seed);
   const loopSpan = h - horizon + 360;
-  const count = phoneMode ? 5 : 11;
+  const count = phoneMode ? 6 : 11;
   for (let i = 0; i &lt; count; i += 1) {
     const raw = ((i * (phoneMode ? 245 : 210) + (raceState.roadOffset || 0) * (0.58 + seededUnit(seed, i) * 0.16) + stage.index * 63) % loopSpan) - 104;
     const y = horizon + raw;
@@ -6156,9 +6161,9 @@ function drawRouteStageLandmarks(w, h, theme) {
     const t = Math.max(0.04, Math.min(1.1, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const center = perspectiveRoadCenter(w, t);
-    const sideOffset = w * (phoneMode ? (0.26 + t * 0.56 + seededUnit(seed, i + 10) * 0.08) : (0.18 + t * 0.48 + seededUnit(seed, i + 10) * 0.07));
+    const sideOffset = w * (phoneMode ? (0.34 + t * 0.64 + seededUnit(seed, i + 10) * 0.1) : (0.22 + t * 0.52 + seededUnit(seed, i + 10) * 0.08));
     const x = center + side * sideOffset;
-    const scale = 0.38 + t * (phoneMode ? 0.92 : 1.22);
+    const scale = 0.44 + t * (phoneMode ? 1.08 : 1.3);
     const prop = worldSceneryProp(i % 6 === 0 ? stage.prop : design.props[(i + stage.index) % design.props.length], place, i + stage.index, phoneMode);
     drawRouteStageProp(prop, x, y, scale, side, design, theme, seed + i * 17);
   }
@@ -6235,6 +6240,91 @@ function drawRouteStageProp(prop, x, y, scale, side, design, theme, seed) {
       ctx.moveTo(-bw * 0.6, -bh);
       ctx.lineTo(0, -bh - 28);
       ctx.lineTo(bw * 0.6, -bh);
+      ctx.closePath();
+      ctx.fill();
+    }
+  } else if (prop === "hotelBlock" || prop === "glassTower" || prop === "cliffVilla" || prop === "hillsideHomes") {
+    if (prop === "hillsideHomes") {
+      for (let row = 0; row &lt; 3; row += 1) {
+        for (let col = -2; col &lt;= 2; col += 1) {
+          ctx.fillStyle = row % 2 ? "rgba(238,216,172,0.86)" : "rgba(198,226,206,0.84)";
+          roundRect(col * 20 - 8 + row * 7 * side, -18 - row * 22 - Math.abs(col) * 3, 16, 16, 3);
+          ctx.fill();
+        }
+      }
+    } else {
+      const bw = prop === "glassTower" ? 46 : prop === "hotelBlock" ? 68 : 58;
+      const bh = prop === "glassTower" ? 142 : prop === "hotelBlock" ? 114 : 78;
+      ctx.fillStyle = prop === "glassTower" ? "rgba(22,68,76,0.9)" : prop === "hotelBlock" ? "rgba(18,10,32,0.92)" : "rgba(226,218,190,0.88)";
+      roundRect(-bw / 2, -bh, bw, bh, 5);
+      ctx.fill();
+      ctx.fillStyle = prop === "glassTower" ? "rgba(244,251,248,0.48)" : `${accent}88`;
+      for (let i = 0; i &lt; 5; i += 1) roundRect(-bw * 0.28, -bh + 14 + i * (bh / 6), bw * 0.56, 4, 2);
+      ctx.fill();
+    }
+  } else if (prop === "marinaYacht" || prop === "gondolaBoat" || prop === "stoneBridge") {
+    if (prop === "stoneBridge") {
+      ctx.strokeStyle = "rgba(190,178,150,0.86)";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(-70, -10);
+      ctx.quadraticCurveTo(0, -72, 70, -10);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(20,64,72,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 70, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = prop === "gondolaBoat" ? "rgba(22,18,14,0.92)" : "rgba(244,251,248,0.86)";
+      ctx.beginPath();
+      ctx.moveTo(-66, -16);
+      ctx.quadraticCurveTo(-24, 14, 0, 14);
+      ctx.quadraticCurveTo(32, 14, 68, -16);
+      ctx.lineTo(44, 5);
+      ctx.lineTo(-44, 5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = `${light}88`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(8, -18);
+      ctx.lineTo(34, -62);
+      ctx.stroke();
+    }
+  } else if (prop === "glacierWall" || prop === "lavaRock" || prop === "mountainWall") {
+    ctx.fillStyle = prop === "glacierWall" ? "rgba(188,224,226,0.82)" : "rgba(96,72,58,0.88)";
+    ctx.beginPath();
+    ctx.moveTo(-70, 14);
+    ctx.lineTo(-38, -56);
+    ctx.lineTo(-12, -36);
+    ctx.lineTo(18, -86);
+    ctx.lineTo(48, -34);
+    ctx.lineTo(72, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = prop === "glacierWall" ? "rgba(244,251,248,0.6)" : "rgba(255,91,107,0.36)";
+    ctx.beginPath();
+    ctx.moveTo(-8, -58);
+    ctx.lineTo(18, -86);
+    ctx.lineTo(34, -32);
+    ctx.closePath();
+    ctx.fill();
+  } else if (prop === "beachKiosk" || prop === "marketStall" || prop === "spectatorDeck") {
+    ctx.fillStyle = "rgba(5,8,7,0.84)";
+    roundRect(-62, -36, 124, 36, 5);
+    ctx.fill();
+    ctx.fillStyle = prop === "beachKiosk" ? `${light}bb` : `${accent}bb`;
+    if (prop === "spectatorDeck") {
+      for (let i = -5; i &lt;= 5; i += 1) {
+        ctx.beginPath();
+        ctx.arc(i * 11, -44 - Math.abs(i % 2) * 4, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(-70, -36);
+      ctx.lineTo(0, -66);
+      ctx.lineTo(70, -36);
       ctx.closePath();
       ctx.fill();
     }
@@ -6722,14 +6812,14 @@ function drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, r
     ctx.stroke();
   }
   ctx.globalCompositeOperation = "source-over";
-  for (let i = 0; i &lt; (phoneMode ? 10 : 14); i += 1) {
+  for (let i = 0; i &lt; (phoneMode ? 6 : 14); i += 1) {
     const distance = raceState.distance + i * 230 + seededUnit(seed, i + 80) * 120;
     const side = i % 2 === 0 ? -1 : 1;
     const pos = roadObjectPos(side * (0.96 + seededUnit(seed, i + 90) * 0.18), distance);
     if (!pos || pos.y &lt; horizon || pos.y &gt; h + 50) continue;
     drawWaterBuoy(pos.x, pos.y, Math.max(0.22, pos.scale * 0.82), side, theme, seed + i * 19);
   }
-  for (let i = 0; i &lt; (phoneMode ? 5 : 7); i += 1) {
+  for (let i = 0; i &lt; (phoneMode ? 4 : 7); i += 1) {
     const distance = raceState.distance + 340 + i * 420 + seededUnit(seed, i + 170) * 160;
     const side = i % 2 === 0 ? -1 : 1;
     const pos = roadObjectPos(side * (1.28 + seededUnit(seed, i + 180) * 0.18), distance);
@@ -6747,7 +6837,7 @@ function drawWaterRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, r
   ctx.fillStyle = bank;
   ctx.fillRect(0, horizon, w, h - horizon);
   const shorelineProps = ["marinaDock", "lighthouse", "dockLight", "warehouse", "container", "serviceTruck", "routeSign"];
-  for (let i = -1; i &lt; (phoneMode ? 10 : 14); i += 1) {
+  for (let i = -1; i &lt; (phoneMode ? 7 : 14); i += 1) {
     const distance = raceState.distance + i * 250 + seededUnit(seed, i + 240) * 120;
     const side = seededUnit(seed, i + 250) &gt; 0.48 ? 1 : -1;
     const pos = roadObjectPos(side * 2.05, distance);
@@ -6835,6 +6925,7 @@ function drawAirRaceWorldViewPass(w, h, horizon, roadTop, roadBottom, place, rou
 }
 
 function drawWaterBuoy(x, y, scale, side, theme, seed) {
+  const phoneMode = phoneGraphicsActive();
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
@@ -6842,6 +6933,23 @@ function drawWaterBuoy(x, y, scale, side, theme, seed) {
   ctx.beginPath();
   ctx.ellipse(0, 12, 26, 8, 0, 0, Math.PI * 2);
   ctx.fill();
+  if (phoneMode) {
+    const color = side &lt; 0 ? "#ff7a8c" : "#ffd166";
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = color;
+    roundRect(-24, -8, 48, 18, 9);
+    ctx.fill();
+    ctx.fillStyle = "rgba(244,251,248,0.78)";
+    roundRect(-16, -4, 32, 6, 3);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(70,217,255,0.46)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 36, 9, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
   ctx.fillStyle = side &lt; 0 ? "#ff5b6b" : "#ffd166";
   ctx.beginPath();
   ctx.moveTo(0, -34);
@@ -7811,12 +7919,12 @@ function groundLockedPlaceProps(place, stage) {
     desert: ["dune", "desertScrub", "supportTent", "rallyMarker", "rockFace"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"],
     europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"],
-    vegas: ["neonShop", "streetLight", "parkedCar", "pedestrianBridge", "crowd"],
-    dubai: ["storefront", "streetLight", "marinaDock", "pedestrianBridge", "spectators"],
-    venice: ["marinaDock", "bridgeRail", "waterEdge", "cafe", "spectators"],
-    iceland: ["rockFace", "snowFence", "supportTent", "routeSign", "spectators"],
-    monaco: ["cafe", "stoneWall", "marinaDock", "streetLight", "spectators"],
-    rio: ["palm", "beachHouse", "stoneWall", "marketStand", "spectators"]
+    vegas: ["hotelBlock", "neonShop", "streetLight", "parkedCar", "spectatorDeck"],
+    dubai: ["glassTower", "streetLight", "marinaYacht", "pedestrianBridge", "spectators"],
+    venice: ["stoneBridge", "marinaDock", "gondolaBoat", "cafe", "spectators"],
+    iceland: ["glacierWall", "lavaRock", "snowFence", "supportTent", "spectators"],
+    monaco: ["cliffVilla", "stoneWall", "marinaYacht", "streetLight", "spectators"],
+    rio: ["hillsideHomes", "beachKiosk", "palm", "marketStall", "spectators"]
   };
   return props[place] || props.city;
 }
@@ -7853,7 +7961,17 @@ function routeDriveByProps(place, stage) {
     neon: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "crowd"],
     cliff: ["rockFace", "curveBoard", "guardPost", "tourVan", "routeSign"],
     dune: ["dune", "supportTent", "rallyMarker", "desertScrub", "serviceTruck"],
-    canopy: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"]
+    canopy: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd"],
+    hotelBlock: ["hotelBlock", "neonShop", "spectatorDeck", "parkedCar", "streetLight"],
+    glassTower: ["glassTower", "marinaYacht", "streetLight", "pedestrianBridge", "spectators"],
+    marinaYacht: ["marinaYacht", "dockLight", "stoneWall", "spectators", "routeSign"],
+    gondolaBoat: ["gondolaBoat", "stoneBridge", "marinaDock", "cafe", "spectators"],
+    stoneBridge: ["stoneBridge", "gondolaBoat", "bridgeRail", "cafe", "dockLight"],
+    glacierWall: ["glacierWall", "snowFence", "supportTent", "spectators", "curveBoard"],
+    lavaRock: ["lavaRock", "glacierWall", "snowFence", "supportTent", "spectators"],
+    cliffVilla: ["cliffVilla", "stoneWall", "marinaYacht", "spectators", "streetLight"],
+    hillsideHomes: ["hillsideHomes", "beachKiosk", "palm", "marketStall", "spectators"],
+    beachKiosk: ["beachKiosk", "palm", "marketStall", "spectators", "routeSign"]
   };
   if (stage &amp;&amp; stageProps[stage.prop]) return stageProps[stage.prop];
   const props = {
@@ -7875,12 +7993,12 @@ function routeDriveByProps(place, stage) {
     desert: ["dune", "supportTent", "rallyMarker", "desertScrub", "rockFace", "serviceTruck"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "waterfallSign", "crowd", "routeSign"],
     europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "billboard", "spectators"],
-    vegas: ["neonShop", "billboard", "trafficSignal", "pedestrianBridge", "parkedCar", "crowd"],
-    dubai: ["storefront", "billboard", "pedestrianBridge", "marinaDock", "trafficSignal", "spectators"],
-    venice: ["marinaDock", "bridgeRail", "cafe", "villageHouse", "dockLight", "spectators"],
-    iceland: ["rockFace", "snowFence", "supportTent", "curveBoard", "routeSign", "spectators"],
-    monaco: ["cafe", "stoneWall", "marinaDock", "pedestrianBridge", "billboard", "spectators"],
-    rio: ["palm", "beachHouse", "marketStand", "stoneWall", "crowd", "routeSign"]
+    vegas: ["hotelBlock", "neonShop", "pedestrianBridge", "spectatorDeck", "parkedCar", "crowd"],
+    dubai: ["glassTower", "marinaYacht", "pedestrianBridge", "storefront", "trafficSignal", "spectators"],
+    venice: ["stoneBridge", "gondolaBoat", "marinaDock", "cafe", "dockLight", "spectators"],
+    iceland: ["glacierWall", "lavaRock", "snowFence", "supportTent", "curveBoard", "spectators"],
+    monaco: ["cliffVilla", "stoneWall", "marinaYacht", "pedestrianBridge", "billboard", "spectators"],
+    rio: ["hillsideHomes", "beachKiosk", "marketStall", "palm", "crowd", "routeSign"]
   };
   return props[place] || props.city;
 }
@@ -7909,12 +8027,12 @@ function realWorldGroundFallback(place = "city", index = 0) {
     desert: ["dune", "desertScrub", "supportTent", "rockFace", "serviceTruck"],
     rainforest: ["canopyTree", "marketStand", "woodRail", "crowd", "parkedCar"],
     europe: ["stoneWall", "cafe", "tramPost", "villageHouse", "spectators"],
-    vegas: ["neonShop", "streetLight", "parkedCar", "crowd", "pedestrianBridge"],
-    dubai: ["storefront", "streetLight", "marinaDock", "parkedCar", "spectators"],
-    venice: ["marinaDock", "bridgeRail", "cafe", "villageHouse", "spectators"],
-    iceland: ["rockFace", "snowFence", "supportTent", "stoneWall", "spectators"],
-    monaco: ["cafe", "stoneWall", "marinaDock", "streetLight", "spectators"],
-    rio: ["palm", "beachHouse", "marketStand", "stoneWall", "crowd"]
+    vegas: ["hotelBlock", "neonShop", "streetLight", "parkedCar", "spectatorDeck"],
+    dubai: ["glassTower", "streetLight", "marinaYacht", "storefront", "spectators"],
+    venice: ["stoneBridge", "gondolaBoat", "marinaDock", "cafe", "spectators"],
+    iceland: ["glacierWall", "lavaRock", "snowFence", "supportTent", "spectators"],
+    monaco: ["cliffVilla", "stoneWall", "marinaYacht", "streetLight", "spectators"],
+    rio: ["hillsideHomes", "beachKiosk", "marketStall", "palm", "crowd"]
   };
   const set = sets[place] || sets.city;
   return set[Math.abs(index) % set.length];
@@ -7928,9 +8046,9 @@ function worldSceneryProp(kind, place = "city", index = 0, phoneMode = phoneGrap
 
 function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, place, route, design, theme, seed, phoneMode) {
   const length = Math.max(1, raceLength());
-  const spacing = phoneMode ? 430 : 340;
+  const spacing = phoneMode ? 560 : 430;
   const lookBehind = phoneMode ? 160 : 220;
-  const lookAhead = phoneMode ? 1850 : 2400;
+  const lookAhead = phoneMode ? 2100 : 2600;
   const first = Math.floor((raceState.distance - lookBehind) / spacing) - 1;
   const last = Math.ceil((raceState.distance + lookAhead) / spacing) + 1;
   const drawList = [];
@@ -7943,7 +8061,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     const stage = routeStageInfo(place, progress);
     const props = routeDriveByProps(place, stage);
     const side = seededUnit(seed, index + 22) &gt; 0.5 ? 1 : -1;
-    const lane = side * (2.04 + seededUnit(seed, index + 33) * 0.5);
+    const lane = side * (2.46 + seededUnit(seed, index + 33) * 0.62);
     const projected = roadObjectPos(lane, baseDistance);
     if (!projected || projected.y &lt; horizon - 36 || projected.y &gt; h + 110) continue;
     drawList.push({
@@ -7959,7 +8077,7 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
     });
     if (!phoneMode &amp;&amp; index % 5 === 0) {
       const otherSide = -side;
-      const companionLane = otherSide * (1.94 + seededUnit(seed, index + 44) * 0.42);
+      const companionLane = otherSide * (2.38 + seededUnit(seed, index + 44) * 0.52);
       const companionDistance = baseDistance + spacing * (0.22 + seededUnit(seed, index + 55) * 0.18);
       const companionProgress = Math.max(0, Math.min(1, companionDistance / length));
       const companionStage = routeStageInfo(place, companionProgress);
@@ -7987,21 +8105,21 @@ function drawRouteAnchoredDriveByWorldPass(w, h, horizon, roadTop, roadBottom, p
   let recentSignY = -9999;
   drawList.forEach((item) =&gt; {
     const sideKey = String(item.side &lt; 0 ? -1 : 1);
-    const minGap = phoneMode ? (isSignLikeWorldProp(item.kind) ? 170 : 104) : (isSignLikeWorldProp(item.kind) ? 118 : 70);
+    const minGap = phoneMode ? (isSignLikeWorldProp(item.kind) ? 210 : 138) : (isSignLikeWorldProp(item.kind) ? 146 : 88);
     if (item.y - laneBands[sideKey] &lt; minGap) return;
     if (isSignLikeWorldProp(item.kind) &amp;&amp; item.y - recentSignY &lt; (phoneMode ? 260 : 170)) return;
     laneBands[sideKey] = item.y;
     if (isSignLikeWorldProp(item.kind)) recentSignY = item.y;
     const near = Math.max(0, Math.min(1, item.depth || 0));
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, item.y, item.side, item.x, phoneMode, phoneMode ? 26 : 42);
-    const scale = Math.max(0.3, Math.min(phoneMode ? 1.46 : 1.58, item.scale * (phoneMode ? 0.9 : 0.92) * (0.82 + near * 0.46)));
+    const scale = Math.max(0.36, Math.min(phoneMode ? 1.72 : 1.82, item.scale * (phoneMode ? 1.03 : 1) * (0.9 + near * 0.52)));
     if (near &gt; 0.42 &amp;&amp; seededUnit(item.seed, 8) &gt; 0.4) {
       ctx.save();
       ctx.globalAlpha = phoneMode ? 0.46 + near * 0.22 : 0.36 + near * 0.2;
       drawGroundLockedDriveByShadow(x, item.y, scale, item.side, theme);
       ctx.restore();
     }
-    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.88 : 0.84) + near * 0.18);
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.94 : 0.88) + near * 0.2);
     drawGroundLockedPlaceProp(item.kind, x, item.y, scale, item.side, place, Object.assign({}, route, { scene: item.stage.label || route.scene }), design, theme, item.seed);
   });
   ctx.restore();
@@ -8024,27 +8142,27 @@ function drawGroundLockedDriveByShadow(x, y, scale, side, theme) {
 
 function drawGroundLockedSideDetailPass(w, h, horizon, roadTop, roadBottom, place, stage, route, design, theme, seed, motion, phoneMode) {
   const props = groundLockedPlaceProps(place, stage);
-  const count = phoneMode ? 7 : 14;
+  const count = phoneMode ? 6 : 12;
   const span = h - horizon + 420;
   ctx.save();
   clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, phoneMode ? 14 : 22);
   const lastYBySide = { "-1": -9999, "1": -9999 };
   for (let i = 0; i &lt; count; i += 1) {
-    const y = horizon + (((i * (phoneMode ? 190 : 158) + motion * (0.62 + seededUnit(seed, i) * 0.16) + seed * 0.003) % span) - 96);
+    const y = horizon + (((i * (phoneMode ? 230 : 178) + motion * (0.58 + seededUnit(seed, i) * 0.14) + seed * 0.003) % span) - 112);
     if (y &lt; horizon + 4 || y &gt; h + 70) continue;
     const t = Math.max(0.06, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
     const side = i % 2 === 0 ? -1 : 1;
     const half = realWorldRoadHalf(roadTop, roadBottom, t);
-    const shoulder = half * (1.14 + seededUnit(seed, i + 40) * 0.18) + w * (0.036 + seededUnit(seed, i + 60) * 0.04);
+    const shoulder = half * (1.24 + seededUnit(seed, i + 40) * 0.2) + w * (0.056 + seededUnit(seed, i + 60) * 0.05);
     const projectedX = perspectiveRoadCenter(w, t) + side * shoulder;
     const x = roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, phoneMode ? 20 : 34);
-    const scale = (0.34 + t * (phoneMode ? 0.88 : 0.96)) * (0.88 + seededUnit(seed, i + 80) * 0.2);
+    const scale = (0.4 + t * (phoneMode ? 1.02 : 1.08)) * (0.92 + seededUnit(seed, i + 80) * 0.22);
     const kind = worldSceneryProp(props[i % props.length], place, i, phoneMode);
     const sideKey = String(side);
-    const rowGap = phoneMode ? (isSignLikeWorldProp(kind) ? 155 : 92) : (isSignLikeWorldProp(kind) ? 108 : 64);
+    const rowGap = phoneMode ? (isSignLikeWorldProp(kind) ? 190 : 126) : (isSignLikeWorldProp(kind) ? 132 : 82);
     if (y - lastYBySide[sideKey] &lt; rowGap) continue;
     lastYBySide[sideKey] = y;
-    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.7 : 0.74) + t * 0.25);
+    ctx.globalAlpha = Math.min(1, (phoneMode ? 0.84 : 0.78) + t * 0.28);
     drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design, theme, seed + i * 71);
   }
   ctx.restore();
@@ -8153,6 +8271,194 @@ function drawGroundLockedPlaceProp(kind, x, y, scale, side, place, route, design
       ctx.fillStyle = `${accent}cc`;
       roundRect(-44, -84, 88, 16, 4);
       ctx.fill();
+    }
+  } else if (kind === "hotelBlock" || kind === "glassTower" || kind === "hillsideHomes" || kind === "cliffVilla") {
+    if (kind === "hillsideHomes") {
+      for (let row = 0; row &lt; 3; row += 1) {
+        for (let col = -2; col &lt;= 2; col += 1) {
+          const bx = col * 28 + row * 9 * side;
+          const by = -18 - row * 30 - Math.abs(col) * 3;
+          ctx.fillStyle = row % 2 ? "rgba(238,216,172,0.92)" : "rgba(210,232,220,0.9)";
+          roundRect(bx - 12, by - 20, 24, 20, 3);
+          ctx.fill();
+          ctx.fillStyle = "rgba(130,46,38,0.9)";
+          ctx.beginPath();
+          ctx.moveTo(bx - 15, by - 20);
+          ctx.lineTo(bx, by - 34);
+          ctx.lineTo(bx + 15, by - 20);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(4,8,8,0.72)";
+          ctx.fillRect(bx - 5, by - 12, 10, 6);
+        }
+      }
+      ctx.fillStyle = "rgba(28,92,44,0.62)";
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 106, 20, -0.05 * side, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === "cliffVilla") {
+      ctx.fillStyle = "rgba(126,118,102,0.72)";
+      ctx.beginPath();
+      ctx.moveTo(-86, 4);
+      ctx.lineTo(-44, -82);
+      ctx.lineTo(34, -48);
+      ctx.lineTo(92, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(238,232,208,0.94)";
+      roundRect(-54, -74, 108, 58, 5);
+      ctx.fill();
+      ctx.fillStyle = `${light}aa`;
+      ctx.beginPath();
+      ctx.moveTo(-64, -74);
+      ctx.lineTo(0, -108);
+      ctx.lineTo(64, -74);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(5,8,7,0.72)";
+      for (let i = -1; i &lt;= 1; i += 1) roundRect(i * 30 - 8, -52, 16, 16, 3);
+      ctx.fill();
+    } else {
+      const tower = kind === "glassTower";
+      const towerW = tower ? 88 : 134;
+      const towerH = tower ? 170 : 126;
+      const gradient = ctx.createLinearGradient(-towerW / 2, -towerH, towerW / 2, 0);
+      gradient.addColorStop(0, tower ? "rgba(170,230,235,0.48)" : "rgba(28,18,42,0.95)");
+      gradient.addColorStop(0.42, tower ? "rgba(18,58,66,0.9)" : "rgba(18,12,34,0.94)");
+      gradient.addColorStop(1, "rgba(5,8,7,0.96)");
+      ctx.fillStyle = gradient;
+      roundRect(-towerW / 2, -towerH, towerW, towerH, tower ? 10 : 7);
+      ctx.fill();
+      ctx.strokeStyle = tower ? "rgba(244,251,248,0.38)" : `${accent}77`;
+      ctx.lineWidth = 3;
+      for (let i = -2; i &lt;= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(i * towerW * 0.16, -towerH + 12);
+        ctx.lineTo(i * towerW * 0.12, -8);
+        ctx.stroke();
+      }
+      for (let row = 0; row &lt; 6; row += 1) {
+        ctx.fillStyle = row % 2 ? `${light}55` : `${accent}66`;
+        roundRect(-towerW * 0.34, -towerH + 20 + row * (towerH / 7), towerW * 0.68, 5, 3);
+        ctx.fill();
+      }
+      if (kind === "hotelBlock") {
+        ctx.fillStyle = "rgba(255,79,216,0.88)";
+        roundRect(-60, -towerH - 22, 120, 20, 5);
+        ctx.fill();
+      }
+    }
+  } else if (kind === "marinaYacht" || kind === "gondolaBoat" || kind === "shoreBoat") {
+    ctx.fillStyle = "rgba(20,64,72,0.62)";
+    ctx.beginPath();
+    ctx.ellipse(0, 1, 104, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = kind === "gondolaBoat" ? "rgba(25,20,16,0.94)" : "rgba(244,251,248,0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-78, -18);
+    ctx.quadraticCurveTo(-34, 18, 0, 18);
+    ctx.quadraticCurveTo(42, 18, 82, -18);
+    ctx.lineTo(54, 6);
+    ctx.lineTo(-54, 6);
+    ctx.closePath();
+    ctx.fill();
+    if (kind === "marinaYacht") {
+      ctx.fillStyle = "rgba(5,8,7,0.78)";
+      roundRect(-16, -46, 44, 28, 4);
+      ctx.fill();
+      ctx.strokeStyle = `${light}aa`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(12, -46);
+      ctx.lineTo(42, -86);
+      ctx.lineTo(42, -18);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "rgba(214,180,112,0.78)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-82, -22);
+      ctx.quadraticCurveTo(0, -42, 86, -22);
+      ctx.stroke();
+    }
+  } else if (kind === "glacierWall" || kind === "lavaRock" || kind === "mountainWall") {
+    const icy = kind === "glacierWall";
+    ctx.fillStyle = icy ? "rgba(188,224,226,0.82)" : "rgba(78,64,58,0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-100, 4);
+    ctx.lineTo(-62, -72);
+    ctx.lineTo(-24, -44);
+    ctx.lineTo(18, -104);
+    ctx.lineTo(58, -48);
+    ctx.lineTo(102, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = icy ? "rgba(244,251,248,0.72)" : "rgba(255,91,107,0.38)";
+    ctx.beginPath();
+    ctx.moveTo(-18, -74);
+    ctx.lineTo(18, -104);
+    ctx.lineTo(42, -48);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = icy ? "rgba(70,217,255,0.44)" : "rgba(255,183,74,0.34)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-74, -28);
+    ctx.lineTo(72, -12);
+    ctx.moveTo(-38, -58);
+    ctx.lineTo(34, -28);
+    ctx.stroke();
+  } else if (kind === "stoneBridge") {
+    ctx.strokeStyle = "rgba(190,178,150,0.88)";
+    ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.moveTo(-104, -14);
+    ctx.quadraticCurveTo(0, -96, 104, -14);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(244,251,248,0.34)";
+    ctx.lineWidth = 4;
+    for (let i = -3; i &lt;= 3; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(i * 30, -28 - Math.abs(i) * 5);
+      ctx.lineTo(i * 26, -4);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(20,64,72,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 94, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === "beachKiosk" || kind === "marketStall" || kind === "spectatorDeck") {
+    if (kind === "spectatorDeck") {
+      ctx.fillStyle = "rgba(5,8,7,0.86)";
+      roundRect(-92, -48, 184, 48, 6);
+      ctx.fill();
+      ctx.strokeStyle = `${light}aa`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-100, -48);
+      ctx.lineTo(100, -48);
+      ctx.moveTo(-84, -18);
+      ctx.lineTo(84, -18);
+      ctx.stroke();
+      for (let i = -6; i &lt;= 6; i += 1) {
+        ctx.fillStyle = i % 3 === 0 ? accent : i % 3 === 1 ? light : "#f4fbf8";
+        ctx.beginPath();
+        ctx.arc(i * 13, -56 - Math.abs(i % 2) * 4, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = "rgba(36,34,26,0.92)";
+      roundRect(-64, -42, 128, 42, 5);
+      ctx.fill();
+      ctx.fillStyle = kind === "beachKiosk" ? "rgba(255,209,102,0.9)" : "rgba(255,91,107,0.86)";
+      ctx.beginPath();
+      ctx.moveTo(-74, -42);
+      ctx.lineTo(0, -78);
+      ctx.lineTo(74, -42);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.75)";
+      for (let i = -2; i &lt;= 2; i += 1) ctx.fillRect(i * 22 - 6, -36, 12, 18);
     }
   } else if (kind === "parkedCar" || kind === "tourVan" || kind === "serviceTruck" || kind === "serviceCart" || kind === "tractorParked") {
     ctx.fillStyle = kind === "tractorParked" ? "#bbf24a" : kind === "serviceTruck" ? light : accent;
@@ -8711,7 +9017,7 @@ function drawDepthParallaxBands(w, h, horizon, roadTop, roadBottom, place, stage
   const bandHeight = h * (phoneMode ? 0.22 : 0.26);
   const offset = motion * 0.006;
   ctx.save();
-  ctx.globalAlpha = phoneMode ? 0.42 : 0.36;
+  ctx.globalAlpha = phoneMode ? 0.58 : 0.42;
   const skyFade = ctx.createLinearGradient(0, bandTop, 0, horizon + bandHeight);
   skyFade.addColorStop(0, "rgba(0,0,0,0)");
   skyFade.addColorStop(0.7, `${design.accent || theme[1]}10`);
@@ -8739,7 +9045,7 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
     for (let i = -2; i &lt;= 2; i += 1) {
       const bw = 26 + seededUnit(seed, i + 1) * 28;
       const bh = 54 + seededUnit(seed, i + 8) * 96;
-      ctx.fillStyle = phoneMode ? (kind === "neonTowers" ? "rgba(14,9,24,0.72)" : "rgba(7,15,17,0.68)") : (kind === "neonTowers" ? "rgba(18,10,32,0.55)" : "rgba(8,18,20,0.5)");
+      ctx.fillStyle = phoneMode ? (kind === "neonTowers" ? "rgba(14,9,24,0.88)" : "rgba(7,15,17,0.82)") : (kind === "neonTowers" ? "rgba(18,10,32,0.62)" : "rgba(8,18,20,0.58)");
       roundRect(i * 42 - bw / 2, 22 - bh, bw, bh, 4);
       ctx.fill();
       if (!phoneMode || i % 2 === 0) {
@@ -8749,7 +9055,7 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
       }
     }
   } else if (kind === "mountainLayers" || kind === "rockCuts" || kind === "duneLayers" || kind === "villageSlope") {
-    const color = kind === "duneLayers" ? "rgba(255,183,74,0.28)" : kind === "rockCuts" ? "rgba(178,92,48,0.28)" : kind === "villageSlope" ? "rgba(120,142,132,0.25)" : "rgba(160,172,164,0.26)";
+    const color = kind === "duneLayers" ? (phoneMode ? "rgba(255,183,74,0.42)" : "rgba(255,183,74,0.32)") : kind === "rockCuts" ? (phoneMode ? "rgba(178,92,48,0.42)" : "rgba(178,92,48,0.32)") : kind === "villageSlope" ? (phoneMode ? "rgba(120,142,132,0.38)" : "rgba(120,142,132,0.3)") : (phoneMode ? "rgba(160,172,164,0.42)" : "rgba(160,172,164,0.3)");
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(-110, 34);
@@ -8762,7 +9068,7 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
       for (let i = -2; i &lt;= 2; i += 1) roundRect(i * 30 - 10, -8 + (i % 2) * 8, 20, 14, 2);
     }
   } else if (kind === "waterCliff" || kind === "waterSpan") {
-    ctx.fillStyle = phoneMode ? "rgba(35,70,78,0.18)" : "rgba(70,217,255,0.16)";
+    ctx.fillStyle = phoneMode ? "rgba(35,86,96,0.34)" : "rgba(70,217,255,0.2)";
     ctx.beginPath();
     ctx.ellipse(0, 18, 120, 20, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -8789,7 +9095,7 @@ function drawDepthBandShape(kind, x, y, scale, place, design, theme, seed) {
     ctx.fillStyle = "rgba(5,8,7,0.36)";
     ctx.fillRect(-120, 18, 240, 18);
   } else if (kind === "fieldRows" || kind === "canopyLayers" || kind === "snowVillage") {
-    ctx.fillStyle = kind === "canopyLayers" ? "rgba(30,104,56,0.26)" : kind === "snowVillage" ? "rgba(244,251,248,0.2)" : "rgba(95,126,54,0.24)";
+    ctx.fillStyle = kind === "canopyLayers" ? (phoneMode ? "rgba(30,104,56,0.4)" : "rgba(30,104,56,0.3)") : kind === "snowVillage" ? (phoneMode ? "rgba(244,251,248,0.34)" : "rgba(244,251,248,0.24)") : (phoneMode ? "rgba(95,126,54,0.38)" : "rgba(95,126,54,0.28)");
     ctx.fillRect(-130, -12, 260, 48);
     ctx.strokeStyle = kind === "snowVillage" ? "rgba(244,251,248,0.28)" : "rgba(187,242,74,0.2)";
     ctx.lineWidth = 2;
@@ -10193,7 +10499,7 @@ function drawPlaceIdentityObject(kind, x, y, scale, side, place, design, theme, 
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale, scale);
-  ctx.globalAlpha *= phoneGraphicsActive() ? 0.42 : 0.38;
+  ctx.globalAlpha *= phoneGraphicsActive() ? 0.62 : 0.46;
   ctx.fillStyle = "rgba(0,0,0,0.28)";
   ctx.beginPath();
   ctx.ellipse(0, 20, 86, 10, 0, 0, Math.PI * 2);
@@ -10424,10 +10730,10 @@ function clipOutsideRealWorldRoad(w, h, horizon, roadTop, roadBottom, padding = 
 
 function drawRoadSceneContactShoulders(w, h, horizon, roadTop, roadBottom, place, design, theme) {
   const phoneMode = phoneGraphicsActive();
-  const shoulderColor = place === "coast" || place === "harbor" ? "rgba(18,48,54,0.55)"
-    : place === "snow" || place === "alpine" ? "rgba(214,226,221,0.34)"
-      : place === "desert" || place === "canyon" ? "rgba(154,88,42,0.42)"
-        : place === "farm" || place === "rainforest" ? "rgba(32,74,48,0.4)"
+  const shoulderColor = place === "coast" || place === "harbor" || place === "venice" || place === "monaco" || place === "dubai" ? "rgba(18,48,54,0.55)"
+    : place === "snow" || place === "alpine" || place === "iceland" ? "rgba(214,226,221,0.34)"
+      : place === "desert" || place === "canyon" || place === "vegas" ? "rgba(154,88,42,0.42)"
+        : place === "farm" || place === "rainforest" || place === "rio" ? "rgba(32,74,48,0.4)"
           : "rgba(8,13,12,0.5)";
   const edgeGlow = design &amp;&amp; design.light ? `${design.light}55` : `${theme[2] || "#ffd166"}55`;
 
@@ -10491,7 +10797,7 @@ function drawRoadScenePavementSettlePass(w, h, horizon, roadTop, roadBottom, pla
   ctx.save();
   clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
   const settle = ctx.createLinearGradient(0, horizon, 0, h);
-  if (place === "desert" || place === "canyon" || place === "farm") {
+  if (place === "desert" || place === "canyon" || place === "farm" || place === "vegas") {
     settle.addColorStop(0, phoneMode ? "rgba(30,25,20,0.16)" : "rgba(28,24,20,0.22)");
     settle.addColorStop(1, phoneMode ? "rgba(0,0,0,0.42)" : "rgba(0,0,0,0.46)");
   } else {
@@ -10522,7 +10828,7 @@ function drawRoadScenePavementSettlePass(w, h, horizon, roadTop, roadBottom, pla
 function roadsideAnchorX(w, h, horizon, roadTop, roadBottom, y, side, projectedX, phoneMode, extra = 0) {
   const t = Math.max(0, Math.min(1.08, (y - horizon) / Math.max(1, h - horizon)));
   const edge = perspectiveRoadCenter(w, t) + side * realWorldRoadHalf(roadTop, roadBottom, t);
-  const clearance = extra + w * (phoneMode ? 0.045 : 0.038) + t * w * (phoneMode ? 0.08 : 0.065);
+  const clearance = extra + w * (phoneMode ? 0.075 : 0.052) + t * w * (phoneMode ? 0.12 : 0.086);
   const safe = edge + side * clearance;
   if (side &lt; 0) return Math.max(-w * 0.16, Math.min(projectedX, safe));
   return Math.min(w * 1.16, Math.max(projectedX, safe));
@@ -10559,10 +10865,10 @@ function drawRealWorldRoadSurface(w, h, horizon, roadTop, roadBottom, place, des
   if (place === "desert" || place === "canyon" || place === "farm") {
     baseRoad.addColorStop(0, phoneMode ? "rgba(52,47,36,0.94)" : "rgba(54,50,38,0.88)");
     baseRoad.addColorStop(0.45, phoneMode ? "rgba(28,25,20,0.97)" : "rgba(30,27,22,0.92)");
-  } else if (place === "snow" || place === "alpine") {
+  } else if (place === "snow" || place === "alpine" || place === "iceland") {
     baseRoad.addColorStop(0, phoneMode ? "rgba(44,54,54,0.94)" : "rgba(48,58,58,0.88)");
     baseRoad.addColorStop(0.45, phoneMode ? "rgba(20,26,27,0.97)" : "rgba(24,30,31,0.92)");
-  } else if (place === "coast" || place === "harbor" || place === "rainforest") {
+  } else if (place === "coast" || place === "harbor" || place === "rainforest" || place === "venice" || place === "monaco" || place === "dubai" || place === "rio") {
     baseRoad.addColorStop(0, phoneMode ? "rgba(28,39,39,0.95)" : "rgba(30,42,42,0.9)");
     baseRoad.addColorStop(0.45, phoneMode ? "rgba(12,18,18,0.98)" : "rgba(14,20,20,0.94)");
   } else {
@@ -13368,7 +13674,7 @@ function drawRealWorldRoadRulePass(w, h, horizon, roadTop, roadBottom, place, de
   const motion = (raceState.roadOffset || 0) * (0.7 + Math.min(1.1, Math.max(0, raceState.speed || 0) / 240));
   ctx.save();
   clipRealWorldRoad(w, h, horizon, roadTop, roadBottom);
-  const ruleCount = phoneMode ? 4 : 7;
+  const ruleCount = phoneMode ? 3 : 7;
   for (let i = 0; i &lt; ruleCount; i += 1) {
     const y = horizon + (((i * 194 + motion * 0.56 + seed * 0.006) % (h - horizon + 290)) - 94);
     if (y &lt; horizon || y &gt; h * 0.96) continue;
@@ -13393,7 +13699,13 @@ function realWorldRoadRuleKind(place, index, seed) {
     tokyo: ["turnOnly", "busLane", "tunnelBands", "merge"],
     desert: ["rallyMarks", "gravelEdge", "slowCurve", "edgeHash"],
     rainforest: ["wetBridge", "slowCurve", "bridgeJoint", "edgeHash"],
-    europe: ["villageCrossing", "slowCurve", "bikeLane", "bridgeJoint"]
+    europe: ["villageCrossing", "slowCurve", "bikeLane", "bridgeJoint"],
+    vegas: ["turnOnly", "merge", "stopBar", "tunnelBands"],
+    dubai: ["merge", "bridgeJoint", "turnOnly", "crosswalk"],
+    venice: ["dockLane", "bridgeJoint", "slowCurve", "wetBridge"],
+    iceland: ["iceWarning", "snowEdge", "slowCurve", "bridgeJoint"],
+    monaco: ["turnOnly", "slowCurve", "crosswalk", "tunnelBands"],
+    rio: ["slowCurve", "bikeLane", "villageCrossing", "wetBridge"]
   };
   const list = sets[place] || sets.city;
   return list[(index + Math.floor(seed % list.length)) % list.length];
@@ -13401,7 +13713,7 @@ function realWorldRoadRuleKind(place, index, seed) {
 
 function drawRoadRuleMark(type, w, horizon, y, t, place, design, theme, seed) {
   const phoneMode = phoneGraphicsActive();
-  const alpha = phoneMode ? 0.08 + t * 0.035 : 0.18 + t * 0.08;
+  const alpha = phoneMode ? 0.045 + t * 0.028 : 0.18 + t * 0.08;
   ctx.save();
   ctx.globalAlpha = alpha;
   const lane = type === "busLane" || type === "bikeLane" || type === "truckLane" ? -1.15 : type === "merge" ? 1.1 : 0;
@@ -13504,6 +13816,12 @@ function realWorldShadowKind(place, index, seed) {
   const sets = {
     city: ["underpass", "wireShadow", "lightPool"],
     tokyo: ["underpass", "lightPool", "wireShadow"],
+    vegas: ["underpass", "lightPool", "wireShadow"],
+    dubai: ["underpass", "lightPool", "wireShadow"],
+    monaco: ["underpass", "lightPool", "wireShadow"],
+    rio: ["treeShadow", "wireShadow", "lightPool"],
+    venice: ["underpass", "lightPool", "wireShadow"],
+    iceland: ["treeShadow", "snowLight", "underpass"],
     rainforest: ["treeShadow", "treeShadow", "wetLight"],
     alpine: ["treeShadow", "underpass", "snowLight"],
     snow: ["treeShadow", "snowLight", "underpass"],
@@ -13531,12 +13849,12 @@ function drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place
     const size = (8 + seededUnit(seed, i + 640) * 24) * (0.6 + t * 0.8);
     ctx.save();
     ctx.globalAlpha = phoneMode ? 0.12 + t * 0.08 : 0.18 + t * 0.11;
-    if (place === "snow" || place === "alpine") {
+    if (place === "snow" || place === "alpine" || place === "iceland") {
       ctx.fillStyle = "rgba(244,251,248,0.58)";
       ctx.beginPath();
       ctx.ellipse(x, y, size * 1.7, size * 0.38, 0, 0, Math.PI * 2);
       ctx.fill();
-    } else if (place === "desert" || place === "canyon" || place === "farm") {
+    } else if (place === "desert" || place === "canyon" || place === "farm" || place === "vegas") {
       ctx.fillStyle = place === "farm" ? "rgba(117,86,47,0.28)" : "rgba(255,183,74,0.28)";
       ctx.beginPath();
       ctx.ellipse(x, y, size * 1.8, size * 0.34, 0, 0, Math.PI * 2);
@@ -13547,11 +13865,11 @@ function drawRealWorldEdgeMaterialPass(w, h, horizon, roadTop, roadBottom, place
       ctx.moveTo(x - size, y);
       ctx.lineTo(x + size * 1.2, y + Math.sin(i) * 4);
       ctx.stroke();
-    } else if (place === "rainforest" || place === "city" || place === "tokyo" || place === "europe") {
-      ctx.fillStyle = place === "rainforest" ? "rgba(54,217,138,0.22)" : "rgba(244,251,248,0.14)";
+    } else if (place === "rainforest" || place === "city" || place === "tokyo" || place === "europe" || place === "rio" || place === "dubai" || place === "monaco") {
+      ctx.fillStyle = place === "rainforest" || place === "rio" ? "rgba(54,217,138,0.24)" : "rgba(244,251,248,0.16)";
       roundRect(x - size * 1.2, y - size * 0.12, size * 2.4, size * 0.25, Math.max(2, size * 0.08));
       ctx.fill();
-      ctx.fillStyle = place === "rainforest" ? "rgba(36,110,62,0.34)" : "rgba(0,0,0,0.26)";
+      ctx.fillStyle = place === "rainforest" || place === "rio" ? "rgba(36,110,62,0.36)" : "rgba(0,0,0,0.28)";
       ctx.beginPath();
       ctx.ellipse(x + side * size * 0.4, y + size * 0.08, size * 0.55, size * 0.16, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -13572,37 +13890,55 @@ function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed)
   const alpha = phoneMode ? 0.78 : 0.72;
   ctx.globalAlpha = alpha;
   const farBase = horizon + h * 0.025;
-  if (place === "city" || place === "tokyo") {
+  if (place === "city" || place === "tokyo" || place === "vegas" || place === "dubai" || place === "monaco") {
     for (let i = 0; i &lt; 18; i += 1) {
       const bw = w * (0.025 + seededUnit(seed, i) * 0.035);
-      const bh = h * (0.16 + seededUnit(seed, i + 11) * 0.22);
+      const extraHeight = place === "dubai" ? 0.12 : place === "vegas" || place === "monaco" ? 0.06 : 0;
+      const bh = h * (0.16 + extraHeight + seededUnit(seed, i + 11) * 0.22);
       const x = ((i * w * 0.078 - (raceState.roadOffset || 0) * 0.018) % (w + 140)) - 70;
       const tower = ctx.createLinearGradient(x, farBase - bh, x + bw, farBase);
-      tower.addColorStop(0, place === "tokyo" ? "rgba(255,79,216,0.18)" : "rgba(70,217,255,0.12)");
-      tower.addColorStop(0.32, "rgba(15,25,28,0.72)");
+      tower.addColorStop(0, place === "tokyo" || place === "vegas" ? "rgba(255,79,216,0.24)" : place === "dubai" ? "rgba(170,230,235,0.24)" : "rgba(255,209,102,0.18)");
+      tower.addColorStop(0.32, place === "dubai" ? "rgba(20,60,68,0.8)" : "rgba(15,25,28,0.76)");
       tower.addColorStop(1, "rgba(5,8,7,0.92)");
       ctx.fillStyle = tower;
       roundRect(x, farBase - bh, bw, bh, 3);
       ctx.fill();
       if (!phoneMode || i % 4 === 0) {
-        ctx.fillStyle = i % 2 ? `${design.accent}55` : `${design.light}44`;
+        ctx.fillStyle = i % 2 ? `${design.accent}66` : `${design.light}55`;
         const step = phoneMode ? 56 : 22;
         for (let yy = 16; yy &lt; bh - 8; yy += step) ctx.fillRect(x + bw * 0.24, farBase - bh + yy, bw * 0.52, 3);
       }
+      if ((place === "vegas" || place === "monaco") &amp;&amp; i % 5 === 0) {
+        ctx.fillStyle = `${design.light}66`;
+        roundRect(x - bw * 0.25, farBase - bh - 12, bw * 1.5, 10, 3);
+        ctx.fill();
+      }
     }
-  } else if (place === "coast" || place === "harbor") {
+  } else if (place === "coast" || place === "harbor" || place === "venice" || place === "rio") {
     const water = ctx.createLinearGradient(0, horizon - h * 0.01, 0, horizon + h * 0.19);
     water.addColorStop(0, phoneMode ? "rgba(42,84,94,0.18)" : "rgba(70,217,255,0.22)");
     water.addColorStop(1, phoneMode ? "rgba(4,22,26,0.46)" : "rgba(4,22,26,0.54)");
     ctx.fillStyle = water;
     ctx.fillRect(0, horizon - h * 0.01, w, h * 0.22);
-    for (let i = 0; i &lt; 7; i += 1) {
+    if (place === "rio") {
+      for (let i = 0; i &lt; 7; i += 1) {
+        const x = ((i * w * 0.17 - (raceState.roadOffset || 0) * 0.015) % (w + 180)) - 90;
+        const ridgeH = h * (0.1 + seededUnit(seed, i + 18) * 0.16);
+        ctx.fillStyle = "rgba(28,102,58,0.42)";
+        ctx.beginPath();
+        ctx.moveTo(x - w * 0.1, farBase + h * 0.04);
+        ctx.quadraticCurveTo(x, farBase - ridgeH, x + w * 0.14, farBase + h * 0.04);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    for (let i = 0; i &lt; 9; i += 1) {
       const x = ((i * w * 0.18 - (raceState.roadOffset || 0) * 0.026) % (w + 160)) - 80;
-      ctx.fillStyle = place === "harbor" ? "rgba(10,36,40,0.78)" : "rgba(10,31,34,0.76)";
+      ctx.fillStyle = place === "harbor" || place === "venice" ? "rgba(10,36,40,0.82)" : "rgba(10,31,34,0.76)";
       ctx.beginPath();
       ctx.ellipse(x, horizon + h * 0.085, w * 0.08, h * 0.028, 0, 0, Math.PI * 2);
       ctx.fill();
-      if (place === "harbor") {
+      if (place === "harbor" || place === "venice") {
         ctx.strokeStyle = phoneMode ? "rgba(185,170,128,0.48)" : `${design.light}88`;
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -13623,11 +13959,11 @@ function drawGenAiHeroBackdrop(w, h, horizon, design, theme, place, route, seed)
       ctx.closePath();
       ctx.fill();
     }
-  } else if (place === "alpine" || place === "snow" || place === "europe") {
+  } else if (place === "alpine" || place === "snow" || place === "europe" || place === "iceland") {
     for (let i = 0; i &lt; 6; i += 1) {
       const x = i * w * 0.2 - ((raceState.roadOffset || 0) * 0.01 % (w * 0.2));
       const peak = h * (0.18 + seededUnit(seed, i) * 0.13);
-      ctx.fillStyle = "rgba(130,160,160,0.36)";
+      ctx.fillStyle = place === "iceland" ? "rgba(150,185,190,0.46)" : "rgba(130,160,160,0.36)";
       ctx.beginPath();
       ctx.moveTo(x - w * 0.16, farBase + h * 0.05);
       ctx.lineTo(x, farBase - peak);
@@ -15119,7 +15455,8 @@ function drawObjects() {
     if (gap &lt; -130) return false;
     if (!priority &amp;&amp; gap &lt; 95 &amp;&amp; Math.abs(lane - raceState.lane) &lt; 0.95) return false;
     const conflict = phoneDrawnVehicles.some((item) =&gt; Math.abs(item.gap - gap) &lt; 250 &amp;&amp; Math.abs(item.lane - lane) &lt; 1.05);
-    if (conflict &amp;&amp; !priority) return false;
+    const readablePassWindow = priority &amp;&amp; gap &gt; -60 &amp;&amp; gap &lt; 420 &amp;&amp; Math.abs(lane - raceState.lane) &gt; 1.08;
+    if (conflict &amp;&amp; !readablePassWindow) return false;
     phoneDrawnVehicles.push({ gap, lane });
     return true;
   };
@@ -18194,7 +18531,8 @@ initWebGLRenderer();
 setRendererMode(rendererMode, true);
 registerOfflineApp();
 drawFrame();
-</pre><h2>phone-asset-pipeline.js</h2><pre>"use strict";
+</pre>
+<h2>phone-asset-pipeline.js</h2><pre>"use strict";
 
 (function () {
   const spriteCache = new Map();
@@ -19117,7 +19455,8 @@ drawFrame();
     ready: true
   };
 })();
-</pre><h2>webgl-pipeline.js</h2><pre>"use strict";
+</pre>
+<h2>webgl-pipeline.js</h2><pre>"use strict";
 
 (function () {
   function hexToRgba(hex, alpha = 1) {
@@ -20043,7 +20382,8 @@ drawFrame();
 
   window.VelocityWebGLPipeline = VelocityWebGLPipeline;
 }());
-</pre><h2>manifest.json</h2><pre>{
+</pre>
+<h2>manifest.json</h2><pre>{
   "name": "Velocity Vault",
   "short_name": "Velocity",
   "description": "A standalone racing game with local profiles, upgrades, missions, controller support, and offline play.",
@@ -20072,9 +20412,10 @@ drawFrame();
     }
   ]
 }
-</pre><h2>sw.js</h2><pre>"use strict";
+</pre>
+<h2>sw.js</h2><pre>"use strict";
 
-const cacheName = "velocity-vault-v95-world-routes-detail";
+const cacheName = "velocity-vault-v96-visible-world-routes";
 const appShell = [
   "./",
   "./index.html",
@@ -20115,7 +20456,8 @@ self.addEventListener("fetch", (event) =&gt; {
     })
   );
 });
-</pre><h2>README.md</h2><pre># Velocity Vault
+</pre>
+<h2>README.md</h2><pre># Velocity Vault
 
 A standalone browser racing game built with local-only profiles, age-band selection, upgrades, missions, and canvas racing.
 
@@ -20222,6 +20564,8 @@ Real-world style visuals:
 - The v94 road-embedding pass changes the real-world render order so asphalt and pavement rules are drawn before roadside scenery, then adds shoulder contact shadows and a final pavement occlusion mask. This keeps scenery, piers, crowds, and terrain from bleeding through the road, so both phone and online/WebGL views read more like the road is built into the world instead of floating over it.
 - The v95 world-route detail pass adds six new original real-world-inspired routes: Desert Neon Strip Circuit, Dubai Marina Hyper Sprint, Venice Canal Boat Grand Prix, Iceland Glacier Storm Rally, Mediterranean Cliff Grand Prix, and Rio Mountain Coast Rush. These routes include compatible vehicle rules, route stages, weather/surface handling, hideouts, shortcuts, bystanders/animals, destination signs, ground-locked props, phone-safe fallback scenery, WebGL colors, and generated phone road textures.
 - The v95 vehicle-detail pass adds new purchasable builds including Hyper GT Coupe, Endurance Touring GT, Formula Night Aero, Electric Track Prototype, Baja Trophy Truck, and Marina V-Hull Racer. Canvas/phone/WebGL vehicle rendering now adds more vents, splitters, aero trim, light signatures, brake/rim hints, heavy-vehicle rails, monster suspension cues, boat hull strakes, aircraft panel lines, rotor/wing accents, and tank tread detail while staying original and unlicensed.
+- The v96 visible-world pass makes phone scenery active again with a cleaner, lower-contrast road-rule layer; spreads opponents into readable racing waves; pushes roadside objects farther away from the lane; and adds larger route-specific landmarks such as neon hotel blocks, marina glass towers, canal boats, stone bridges, glacier/lava walls, cliff villas, hillside homes, beach kiosks, markets, yachts, and spectator decks.
+- The v96 route-chapter pass gives the newer world routes stronger changing scenery as you drive: Vegas-style hotel corridors, Dubai-style marina towers, Venice-style canal bridges, Iceland-style glacier and lava sections, Monaco-style harbor/cliff moments, and Rio-style beach-to-hillside transitions now render in the distant backdrop, stage landmarks, and grounded drive-by prop lists.
 - Opponents can now make wheel-to-wheel side contact when the player catches them, causing both vehicles to slow, push sideways, smoke, spin, lose focus, and keep damaged state instead of phasing through.
 - Traffic uses rear-view performance silhouettes instead of overhead arcade sprites, with realistic road dashes and route markers replacing blocky lane pickups. Traffic and police no longer disappear on contact; damaged vehicles remain on the road until they move out of view.
 - Driving now uses more realistic throttle, brake, reverse, steering inertia, lateral velocity, grip, road-edge slowdown, tire slip, corrected steering direction across touch, keyboard, and gamepad input, vehicle body yaw, damage-based acceleration loss, and damage-based handling loss instead of automatic forward motion or lane-snapping movement.
@@ -20344,7 +20688,8 @@ This keeps the game feeling fresh without sending player data to any server. Bec
 - Profiles and optional PIN hashes stay in `localStorage` on this device.
 - Controller support uses the browser Gamepad API only.
 - The PIN is only for casual local separation between players; it is not a replacement for operating-system account security.
-</pre><h2>APEX-VAULT-COMMAND-CLOUD.md</h2><pre># Apex Vault Command Cloud Hosting
+</pre>
+<h2>APEX-VAULT-COMMAND-CLOUD.md</h2><pre># Apex Vault Command Cloud Hosting
 
 Velocity Vault is ready to host as a secure static Progressive Web App on Apex Vault Command Cloud.
 
@@ -20400,7 +20745,8 @@ Send the secure Apex link to testers. Each phone can install the game like an ap
 When the local files change, rebuild and reupload `VelocityVault-ApexVaultCommandCloud-StaticBundle.zip` for Apex to show the new version. The hosted copy will not update by itself from this folder unless Apex is later connected to a GitHub/deploy hook.
 
 If Apex gives you a custom domain option, point the domain to this deployment and keep HTTPS enabled.
-</pre><h2>apex-vault-command-cloud.json</h2><pre>{
+</pre>
+<h2>apex-vault-command-cloud.json</h2><pre>{
   "appName": "Velocity Vault",
   "deploymentName": "velocity-vault",
   "version": "v80-apex-safe-static-assets",
@@ -20497,7 +20843,8 @@ If Apex gives you a custom domain option, point the domain to this deployment an
     "After deployment, open the secure URL on a phone and use Add to Home Screen or Install."
   ]
 }
-</pre><h2>_headers</h2><pre>/*
+</pre>
+<h2>_headers</h2><pre>/*
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   Referrer-Policy: no-referrer
   X-Content-Type-Options: nosniff
