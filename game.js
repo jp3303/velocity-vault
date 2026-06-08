@@ -9,7 +9,7 @@ const glCanvas = $("#glCanvas");
 
 const storeKey = "velocityVaultProfilesV1";
 const saveKey = "velocityVaultSavedRaceV1";
-const starterGarageVersion = 79;
+const starterGarageVersion = 80;
 const raceDistanceMultiplier = 7.4;
 const minimumRaceSeconds = 72;
 const ageBands = {
@@ -1370,7 +1370,7 @@ function setCameraMode(mode, quiet = false) {
 }
 
 function applyPhoneGraphicsDefaults() {
-  const key = "velocityVaultPhoneGraphicsDefaultsV58";
+  const key = "velocityVaultPhoneGraphicsDefaultsV59";
   if (!phoneGraphicsActive() || localStorage.getItem(key)) return;
   rendererMode = "canvas";
   if (cameraMode === "chase") cameraMode = "hood";
@@ -7761,14 +7761,20 @@ function drawRouteSectorRoadEdgeDetail(w, h, horizon, roadTop, roadBottom, stage
 }
 
 function routeSectorDetailKind(place, stage) {
-  if (stage.prop === "tunnel") return "tunnel";
-  if (stage.prop === "bridge" || stage.prop === "pier") return "bridge";
-  if (stage.prop === "checkpoint" || /finish/i.test(stage.label)) return "crosswalk";
+  const prop = stage && stage.prop ? stage.prop : "";
+  if (prop === "tunnel") return "tunnel";
+  if (prop === "bridge" || prop === "pier" || prop === "stoneBridge" || prop === "marinaYacht" || prop === "gondolaBoat") return "bridge";
+  if (prop === "checkpoint" || /finish/i.test(stage.label)) return "crosswalk";
+  if (prop === "hotelBlock" || prop === "glassTower" || prop === "cliffVilla" || prop === "hillsideHomes" || prop === "beachKiosk" || prop === "marketStall" || prop === "spectatorDeck") return "crosswalk";
+  if (prop === "glacierWall") return "snow";
+  if (prop === "lavaRock") return "dirt";
   if (place === "airfield") return "runway";
   if (place === "freight" || place === "harbor") return "yard";
+  if (place === "dubai" || place === "venice" || place === "monaco") return "bridge";
   if (place === "snow" || place === "alpine") return "snow";
+  if (place === "iceland") return "snow";
   if (place === "desert" || place === "canyon" || place === "farm") return "dirt";
-  if (place === "city" || place === "tokyo" || place === "europe") return "crosswalk";
+  if (place === "city" || place === "tokyo" || place === "europe" || place === "vegas" || place === "rio") return "crosswalk";
   return "edge";
 }
 
@@ -7862,6 +7868,214 @@ function drawRouteSectorSetPiece(prop, x, y, scale, place, design, theme, seed) 
         ctx.fill();
       }
     }
+  } else if (prop === "hotelBlock" || prop === "glassTower") {
+    const glass = prop === "glassTower";
+    const count = glass ? 6 : 5;
+    ctx.fillStyle = glass ? "rgba(28,80,90,0.28)" : "rgba(255,79,216,0.16)";
+    ctx.beginPath();
+    ctx.ellipse(0, 38, 190, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    for (let i = 0; i < count; i += 1) {
+      const bw = glass ? 30 + (i % 2) * 12 : 46 + (i % 2) * 14;
+      const bh = (glass ? 116 : 86) + seededUnit(seed, i + 42) * (glass ? 88 : 54);
+      const bx = -116 + i * (glass ? 44 : 58);
+      const tower = ctx.createLinearGradient(bx, -bh, bx + bw, 20);
+      tower.addColorStop(0, glass ? "rgba(188,236,238,0.55)" : "rgba(255,79,216,0.25)");
+      tower.addColorStop(0.42, glass ? "rgba(18,58,66,0.92)" : "rgba(26,12,42,0.94)");
+      tower.addColorStop(1, "rgba(5,8,7,0.95)");
+      ctx.fillStyle = tower;
+      roundRect(bx, 24 - bh, bw, bh, glass ? 8 : 5);
+      ctx.fill();
+      ctx.strokeStyle = glass ? "rgba(244,251,248,0.34)" : `${accent}55`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bx + bw * 0.22, 34 - bh);
+      ctx.lineTo(bx + bw * 0.14, 16);
+      ctx.moveTo(bx + bw * 0.72, 34 - bh);
+      ctx.lineTo(bx + bw * 0.82, 16);
+      ctx.stroke();
+      ctx.fillStyle = i % 2 ? `${light}70` : `${accent}82`;
+      for (let row = 0; row < 6; row += 1) roundRect(bx + bw * 0.22, 38 - bh + row * (bh / 7), bw * 0.56, 4, 2);
+      ctx.fill();
+    }
+    if (!glass) {
+      ctx.fillStyle = `${light}a8`;
+      roundRect(-116, -118, 232, 18, 5);
+      ctx.fill();
+    }
+  } else if (prop === "cliffVilla" || prop === "hillsideHomes") {
+    const hillside = prop === "hillsideHomes";
+    ctx.fillStyle = hillside ? "rgba(34,102,58,0.46)" : "rgba(122,126,112,0.52)";
+    ctx.beginPath();
+    ctx.moveTo(-188, 44);
+    ctx.quadraticCurveTo(-70, hillside ? -92 : -62, 18, hillside ? -50 : -78);
+    ctx.quadraticCurveTo(98, hillside ? -18 : -52, 188, 42);
+    ctx.closePath();
+    ctx.fill();
+    if (hillside) {
+      for (let row = 0; row < 4; row += 1) {
+        for (let col = -3; col <= 3; col += 1) {
+          const bx = col * 34 + row * 12;
+          const by = 8 - row * 31 - Math.abs(col) * 4;
+          ctx.fillStyle = row % 2 ? "rgba(238,216,172,0.9)" : "rgba(210,232,220,0.86)";
+          roundRect(bx - 13, by - 22, 26, 22, 3);
+          ctx.fill();
+          ctx.fillStyle = "rgba(136,48,40,0.88)";
+          ctx.beginPath();
+          ctx.moveTo(bx - 17, by - 22);
+          ctx.lineTo(bx, by - 38);
+          ctx.lineTo(bx + 17, by - 22);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(5,8,7,0.68)";
+          ctx.fillRect(bx - 5, by - 13, 10, 6);
+        }
+      }
+    } else {
+      for (let i = -1; i <= 1; i += 1) {
+        const bx = i * 64;
+        const by = -42 - Math.abs(i) * 16;
+        ctx.fillStyle = "rgba(238,232,208,0.92)";
+        roundRect(bx - 30, by - 42, 60, 42, 5);
+        ctx.fill();
+        ctx.fillStyle = `${light}94`;
+        ctx.beginPath();
+        ctx.moveTo(bx - 36, by - 42);
+        ctx.lineTo(bx, by - 72);
+        ctx.lineTo(bx + 36, by - 42);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "rgba(5,8,7,0.72)";
+        for (let win = -1; win <= 1; win += 1) roundRect(bx + win * 18 - 5, by - 28, 10, 12, 2);
+        ctx.fill();
+      }
+    }
+  } else if (prop === "marinaYacht" || prop === "gondolaBoat") {
+    const gondola = prop === "gondolaBoat";
+    ctx.fillStyle = "rgba(20,64,72,0.42)";
+    ctx.beginPath();
+    ctx.ellipse(0, 25, 176, 30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(244,251,248,0.26)";
+    ctx.lineWidth = 2;
+    for (let i = -2; i <= 2; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(-150, 20 + i * 7);
+      ctx.quadraticCurveTo(0, 12 + i * 5 + Math.sin(seed + i) * 4, 150, 20 + i * 7);
+      ctx.stroke();
+    }
+    ctx.fillStyle = gondola ? "rgba(24,18,14,0.94)" : "rgba(244,251,248,0.9)";
+    ctx.beginPath();
+    ctx.moveTo(-112, -4);
+    ctx.quadraticCurveTo(-48, 34, 0, 34);
+    ctx.quadraticCurveTo(58, 34, 116, -4);
+    ctx.lineTo(74, 22);
+    ctx.lineTo(-74, 22);
+    ctx.closePath();
+    ctx.fill();
+    if (gondola) {
+      ctx.strokeStyle = "rgba(214,180,112,0.84)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-120, -8);
+      ctx.quadraticCurveTo(0, -42, 124, -8);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "rgba(5,8,7,0.78)";
+      roundRect(-16, -44, 56, 34, 5);
+      ctx.fill();
+      ctx.strokeStyle = `${light}aa`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(22, -44);
+      ctx.lineTo(58, -92);
+      ctx.lineTo(58, -4);
+      ctx.stroke();
+    }
+  } else if (prop === "stoneBridge") {
+    ctx.fillStyle = "rgba(20,64,72,0.34)";
+    ctx.beginPath();
+    ctx.ellipse(0, 34, 168, 28, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(190,178,150,0.9)";
+    ctx.lineWidth = 11;
+    ctx.beginPath();
+    ctx.moveTo(-150, 8);
+    ctx.quadraticCurveTo(0, -98, 150, 8);
+    ctx.stroke();
+    ctx.lineWidth = 5;
+    for (let i = -4; i <= 4; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(i * 32, -30 + Math.abs(i) * 4);
+      ctx.lineTo(i * 28, 34);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(244,251,248,0.22)";
+    for (let i = -3; i <= 3; i += 1) {
+      ctx.beginPath();
+      ctx.ellipse(i * 40, 0, 11, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (prop === "glacierWall" || prop === "lavaRock") {
+    const icy = prop === "glacierWall";
+    ctx.fillStyle = icy ? "rgba(178,224,226,0.74)" : "rgba(78,64,58,0.88)";
+    ctx.beginPath();
+    ctx.moveTo(-180, 42);
+    ctx.lineTo(-120, -74);
+    ctx.lineTo(-62, -36);
+    ctx.lineTo(-14, -116);
+    ctx.lineTo(42, -50);
+    ctx.lineTo(96, -92);
+    ctx.lineTo(180, 42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = icy ? "rgba(244,251,248,0.68)" : "rgba(255,91,107,0.38)";
+    ctx.beginPath();
+    ctx.moveTo(-34, -82);
+    ctx.lineTo(-14, -116);
+    ctx.lineTo(28, -42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = icy ? "rgba(70,217,255,0.4)" : "rgba(255,183,74,0.34)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-132, -22);
+    ctx.lineTo(132, 6);
+    ctx.moveTo(-76, -52);
+    ctx.lineTo(84, -18);
+    ctx.stroke();
+  } else if (prop === "beachKiosk" || prop === "marketStall" || prop === "spectatorDeck" || prop === "cafe") {
+    if (prop === "spectatorDeck") {
+      ctx.fillStyle = "rgba(5,8,7,0.72)";
+      roundRect(-132, -34, 264, 44, 5);
+      ctx.fill();
+      ctx.fillStyle = `${accent}88`;
+      for (let i = -8; i <= 8; i += 1) {
+        ctx.beginPath();
+        ctx.arc(i * 15, -48 - Math.abs(i % 2) * 5, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = `${light}88`;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-138, -12);
+      ctx.lineTo(138, -20);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "rgba(5,8,7,0.84)";
+      roundRect(-92, -38, 184, 46, 5);
+      ctx.fill();
+      ctx.fillStyle = prop === "beachKiosk" ? `${light}bf` : `${accent}bf`;
+      ctx.beginPath();
+      ctx.moveTo(-104, -38);
+      ctx.lineTo(0, -78);
+      ctx.lineTo(104, -38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(244,251,248,0.6)";
+      for (let i = -2; i <= 2; i += 1) roundRect(i * 32 - 10, -22, 20, 12, 3);
+      ctx.fill();
+    }
   } else if (prop === "pine" || prop === "canopy" || prop === "palm") {
     ctx.fillStyle = prop === "palm" ? "rgba(54,217,138,0.42)" : "rgba(33,102,62,0.46)";
     for (let i = -5; i <= 5; i += 1) {
@@ -7916,8 +8130,20 @@ function drawRouteSectorRoadsideStory(w, h, horizon, roadTop, roadBottom, stage,
 
 function routeSectorStorySet(place, stage) {
   if (stage.prop === "tunnel") return ["tunnelLamp", "fanBox", "reflectorPost", "emergencyBay"];
-  if (stage.prop === "bridge" || stage.prop === "pier") return ["bridgeCable", "navLight", "guardRail", "expansionPost"];
+  if (stage.prop === "bridge" || stage.prop === "pier" || stage.prop === "stoneBridge" || stage.prop === "marinaYacht" || stage.prop === "gondolaBoat") return ["bridgeCable", "navLight", "guardRail", "expansionPost"];
   if (stage.prop === "checkpoint") return ["marshalPost", "cameraCrew", "crowdFence", "sectorFlag"];
+  const stageSets = {
+    hotelBlock: ["neonStore", "trafficSignal", "taxiQueue", "crowdFence", "expressSign"],
+    glassTower: ["marinaLamp", "serviceCartSign", "dockBollard", "bridgeCable", "navLight"],
+    glacierWall: ["snowPole", "snowFence", "rockMarker", "warmingHut", "rallyFlag"],
+    lavaRock: ["rockMarker", "supportTruckSign", "rallyFlag", "snowFence", "warmingHut"],
+    cliffVilla: ["cafeAwning", "stoneWall", "marinaLamp", "cameraCrew", "guardRail"],
+    hillsideHomes: ["marketAwning", "woodFence", "taxiQueue", "rallyFlag", "mileMarker"],
+    beachKiosk: ["marketAwning", "oceanFence", "lifeguardPost", "taxiQueue", "mileMarker"],
+    marketStall: ["marketAwning", "serviceCartSign", "woodFence", "cameraCrew", "mileMarker"],
+    spectatorDeck: ["crowdFence", "cameraCrew", "sectorFlag", "guardRail", "trafficSignal"]
+  };
+  if (stageSets[stage.prop]) return stageSets[stage.prop];
   const sets = {
     coast: ["lifeguardPost", "surfShop", "oceanFence", "mileMarker"],
     city: ["storefront", "trafficSignal", "taxiQueue", "newsStand"],
@@ -7931,7 +8157,13 @@ function routeSectorStorySet(place, stage) {
     tokyo: ["neonStore", "railSignal", "taxiQueue", "expressSign"],
     desert: ["rallyFlag", "checkpointTent", "sandMarker", "supportTruckSign"],
     rainforest: ["marketAwning", "riverPost", "rainSign", "woodFence"],
-    europe: ["villageLamp", "cafeAwning", "stoneWall", "alpsMarker"]
+    europe: ["villageLamp", "cafeAwning", "stoneWall", "alpsMarker"],
+    vegas: ["neonStore", "trafficSignal", "taxiQueue", "crowdFence", "expressSign"],
+    dubai: ["marinaLamp", "serviceCartSign", "dockBollard", "bridgeCable", "navLight"],
+    venice: ["canalMarker", "cafeAwning", "bridgeCable", "waterfrontFence", "navLight"],
+    iceland: ["snowPole", "rockMarker", "warmingHut", "rallyFlag", "snowFence"],
+    monaco: ["cafeAwning", "marinaLamp", "guardRail", "cameraCrew", "stoneWall"],
+    rio: ["marketAwning", "oceanFence", "taxiQueue", "rallyFlag", "woodFence"]
   };
   return sets[place] || sets.city;
 }
@@ -8047,7 +8279,13 @@ function routeTerrainPalette(place, design, theme) {
     tokyo: { near: "rgba(18,13,32,0.48)", far: `${accent}18`, line: `${accent}42`, detail: "neon" },
     desert: { near: "rgba(123,78,35,0.36)", far: "rgba(255,183,74,0.18)", line: "rgba(244,251,248,0.24)", detail: "sand" },
     rainforest: { near: "rgba(21,72,42,0.38)", far: "rgba(54,217,138,0.16)", line: "rgba(255,209,102,0.24)", detail: "leaf" },
-    europe: { near: "rgba(48,64,61,0.34)", far: "rgba(220,232,239,0.14)", line: `${light}28`, detail: "stone" }
+    europe: { near: "rgba(48,64,61,0.34)", far: "rgba(220,232,239,0.14)", line: `${light}28`, detail: "stone" },
+    vegas: { near: "rgba(18,10,32,0.5)", far: "rgba(255,79,216,0.14)", line: `${accent}44`, detail: "neon" },
+    dubai: { near: "rgba(18,58,66,0.42)", far: "rgba(70,217,255,0.18)", line: "rgba(244,251,248,0.3)", detail: "dock" },
+    venice: { near: "rgba(20,64,72,0.42)", far: "rgba(70,217,255,0.2)", line: "rgba(214,180,112,0.32)", detail: "wave" },
+    iceland: { near: "rgba(210,232,239,0.34)", far: "rgba(244,251,248,0.2)", line: "rgba(70,217,255,0.34)", detail: "snow" },
+    monaco: { near: "rgba(48,58,56,0.38)", far: "rgba(70,217,255,0.14)", line: `${light}32`, detail: "stone" },
+    rio: { near: "rgba(25,82,54,0.4)", far: "rgba(54,217,138,0.16)", line: "rgba(255,209,102,0.28)", detail: "leaf" }
   };
   return palettes[place] || palettes.city;
 }

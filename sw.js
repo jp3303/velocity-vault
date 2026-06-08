@@ -1,6 +1,6 @@
 "use strict";
 
-const cacheName = "velocity-vault-v97-route-chapter-landmarks";
+const cacheName = "velocity-vault-v98-route-sector-worlds";
 const appShell = [
   "./",
   "./index.html",
